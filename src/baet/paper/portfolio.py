@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 
 class PaperPortfolio:
@@ -14,12 +14,13 @@ class PaperPortfolio:
     for paper trading simulation.
     """
     
-    def __init__(self, initial_balance: float = 10000.0):
+    def __init__(self, initial_balance: float = 10000.0, logger: Any = None):
         self.initial_balance = initial_balance
         self.cash = initial_balance
         self.positions: dict[str, dict] = {}  # symbol -> {units, avg_price}
         self.trades: list[dict] = []
         self.equity_curve: list[dict] = []
+        self.logger = logger
         self._initialize_equity_curve()
     
     def _initialize_equity_curve(self) -> None:
@@ -61,14 +62,25 @@ class PaperPortfolio:
         pos["units"] = total_units
         
         # Record trade
-        self.trades.append({
+        trade = {
             "timestamp": datetime.now(),
             "symbol": symbol,
             "side": "BUY",
             "units": units,
             "price": price,
             "fee": fee,
-        })
+        }
+        self.trades.append(trade)
+        
+        # Log trade if logger available
+        if self.logger:
+            self.logger.log_portfolio_update(
+                action="BUY",
+                symbol=symbol,
+                cash=self.cash,
+                positions=self.get_positions(),
+                total_value=self.get_total_value(),
+            )
         
         return True
     
@@ -101,14 +113,25 @@ class PaperPortfolio:
             del self.positions[symbol]
         
         # Record trade
-        self.trades.append({
+        trade = {
             "timestamp": datetime.now(),
             "symbol": symbol,
             "side": "SELL",
             "units": units,
             "price": price,
             "fee": fee,
-        })
+        }
+        self.trades.append(trade)
+        
+        # Log trade if logger available
+        if self.logger:
+            self.logger.log_portfolio_update(
+                action="SELL",
+                symbol=symbol,
+                cash=self.cash,
+                positions=self.get_positions(),
+                total_value=self.get_total_value(),
+            )
         
         return True
     

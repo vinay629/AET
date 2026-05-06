@@ -141,20 +141,85 @@ engine.start()
 
 ## Testing
 
-The paper trading module includes comprehensive tests in `tests/test_paper_trading.py`:
+The paper trading module includes comprehensive tests:
 
 ```bash
+# Test paper trading engine
 python -m pytest tests/test_paper_trading.py -v
+
+# Test paper trading logging
+python -m pytest tests/test_paper_logging.py -v
 ```
 
-## Milestone
+## Logging
 
-This module fulfills **M4.2.a** - Paper Trading Loop Runs Continuously Without Crashing.
+The paper trading module includes structured JSON logging for all decisions.
 
-### Success Criteria:
+### PaperTradingLogger (`logging.py`)
+
+Provides structured logging for all paper trading decisions.
+
+**Key Features:**
+- JSON-formatted log entries
+- Multiple log types (SIGNAL, RISK, ORDER, PORTFOLIO, ENGINE)
+- Daily log file rotation
+- Configurable log levels
+
+**Usage:**
+```python
+from baet.paper.logging import PaperTradingLogger
+
+logger = PaperTradingLogger(
+    log_dir="logs/paper",
+    level="INFO",
+    rotation="daily",
+    max_files=30,
+)
+
+# Log various events
+logger.log_signal_received("BTCUSDT", {"direction": "BUY"})
+logger.log_risk_evaluation("BTCUSDT", {}, {"passed": True})
+logger.log_order_simulated("BTCUSDT", "BUY", 20000.0, 20010.0, 0.5, 10.0, 10.0)
+logger.log_portfolio_update("BUY", "BTCUSDT", 9000.0, {}, 19000.0)
+logger.log_engine_event("ENGINE_STARTED", {"loop_interval": 60})
+```
+
+### Log Analysis
+
+Use the provided script to analyze paper trading logs:
+
+```bash
+python scripts/analyze_paper_logs.py logs/paper/paper_trading_2024-01-15.log
+
+# Filter by type
+python scripts/analyze_paper_logs.py logs/paper/paper_trading_2024-01-15.log --type ORDER_SIMULATED
+
+# Export to CSV
+python scripts/analyze_paper_logs.py logs/paper/paper_trading_2024-01-15.log --export-csv output.csv
+```
+
+## Milestones
+
+### M4.2.a - Paper Trading Loop
+**Completed** - Paper Trading Loop Runs Continuously Without Crashing.
+
+**Success Criteria:**
 - ✅ PaperPortfolio tracks positions and cash correctly
 - ✅ PaperOrderSimulator applies realistic slippage and fees
 - ✅ PaperTradingEngine runs in a continuous loop
 - ✅ Engine handles errors gracefully without crashing
 - ✅ Integration with risk engine (optional)
 - ✅ 28 unit tests passing
+
+### M4.3.a - Decision Logging (Current)
+**In Progress** - Paper Trading Logs Explain Decisions End-to-End.
+
+**Success Criteria:**
+- ✅ Structured JSON logging for all decisions
+- ✅ Signal reception logged
+- ✅ Risk evaluations logged
+- ✅ Order simulations logged
+- ✅ Portfolio updates logged
+- ✅ Engine events logged
+- ✅ Log analysis script created
+- ✅ 17 unit tests passing

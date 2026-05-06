@@ -36,6 +36,13 @@ class PaperTradingConfig(BaseModel):
     stop_on_error: bool = False
     max_consecutive_errors: int = 10
     notification_webhook: str = ""
+    logging: dict = Field(default_factory=lambda: {
+        "enabled": True,
+        "level": "INFO",
+        "directory": "logs/paper",
+        "rotation": "daily",
+        "max_files": 30,
+    })
 
 
 class LiveConfig(BaseModel):

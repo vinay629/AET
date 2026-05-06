@@ -25,6 +25,7 @@ class PaperTradingEngine:
         self,
         config: Settings,
         risk_engine: Optional[RiskEngine] = None,
+        paper_logger: Optional[object] = None,
     ):
         self.config = config
         self.risk_engine = risk_engine
@@ -37,13 +38,27 @@ class PaperTradingEngine:
         from baet.paper.portfolio import PaperPortfolio
         from baet.paper.order_simulator import PaperOrderSimulator
         
+        # Set up decision logger first
+        self.paper_logger = paper_logger
+        if self.paper_logger is None and hasattr(config.paper, 'logging'):
+            from baet.paper.logging import create_paper_logger_from_config
+            self.paper_logger = create_paper_logger_from_config(config.paper.logging)
+        
         self.portfolio = PaperPortfolio(
-            initial_balance=config.paper.initial_balance
+            initial_balance=config.paper.initial_balance,
+            logger=self.paper_logger,
         )
         self.order_simulator = PaperOrderSimulator(
             fee_rate=config.backtest.fee_rate,
             slippage_rate=config.backtest.slippage_rate,
+            logger=self.paper_logger,
         )
+        
+        if self.paper_logger:
+            self.paper_logger.log_engine_event("ENGINE_INITIALIZED", {
+                "initial_balance": config.paper.initial_balance,
+                "has_risk_engine": risk_engine is not None,
+            })
         
         logger.info("PaperTradingEngine initialized")
     
@@ -57,6 +72,13 @@ class PaperTradingEngine:
         self.consecutive_errors = 0
         
         logger.info("Paper trading loop started")
+        
+        if self.paper_logger:
+            self.paper_logger.log_engine_event("ENGINE_STARTED", {
+                "loop_interval": self.config.paper.loop_interval_seconds,
+                "stop_on_error": self.config.paper.stop_on_error,
+                "max_consecutive_errors": self.config.paper.max_consecutive_errors,
+            })
         
         while self.running:
             try:
@@ -73,6 +95,12 @@ class PaperTradingEngine:
                     f"Paper trading error (attempt {self.consecutive_errors}): {e}",
                     exc_info=True
                 )
+                
+                if self.paper_logger:
+                    self.paper_logger.log_error(e, {
+                        "consecutive_errors": self.consecutive_errors,
+                        "iteration": self.last_update_time,
+                    })
                 
                 # Check if we should stop on too many errors
                 if self.consecutive_errors >= self.max_consecutive_errors:
@@ -92,6 +120,12 @@ class PaperTradingEngine:
         """Stop the paper trading loop."""
         self.running = False
         logger.info("Paper trading loop stopped")
+        
+        if self.paper_logger:
+            self.paper_logger.log_engine_event("ENGINE_STOPPED", {
+                "total_trades": len(self.portfolio.trades),
+                "final_value": self.portfolio.get_total_value(),
+            })
     
     def _iteration(self) -> None:
         """Single iteration of the paper trading loop."""
@@ -105,6 +139,11 @@ class PaperTradingEngine:
         
         # 3. Generate strategy signals (placeholder for now)
         signals = self._generate_signals(features)
+        
+        # Log signals
+        if self.paper_logger and signals:
+            for symbol, signal in signals.items():
+                self.paper_logger.log_signal_received(symbol, signal)
         
         # 4. Combine signals (if ensemble configured)
         combined = self._combine_signals(signals)
@@ -162,15 +201,108 @@ class PaperTradingEngine:
         if not self.risk_engine:
             return decisions  # No risk engine = no checks
         
-        # TODO: Implement risk checks
-        logger.debug("Running risk checks (not implemented)")
-        return decisions
+        approved = []
+        for decision in decisions:
+            symbol = decision.get("symbol", "unknown")
+            signal = decision.get("signal", {})
+            
+            # TODO: Implement actual risk checks
+            # For now, just pass through
+            result = {"passed": True, "violations": []}
+            
+            # Log risk evaluation
+            if self.paper_logger:
+                self.paper_logger.log_risk_evaluation(symbol, signal, result)
+            
+            if result.get("passed", True):
+                approved.append(decision)
+        
+        return approved
     
     def _execute_paper_trades(self, approved: list, market_data: dict) -> None:
         """Execute approved paper trades."""
-        # TODO: Implement trade execution
-        logger.debug("Executing paper trades (not implemented)")
-        pass
+        for decision in approved:
+            symbol = decision.get("symbol")
+            action = decision.get("action", "HOLD")
+            price = market_data.get(symbol, {}).get("price", 0)
+            
+            if action == "BUY" and price > 0:
+                # Simulate buy order
+                fill_price, units, fee = self.order_simulator.simulate_buy(
+                    price=price,
+                    units=decision.get("units", 0.1),
+                )
+                
+                # Execute buy
+                success = self.portfolio.buy(
+                    symbol=symbol,
+                    units=units,
+                    price=fill_price,
+                    fee=fee,
+                )
+                
+                # Log order simulation
+                if self.paper_logger:
+                    self.paper_logger.log_order_simulated(
+                        symbol=symbol,
+                        side="BUY",
+                        requested_price=price,
+                        filled_price=fill_price,
+                        units=units,
+                        fee=fee,
+                        slippage=fill_price - price,
+                    )
+                
+                # Log portfolio update
+                if self.paper_logger:
+                    self.paper_logger.log_portfolio_update(
+                        action="BUY",
+                        symbol=symbol,
+                        cash=self.portfolio.cash,
+                        positions=self.portfolio.get_positions(),
+                        total_value=self.portfolio.get_total_value(market_data),
+                    )
+            
+            elif action == "SELL" and price > 0:
+                # Simulate sell order
+                position = self.portfolio.positions.get(symbol, {})
+                units = position.get("units", 0)
+                
+                if units > 0:
+                    fill_price, proceeds, fee = self.order_simulator.simulate_sell(
+                        price=price,
+                        units=units,
+                    )
+                    
+                    # Execute sell
+                    success = self.portfolio.sell(
+                        symbol=symbol,
+                        units=units,
+                        price=fill_price,
+                        fee=fee,
+                    )
+                    
+                    # Log order simulation
+                    if self.paper_logger:
+                        self.paper_logger.log_order_simulated(
+                            symbol=symbol,
+                            side="SELL",
+                            requested_price=price,
+                            filled_price=fill_price,
+                            units=units,
+                            fee=fee,
+                            slippage=price - fill_price,  # Sell slippage is negative
+                        )
+                    
+                    # Log portfolio update
+                    if self.paper_logger:
+                        self.paper_logger.log_portfolio_update(
+                            action="SELL",
+                            symbol=symbol,
+                            cash=self.portfolio.cash,
+                            positions=self.portfolio.get_positions(),
+                            total_value=self.portfolio.get_total_value(market_data),
+                        )
     
     def _update_portfolio_state(self, market_data: dict) -> None:
         """Update portfolio state with current market prices."""

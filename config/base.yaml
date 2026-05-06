@@ -26,6 +26,12 @@ paper:
   stop_on_error: false  # Continue running on errors
   max_consecutive_errors: 10
   notification_webhook: ""  # Optional webhook for alerts
+  logging:
+    enabled: true
+    level: INFO
+    directory: logs/paper
+    rotation: daily
+    max_files: 30
 
 live:
   enabled: false

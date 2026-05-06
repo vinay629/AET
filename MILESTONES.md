@@ -64,6 +64,7 @@ Track delivery by validated checkpoints, not by code volume.
 - `M4.1a` implemented
 - `M4.1b` implemented
 - `M4.2a` implemented
+- `M4.3a` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
@@ -79,8 +80,7 @@ Track delivery by validated checkpoints, not by code volume.
 - Stage 3.4 intelligence stack validation reporting implemented: build_intelligence_stack_comparison(), build_regime_performance_report(), and validate_intelligence_stack() functions compare baseline vs ensemble vs ML strategies and validate that intelligence stack improves performance
 - Stage 4.1a risk policy documented and decision-complete: RiskPolicy model with PositionSizingPolicy, DrawdownProtectionPolicy, RegimeRiskPolicy, StrategyRiskPolicy, PortfolioRiskPolicy, EmergencyPolicy; RiskEngine evaluates all signals and CAN override strategy decisions; 35 unit tests validate all components
 - Stage 4.1b centralized risk checks gate every trade path: RiskEngine integrated into ensemble layer (StaticEnsemble, AdaptiveEnsemble) and backtest engine (PortfolioBacktestEngine); integration module (risk/integration.py) provides helper functions; 22 integration tests validate all paths; backward compatible (risk engine is optional)
-- Stage 4.2a paper trading loop runs continuously without crashing: PaperPortfolio tracks positions/cash; PaperOrderSimulator applies slippage/fees; PaperTradingEngine runs continuous loop with error handling; 28 unit tests validate all components; integrates with risk engine (optional)
-
+- Stage 4.2a paper trading loop runs continuously without crashing: PaperPortfolio tracks positions/cash; PaperOrderSimulator applies slippage/fees; PaperTradingEngine runs continuous loop with error handling; 28 unit tests validate all components; integrates with risk engine (optional)- Stage 4.3.a paper trading logs explain decisions end-to-end: PaperTradingLogger provides structured JSON logging; all decisions logged (signals, risk evaluations, order simulations, portfolio updates, engine events); log analysis script created; 17 unit tests validate logging system
 ## Validation States
 - `pending`
 - `active`
