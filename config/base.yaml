@@ -1,0 +1,46 @@
+app:
+  name: baet
+  mode: dev
+  logging_level: INFO
+
+market:
+  symbols:
+    - BTCUSDT
+    - ETHUSDT
+  timeframes:
+    - 1h
+    - 4h
+
+storage:
+  raw_data_dir: data/raw
+  processed_data_dir: data/processed
+  results_dir: data/results
+  logs_dir: logs
+  artifacts_dir: artifacts
+  models_dir: models
+
+paper:
+  enabled: true
+  initial_balance: 10000.0
+
+live:
+  enabled: false
+  require_explicit_confirmation: true
+  account_touchpoints:
+    - order_submission
+    - balance_lookup
+    - position_lookup
+
+binance:
+  market_data_touchpoints:
+    - historical_klines
+    - websocket_streams
+    - exchange_info
+  account_touchpoints:
+    - account_info
+    - open_orders
+    - order_submission
+
+risk:
+  max_risk_per_trade: 0.01
+  max_portfolio_exposure: 0.20

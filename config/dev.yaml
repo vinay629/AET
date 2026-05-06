@@ -1,0 +1,9 @@
+app:
+  mode: dev
+  logging_level: DEBUG
+
+paper:
+  enabled: false
+
+live:
+  enabled: false

@@ -1,0 +1,50 @@
+[project]
+name = "baet"
+version = "0.1.0"
+description = "Binance Adaptive Ensemble Trader project scaffold"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.11.0",
+    "pydantic-settings>=2.10.0",
+    "python-dotenv>=1.1.0",
+    "pyyaml>=6.0.2",
+]
+
+[project.optional-dependencies]
+research = [
+    "numpy>=2.3.0",
+    "pandas>=2.3.0",
+    "scikit-learn>=1.7.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/baet"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+packages = ["baet"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.0",
+    "pytest>=8.4.0",
+    "ruff>=0.12.0",
+    "types-PyYAML>=6.0.12.20250915",
+]

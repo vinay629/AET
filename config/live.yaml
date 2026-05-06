@@ -1,0 +1,10 @@
+app:
+  mode: live
+  logging_level: WARNING
+
+paper:
+  enabled: false
+
+live:
+  enabled: false
+  require_explicit_confirmation: true

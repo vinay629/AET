@@ -1,0 +1,10 @@
+app:
+  mode: paper
+  logging_level: INFO
+
+paper:
+  enabled: true
+  initial_balance: 10000.0
+
+live:
+  enabled: false
