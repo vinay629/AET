@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 from baet.core.enums import AppMode
-from baet.risk.policy import RiskPolicy
 
 
 class AppConfig(BaseModel):
@@ -27,9 +28,14 @@ class StorageConfig(BaseModel):
     models_dir: Path = Path("models")
 
 
-class PaperConfig(BaseModel):
+class PaperTradingConfig(BaseModel):
+    """Configuration for paper trading."""
     enabled: bool = True
     initial_balance: float = 10_000.0
+    loop_interval_seconds: int = 60
+    stop_on_error: bool = False
+    max_consecutive_errors: int = 10
+    notification_webhook: str = ""
 
 
 class LiveConfig(BaseModel):
@@ -51,7 +57,17 @@ class BinanceConfig(BaseModel):
 class RiskConfig(BaseModel):
     max_risk_per_trade: float = 0.01
     max_portfolio_exposure: float = 0.20
-    policy: RiskPolicy = Field(default_factory=RiskPolicy)
+    policy: dict = Field(default_factory=dict)
+    
+    def get_policy(self):
+        """Lazily load and return the RiskPolicy object."""
+        if not hasattr(self, '_policy_obj'):
+            from baet.risk.policy import RiskPolicy
+            if isinstance(self.policy, dict) and self.policy:
+                self._policy_obj = RiskPolicy(**self.policy)
+            else:
+                self._policy_obj = RiskPolicy()
+        return self._policy_obj
 
 
 class FeatureConfig(BaseModel):
@@ -85,7 +101,7 @@ class Settings(BaseModel):
     app: AppConfig = Field(default_factory=AppConfig)
     market: MarketConfig = Field(default_factory=MarketConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
-    paper: PaperConfig = Field(default_factory=PaperConfig)
+    paper: PaperTradingConfig = Field(default_factory=PaperTradingConfig)
     live: LiveConfig = Field(default_factory=LiveConfig)
     binance: BinanceConfig = Field(default_factory=BinanceConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)

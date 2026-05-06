@@ -22,6 +22,10 @@ storage:
 paper:
   enabled: true
   initial_balance: 10000.0
+  loop_interval_seconds: 60  # Check every 60 seconds
+  stop_on_error: false  # Continue running on errors
+  max_consecutive_errors: 10
+  notification_webhook: ""  # Optional webhook for alerts
 
 live:
   enabled: false
