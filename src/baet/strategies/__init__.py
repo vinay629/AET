@@ -16,6 +16,7 @@ from baet.strategies.contracts import SIGNAL_COLUMNS, StrategyContract
 from baet.strategies.discovery import discover_strategies, filter_supported_strategies
 from baet.strategies.ensemble import EnsembleConfig, StaticEnsemble, StrategyWeight
 from baet.strategies.regime import RegimeDetector, VolatilityTrendRegimeDetector
+from baet.strategies.adaptive_ensemble import AdaptiveEnsemble, PerformanceTracker
 
 __all__ = [
     "SIGNAL_COLUMNS",
@@ -37,4 +38,6 @@ __all__ = [
     "EnsembleConfig",
     "StaticEnsemble",
     "StrategyWeight",
+    "AdaptiveEnsemble",
+    "PerformanceTracker",
 ]
