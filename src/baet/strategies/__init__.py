@@ -17,6 +17,7 @@ from baet.strategies.discovery import discover_strategies, filter_supported_stra
 from baet.strategies.ensemble import EnsembleConfig, StaticEnsemble, StrategyWeight
 from baet.strategies.regime import RegimeDetector, VolatilityTrendRegimeDetector
 from baet.strategies.adaptive_ensemble import AdaptiveEnsemble, PerformanceTracker
+from baet.strategies.ml_strategy import MLRandomForestStrategy
 
 __all__ = [
     "SIGNAL_COLUMNS",
@@ -40,4 +41,5 @@ __all__ = [
     "StrategyWeight",
     "AdaptiveEnsemble",
     "PerformanceTracker",
+    "MLRandomForestStrategy",
 ]

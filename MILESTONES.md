@@ -59,6 +59,7 @@ Track delivery by validated checkpoints, not by code volume.
 - `M3.2a` implemented
 - `M3.2b` implemented
 - `M3.3a` implemented
+- `M3.3b` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
@@ -70,6 +71,7 @@ Track delivery by validated checkpoints, not by code volume.
 - Stage 3.1 regime detection module implemented with VolatilityTrendRegimeDetector that classifies TRENDING, RANGING, HIGH_VOLATILITY, LOW_VOLATILITY regimes using expanding window percentiles for reproducibility
 - Stage 3.2 ensemble decision layer implemented with StaticEnsemble that combines multiple strategy signals using confidence-weighted voting and regime-aware weighting; produces single decision stream per timestamp
 - Stage 3.3a adaptive ensemble implemented with AdaptiveEnsemble that updates strategy weights deterministically based on rolling Sharpe ratio performance; includes PerformanceTracker for rolling metrics calculation
+- Stage 3.3b ML strategy integrated: MLRandomForestStrategy uses Random Forest classifier with technical features (RSI, MA ratios, volatility) to predict price direction; includes automated feature generation and probability-based signal generation
 
 ## Validation States
 - `pending`
