@@ -8,12 +8,6 @@ from baet.data.features import PandasFeatureBuilder
 from baet.data.interfaces import HistoricalDataProvider, MarketDataStore
 from baet.data.validation import validate_candles
 from baet.execution.backtest import PortfolioBacktestEngine
-from baet.reporting.summaries import (
-    build_backtest_results_summary,
-    build_data_quality_summary,
-    build_feature_coverage_summary,
-    build_ingestion_summary,
-)
 from baet.strategies.baselines import build_buy_and_hold_signals
 
 
@@ -71,5 +65,13 @@ class ResearchPipeline:
         )
         if hasattr(self.store, "write_metadata"):
             self.store.write_metadata(dict(artifacts.metadata), run_name)
-        summary = build_backtest_results_summary(artifacts.metrics, artifacts.trades)
-        return artifacts, summary
+        
+        # Build summary without importing from reporting (avoid circular import)
+        metric_map = {}
+        if not artifacts.metrics.empty:
+            metric_map = {
+                str(row["metric"]): float(row["value"]) 
+                for _, row in artifacts.metrics.iterrows()
+            }
+        metric_map["trade_count"] = int(len(artifacts.trades))
+        return artifacts, metric_map
