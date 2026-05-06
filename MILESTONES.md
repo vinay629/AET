@@ -16,6 +16,30 @@ Track delivery by validated checkpoints, not by code volume.
 - `M1.3` backtester handles fees and slippage
 - `M1.4` strategy comparison reports exist
 
+## Stage 3
+- `M3.1a` regime labels are formally defined
+- `M3.1b` regime labels are generated reproducibly
+- `M3.1c` regime detector runs end to end
+- `M3.2a` strategy signal schema is standardized
+- `M3.2b` static ensemble produces one decision stream
+- `M3.3a` adaptive weights update deterministically
+- `M3.3b` at least one ML strategy is integrated
+- `M3.4` portfolio comparison reports validate the intelligence stack
+
+## Stage 4
+- `M4.1a` risk policy is documented and decision-complete
+- `M4.1b` centralized risk checks gate every trade path
+- `M4.2a` paper trading loop runs continuously without crashing
+- `M4.3a` paper trading logs explain decisions end to end
+- `M4.3b` Streamlit dashboard shows current paper trading state and daily summaries
+- `M4.4` paper trading is stable over the target observation window
+
+## Stage 5
+- `M5.1a` live readiness controls are implemented and documented
+- `M5.1b` live execution path works in controlled validation conditions
+- `M5.2` first tiny-capital live pilot completes with audit trail
+- `M5.3` no hard risk rule breaches occur during initial live observation
+
 ## Current Status
 - `M0.1` validated
 - `M0.2` validated
@@ -25,13 +49,14 @@ Track delivery by validated checkpoints, not by code volume.
 - `M1.1` validated
 - `M1.2` validated
 - `M1.3` validated
-- `M1.4` partially implemented
+- `M1.4` validated
+- `M2.1` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
 - Stage 1 ingestion, storage, feature generation, and baseline backtesting are verified
-- Stage 1 reporting exists for ingestion, data quality, feature coverage, and backtest summaries
-- richer strategy-to-strategy comparison output is still the remaining gap before `M1.4` can be marked validated
+- Stage 1 reporting now includes strategy-to-strategy comparison outputs with ranking tables
+- Stage 2.1 strategy contracts, filesystem discovery, and order-intent signal adaptation are implemented
 
 ## Validation States
 - `pending`

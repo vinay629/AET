@@ -21,3 +21,11 @@ class BacktestArtifacts:
     symbol_returns: pd.DataFrame
     metrics: pd.DataFrame
     metadata: Mapping[str, object]
+
+
+@dataclass(frozen=True)
+class StrategyMetadata:
+    name: str
+    category: str
+    version: str
+    description: str

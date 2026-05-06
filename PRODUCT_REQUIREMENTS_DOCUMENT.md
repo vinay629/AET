@@ -225,7 +225,7 @@ An advanced solo builder or quant-minded trader who wants local control, transpa
 - system must track PnL, drawdown, win rate, Sharpe-like metrics, and exposure
 - system must track metrics per strategy and at portfolio level
 - system must expose logs for decisions, errors, and state transitions
-- system should support a lightweight dashboard or report output
+- system should support a lightweight Streamlit dashboard or report output
 
 ### 10.12 Model and Strategy Lifecycle
 - system should allow scheduled retraining for ML components
@@ -330,6 +330,7 @@ BAET v0.1
 - regime-by-regime performance comparison
 - trade log with decision rationale
 - backtest vs paper trading behavior comparison
+- Streamlit dashboard views for paper trading and monitoring
 
 ## 16. Metrics and KPIs
 
@@ -418,6 +419,7 @@ Mitigation:
 - validate operational stability
 - refine risk controls
 - compare paper and backtest behavior
+- add Streamlit monitoring dashboard for paper trading visibility
 
 ### 19.4 Phase 4 - Limited Live Deployment
 - enable small-capital live trading

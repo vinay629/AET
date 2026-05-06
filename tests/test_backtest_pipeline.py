@@ -8,6 +8,7 @@ from baet.data.interfaces import HistoricalDataProvider
 from baet.data.pipeline import ResearchPipeline
 from baet.data.storage import ParquetMarketDataStore
 from baet.execution.backtest import PortfolioBacktestEngine
+from baet.strategies import BuyAndHoldStrategy, adapt_order_intent_to_backtest_signals
 from baet.strategies.baselines import build_buy_and_hold_signals
 
 
@@ -62,6 +63,16 @@ def test_backtester_outputs_expected_artifacts() -> None:
     assert not artifacts.equity_curve.empty
     assert not artifacts.metrics.empty
     assert "final_equity" in artifacts.metrics["metric"].tolist()
+
+
+def test_order_intent_adapter_preserves_stage1_backtest_path() -> None:
+    market = _market_frame("BTCUSDT", "1h")
+    strategy = BuyAndHoldStrategy()
+    order_intent = strategy.generate_signals(market)
+    adapted = adapt_order_intent_to_backtest_signals(order_intent)
+
+    assert adapted["signal"].eq(1).all()
+    assert list(adapted.columns) == ["symbol", "timeframe", "close_time", "signal"]
 
 
 def test_fee_and_slippage_reduce_results() -> None:

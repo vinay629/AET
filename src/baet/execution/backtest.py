@@ -5,6 +5,7 @@ import pandas as pd
 from baet.config.models import BacktestConfig
 from baet.core.models import BacktestArtifacts
 from baet.data.interfaces import BacktestEngine
+from baet.strategies.adapters import adapt_order_intent_to_backtest_signals
 
 
 class PortfolioBacktestEngine(BacktestEngine):
@@ -141,3 +142,15 @@ class PortfolioBacktestEngine(BacktestEngine):
             metrics=metrics,
             metadata=metadata,
         )
+
+    def run_order_intent(
+        self,
+        market_frames: dict[tuple[str, str], pd.DataFrame],
+        signals: dict[tuple[str, str], pd.DataFrame],
+        run_name: str,
+    ) -> BacktestArtifacts:
+        adapted = {
+            key: adapt_order_intent_to_backtest_signals(signal_frame)
+            for key, signal_frame in signals.items()
+        }
+        return self.run(market_frames=market_frames, signals=adapted, run_name=run_name)

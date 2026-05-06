@@ -18,6 +18,7 @@ Stage 1 foundation is also implemented:
 - baseline reporting helpers exist
 
 Strategy library and live trading are still intentionally deferred.
+Dashboarding is planned with Streamlit once the project reaches the paper trading stage.
 
 ## Quick Start
 1. Install dependencies:
