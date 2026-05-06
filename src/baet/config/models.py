@@ -50,6 +50,7 @@ class BinanceConfig(BaseModel):
 class RiskConfig(BaseModel):
     max_risk_per_trade: float = 0.01
     max_portfolio_exposure: float = 0.20
+    policy: RiskPolicy = Field(default_factory=RiskPolicy)
 
 
 class FeatureConfig(BaseModel):

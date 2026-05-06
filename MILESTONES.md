@@ -61,6 +61,7 @@ Track delivery by validated checkpoints, not by code volume.
 - `M3.3a` implemented
 - `M3.3b` implemented
 - `M3.4` implemented
+- `M4.1a` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
@@ -74,6 +75,7 @@ Track delivery by validated checkpoints, not by code volume.
 - Stage 3.3a adaptive ensemble implemented with AdaptiveEnsemble that updates strategy weights deterministically based on rolling Sharpe ratio performance; includes PerformanceTracker for rolling metrics calculation
 - Stage 3.3b ML strategy integrated: MLRandomForestStrategy uses Random Forest classifier with technical features (RSI, MA ratios, volatility) to predict price direction; includes automated feature generation and probability-based signal generation
 - Stage 3.4 intelligence stack validation reporting implemented: build_intelligence_stack_comparison(), build_regime_performance_report(), and validate_intelligence_stack() functions compare baseline vs ensemble vs ML strategies and validate that intelligence stack improves performance
+- Stage 4.1a risk policy documented and decision-complete: RiskPolicy model with PositionSizingPolicy, DrawdownProtectionPolicy, RegimeRiskPolicy, StrategyRiskPolicy, PortfolioRiskPolicy, EmergencyPolicy; RiskEngine evaluates all signals and CAN override strategy decisions; 35 unit tests validate all components
 
 ## Validation States
 - `pending`
