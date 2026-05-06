@@ -14,6 +14,7 @@ from baet.strategies.baselines import (
 )
 from baet.strategies.contracts import SIGNAL_COLUMNS, StrategyContract
 from baet.strategies.discovery import discover_strategies, filter_supported_strategies
+from baet.strategies.regime import RegimeDetector, VolatilityTrendRegimeDetector
 
 __all__ = [
     "SIGNAL_COLUMNS",
@@ -30,4 +31,6 @@ __all__ = [
     "build_sma_crossover_signals",
     "discover_strategies",
     "filter_supported_strategies",
+    "RegimeDetector",
+    "VolatilityTrendRegimeDetector",
 ]

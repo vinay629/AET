@@ -53,6 +53,9 @@ Track delivery by validated checkpoints, not by code volume.
 - `M2.1` implemented
 - `M2.2` implemented
 - `M2.3` implemented
+- `M3.1a` implemented
+- `M3.1b` implemented
+- `M3.1c` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
@@ -61,6 +64,7 @@ Track delivery by validated checkpoints, not by code volume.
 - Stage 2.1 strategy contracts, filesystem discovery, and order-intent signal adaptation are implemented
 - Stage 2.2 baseline strategies implemented: 7 strategies (buy_and_hold, sma_crossover, rsi_mean_reversion, bollinger_bands, ema_crossover, breakout_momentum, adx_trend_filter)
 - Stage 2.3 strategy comparison reports now rank by Sharpe ratio, Sortino, Calmar, returns, and drawdown metrics
+- Stage 3.1 regime detection module implemented with VolatilityTrendRegimeDetector that classifies TRENDING, RANGING, HIGH_VOLATILITY, LOW_VOLATILITY regimes using expanding window percentiles for reproducibility
 
 ## Validation States
 - `pending`
