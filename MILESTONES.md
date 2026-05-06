@@ -52,13 +52,15 @@ Track delivery by validated checkpoints, not by code volume.
 - `M1.4` validated
 - `M2.1` implemented
 - `M2.2` implemented
+- `M2.3` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
 - Stage 1 ingestion, storage, feature generation, and baseline backtesting are verified
 - Stage 1 reporting now includes strategy-to-strategy comparison outputs with ranking tables
 - Stage 2.1 strategy contracts, filesystem discovery, and order-intent signal adaptation are implemented
-- Stage 2.2 baseline strategies are implemented and verified to emit standardized contract signals
+- Stage 2.2 baseline strategies implemented: 7 strategies (buy_and_hold, sma_crossover, rsi_mean_reversion, bollinger_bands, ema_crossover, breakout_momentum, adx_trend_filter)
+- Stage 2.3 strategy comparison reports now rank by Sharpe ratio, Sortino, Calmar, returns, and drawdown metrics
 
 ## Validation States
 - `pending`
