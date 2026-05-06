@@ -6,7 +6,7 @@ from baet.strategies import SIGNAL_COLUMNS, discover_strategies, filter_supporte
 
 
 def _frame() -> pd.DataFrame:
-    index = pd.date_range("2024-01-01", periods=30, freq="1h", tz="UTC")
+    index = pd.date_range("2024-01-01", periods=60, freq="1h", tz="UTC")
     return pd.DataFrame(
         {
             "symbol": ["BTCUSDT"] * len(index),
@@ -32,10 +32,12 @@ def test_discovered_strategies_emit_valid_signal_contract() -> None:
     strategies = discover_strategies()
 
     assert strategies
+    assert len(strategies) >= 5
     for strategy in strategies:
         signals = strategy.generate_signals(frame)
         assert list(signals.columns) == SIGNAL_COLUMNS
         assert signals["strategy_name"].nunique() == 1
+        assert signals["target_position"].dtype == "float64"
 
 
 def test_filter_supported_strategies_returns_only_matching_entries() -> None:

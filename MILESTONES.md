@@ -51,12 +51,14 @@ Track delivery by validated checkpoints, not by code volume.
 - `M1.3` validated
 - `M1.4` validated
 - `M2.1` implemented
+- `M2.2` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
 - Stage 1 ingestion, storage, feature generation, and baseline backtesting are verified
 - Stage 1 reporting now includes strategy-to-strategy comparison outputs with ranking tables
 - Stage 2.1 strategy contracts, filesystem discovery, and order-intent signal adaptation are implemented
+- Stage 2.2 baseline strategies are implemented and verified to emit standardized contract signals
 
 ## Validation States
 - `pending`

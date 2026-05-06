@@ -2,7 +2,12 @@
 
 from baet.strategies.adapters import adapt_order_intent_to_backtest_signals
 from baet.strategies.baselines import (
+    AdxTrendFilterStrategy,
+    BollingerBandsStrategy,
+    BreakoutMomentumStrategy,
     BuyAndHoldStrategy,
+    EmaCrossoverStrategy,
+    RsiMeanReversionStrategy,
     SmaCrossoverStrategy,
     build_buy_and_hold_signals,
     build_sma_crossover_signals,
@@ -15,6 +20,11 @@ __all__ = [
     "StrategyContract",
     "BuyAndHoldStrategy",
     "SmaCrossoverStrategy",
+    "RsiMeanReversionStrategy",
+    "BollingerBandsStrategy",
+    "EmaCrossoverStrategy",
+    "BreakoutMomentumStrategy",
+    "AdxTrendFilterStrategy",
     "adapt_order_intent_to_backtest_signals",
     "build_buy_and_hold_signals",
     "build_sma_crossover_signals",
