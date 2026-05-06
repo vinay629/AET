@@ -90,8 +90,9 @@ class PerformanceTracker:
 class AdaptiveEnsemble(StaticEnsemble):
     """Adaptive ensemble that updates strategy weights based on performance."""
     
-    def __init__(self, config: EnsembleConfig, performance_window: int = 20):
-        super().__init__(config)
+    def __init__(self, config: EnsembleConfig, performance_window: int = 20, 
+                 risk_engine: Optional[RiskEngine] = None):
+        super().__init__(config, risk_engine=risk_engine)  # Pass risk_engine to parent
         self.performance_tracker = PerformanceTracker(window=performance_window)
         self.historical_weights: List[Dict] = []  # Track weight history
         

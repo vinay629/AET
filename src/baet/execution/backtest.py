@@ -8,9 +8,16 @@ from baet.data.interfaces import BacktestEngine
 from baet.strategies.adapters import adapt_order_intent_to_backtest_signals
 
 
+# Lazy import to avoid circular imports
+def _get_risk_engine():
+    from baet.risk.engine import RiskEngine
+    return RiskEngine
+
+
 class PortfolioBacktestEngine(BacktestEngine):
-    def __init__(self, config: BacktestConfig) -> None:
+    def __init__(self, config: BacktestConfig, risk_engine: 'RiskEngine | None' = None) -> None:
         self.config = config
+        self.risk_engine = risk_engine  # NEW: Optional RiskEngine
 
     def run(
         self,
@@ -43,6 +50,27 @@ class PortfolioBacktestEngine(BacktestEngine):
                 signal = int(row["signal"])
                 price_col = "open" if self.config.execution_price == "next_open" else "close"
                 fill_price = float(row[price_col]) * (1.0 + self.config.slippage_rate)
+
+                # NEW: Run risk checks if risk engine is available
+                if self.risk_engine:
+                    signal_dict = {
+                        'action': 'BUY' if signal > 0 else ('SELL' if signal < 0 else 'HOLD'),
+                        'target_position': signal,
+                        'confidence': 1.0,
+                        'size_hint': self.config.allocation_per_signal,
+                        'strategy_name': 'backtest',
+                        'symbol': row["symbol"],
+                        'timestamp': timestamp,
+                    }
+                    RiskEngine = _get_risk_engine()
+                    result = self.risk_engine.evaluate_signal(signal_dict)
+                    
+                    if not result.approved or result.adjusted_action == 'HOLD':
+                        continue  # Skip this trade - risk rejected
+                    
+                    # Use adjusted values if provided
+                    if result.adjusted_size is not None:
+                        self.config.allocation_per_signal = result.adjusted_size
 
                 if signal > 0 and current_units == 0.0:
                     target_cash = cash * self.config.allocation_per_signal

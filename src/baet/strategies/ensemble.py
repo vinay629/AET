@@ -48,8 +48,9 @@ class EnsembleConfig:
 class StaticEnsemble:
     """Static ensemble that combines multiple strategy signals into one decision stream."""
     
-    def __init__(self, config: EnsembleConfig):
+    def __init__(self, config: EnsembleConfig, risk_engine: Optional[RiskEngine] = None):
         self.config = config
+        self.risk_engine = risk_engine  # NEW: Optional RiskEngine
         
     def combine_signals(self, strategy_signals: Dict[str, pd.DataFrame], 
                         regime_data: Optional[pd.DataFrame] = None) -> pd.DataFrame:
@@ -109,9 +110,19 @@ class StaticEnsemble:
         
         For each timestamp, aggregate signals and produce one decision.
         Uses confidence-weighted voting.
+        All signals pass through risk checks if risk_engine is provided.
         """
         if combined_signals.empty:
             return pd.DataFrame(columns=SIGNAL_COLUMNS)
+        
+        # NEW: Run risk checks if risk engine is available
+        if self.risk_engine:
+            from baet.risk.integration import evaluate_combined_signals
+            combined_signals = evaluate_combined_signals(
+                self.risk_engine, combined_signals, regime=None
+            )
+            if combined_signals.empty:
+                return pd.DataFrame(columns=SIGNAL_COLUMNS)
         
         decisions = []
         

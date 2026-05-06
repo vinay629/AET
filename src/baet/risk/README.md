@@ -120,6 +120,107 @@ The RiskEngine integrates with:
 - **Paper trading** (future): Run risk checks before paper orders
 - **Live trading** (future): Run risk checks before real orders
 
+## Integration Examples
+
+### Using Integration Helpers (`src/baet/risk/integration.py`)
+
+```python
+from baet.risk import (
+    RiskEngine,
+    RiskPolicy,
+    create_risk_engine_from_config,
+    evaluate_strategy_signal,
+    evaluate_combined_signals,
+    update_risk_engine_state,
+)
+
+# Create risk engine from config
+policy = RiskPolicy()
+engine = RiskEngine(policy)
+
+# Evaluate a single signal
+signal = {
+    'action': 'BUY',
+    'target_position': 1.0,
+    'confidence': 0.8,
+    'size_hint': 0.1,
+    'strategy_name': 'my_strategy',
+    'symbol': 'BTCUSDT',
+    'timestamp': datetime.now(),
+}
+
+result = evaluate_strategy_signal(engine, signal)
+if result:
+    print(f"Approved: {result['action']} with size {result['size_hint']}")
+else:
+    print("Signal rejected by risk checks")
+
+# Evaluate DataFrame of signals
+import pandas as pd
+signals_df = pd.DataFrame([signal1, signal2, signal3])
+approved_df = evaluate_combined_signals(engine, signals_df)
+
+# Update portfolio state for accurate risk calculations
+engine.update_portfolio_state(
+    equity=10000.0,
+    positions={'BTCUSDT': {'exposure': 500.0}},
+    daily_pnl=50.0
+)
+```
+
+### Integrating with Ensemble Layer
+
+```python
+from baet.strategies.ensemble import StaticEnsemble, EnsembleConfig
+from baet.risk import RiskEngine, RiskPolicy
+
+# Create risk engine
+policy = RiskPolicy()
+risk_engine = RiskEngine(policy)
+
+# Create ensemble WITH risk engine
+config = EnsembleConfig(name="my_ensemble")
+ensemble = StaticEnsemble(config, risk_engine=risk_engine)
+
+# When ensemble.make_decisions() is called,
+# signals will automatically pass through risk checks
+# Rejected signals are filtered out
+# Modified signals (size adjustments) are used
+```
+
+### Integrating with Backtest Engine
+
+```python
+from baet.execution.backtest import PortfolioBacktestEngine
+from baet.config.models import BacktestConfig
+from baet.risk import RiskEngine, RiskPolicy
+
+# Create risk engine
+policy = RiskPolicy()
+risk_engine = RiskEngine(policy)
+
+# Create backtest engine WITH risk engine
+config = BacktestConfig()
+backtest = PortfolioBacktestEngine(config, risk_engine=risk_engine)
+
+# When backtest.run() is called,
+# each trade will pass through risk checks
+# Rejected trades are skipped
+# Risk rejection reasons are preserved in metadata
+```
+
+### Graceful Degradation (Optional Risk Engine)
+
+```python
+# All integrations accept None for risk_engine
+# This maintains backward compatibility
+
+ensemble = StaticEnsemble(config, risk_engine=None)  # No risk checks
+backtest = PortfolioBacktestEngine(config, risk_engine=None)  # No risk checks
+
+# Risk checks only run when risk_engine is provided
+```
+
 ## Configuration
 
 Risk policy is configured in `config/base.yaml`:

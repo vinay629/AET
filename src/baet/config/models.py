@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from baet.core.enums import AppMode
+from baet.risk.policy import RiskPolicy
 
 
 class AppConfig(BaseModel):

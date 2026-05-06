@@ -7,8 +7,13 @@ from baet.core.models import BacktestArtifacts
 from baet.data.features import PandasFeatureBuilder
 from baet.data.interfaces import HistoricalDataProvider, MarketDataStore
 from baet.data.validation import validate_candles
-from baet.execution.backtest import PortfolioBacktestEngine
 from baet.strategies.baselines import build_buy_and_hold_signals
+
+
+# Lazy import to avoid circular imports
+def _get_portfolio_backtest_engine():
+    from baet.execution.backtest import PortfolioBacktestEngine
+    return PortfolioBacktestEngine
 
 
 class ResearchPipeline:
@@ -22,6 +27,7 @@ class ResearchPipeline:
         self.provider = provider
         self.store = store
         self.feature_builder = PandasFeatureBuilder(settings.features)
+        PortfolioBacktestEngine = _get_portfolio_backtest_engine()
         self.backtest_engine = PortfolioBacktestEngine(settings.backtest)
 
     def ingest_symbol_timeframe(
