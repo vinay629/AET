@@ -8,3 +8,6 @@ paper:
 live:
   enabled: false
   require_explicit_confirmation: true
+
+binance:
+  live_stream_enabled: true

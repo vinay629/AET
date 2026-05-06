@@ -10,7 +10,14 @@ Stage 0 is implemented:
 - setup docs exist
 - testing baseline exists
 
-Trading logic is intentionally not implemented yet.
+Stage 1 foundation is also implemented:
+- Binance market-data ingestion interfaces exist
+- Parquet storage is configured
+- feature generation pipeline exists
+- portfolio-aware backtester exists
+- baseline reporting helpers exist
+
+Strategy library and live trading are still intentionally deferred.
 
 ## Quick Start
 1. Install dependencies:
@@ -25,6 +32,13 @@ copy .env.example .env
 ```bash
 uv run pytest
 ```
+
+## Stage 1 Capabilities
+- normalized Binance kline ingestion
+- Parquet-based raw and processed data storage
+- deterministic feature generation
+- portfolio-aware baseline backtesting
+- baseline summaries for ingestion, data quality, features, and backtests
 
 ## Modes
 - `dev`: local development defaults

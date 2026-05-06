@@ -7,3 +7,6 @@ paper:
 
 live:
   enabled: false
+
+binance:
+  live_stream_enabled: false

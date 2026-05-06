@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -37,6 +38,11 @@ class LiveConfig(BaseModel):
 
 
 class BinanceConfig(BaseModel):
+    rest_base_url: str = "https://api.binance.com"
+    websocket_base_url: str = "wss://stream.binance.com:9443/ws"
+    historical_limit: int = 1000
+    request_timeout_seconds: int = 30
+    live_stream_enabled: bool = True
     market_data_touchpoints: list[str] = Field(default_factory=list)
     account_touchpoints: list[str] = Field(default_factory=list)
 
@@ -44,6 +50,26 @@ class BinanceConfig(BaseModel):
 class RiskConfig(BaseModel):
     max_risk_per_trade: float = 0.01
     max_portfolio_exposure: float = 0.20
+
+
+class FeatureConfig(BaseModel):
+    return_windows: list[int] = Field(default_factory=lambda: [1, 3, 6])
+    volatility_windows: list[int] = Field(default_factory=lambda: [5, 10])
+    trend_windows: list[int] = Field(default_factory=lambda: [5, 10, 20])
+    volume_windows: list[int] = Field(default_factory=lambda: [5, 10])
+
+
+class BacktestConfig(BaseModel):
+    initial_cash: float = 10_000.0
+    fee_rate: float = 0.001
+    slippage_rate: float = 0.0005
+    execution_price: Literal["close", "next_open"] = "next_open"
+    allocation_per_signal: float = 0.5
+
+
+class ReportingConfig(BaseModel):
+    backtests_dir: Path = Path("data/results/backtests")
+    summaries_dir: Path = Path("data/results/summaries")
 
 
 class SecretsConfig(BaseModel):
@@ -61,6 +87,9 @@ class Settings(BaseModel):
     live: LiveConfig = Field(default_factory=LiveConfig)
     binance: BinanceConfig = Field(default_factory=BinanceConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
+    features: FeatureConfig = Field(default_factory=FeatureConfig)
+    backtest: BacktestConfig = Field(default_factory=BacktestConfig)
+    reporting: ReportingConfig = Field(default_factory=ReportingConfig)
     secrets: SecretsConfig = Field(default_factory=SecretsConfig)
 
     @model_validator(mode="after")

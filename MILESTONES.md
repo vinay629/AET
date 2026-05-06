@@ -16,6 +16,17 @@ Track delivery by validated checkpoints, not by code volume.
 - `M1.3` backtester handles fees and slippage
 - `M1.4` strategy comparison reports exist
 
+## Current Status
+- `M0.1` validated
+- `M0.2` validated
+- `M0.3` validated
+- `M0.4` validated
+- `M0.5` validated
+- `M1.1` implemented
+- `M1.2` implemented
+- `M1.3` implemented
+- `M1.4` partially implemented
+
 ## Validation States
 - `pending`
 - `active`
