@@ -22,10 +22,16 @@ Track delivery by validated checkpoints, not by code volume.
 - `M0.3` validated
 - `M0.4` validated
 - `M0.5` validated
-- `M1.1` implemented
-- `M1.2` implemented
-- `M1.3` implemented
+- `M1.1` validated
+- `M1.2` validated
+- `M1.3` validated
 - `M1.4` partially implemented
+
+## Verification Notes
+- Stage 0 remains green under current checks
+- Stage 1 ingestion, storage, feature generation, and baseline backtesting are verified
+- Stage 1 reporting exists for ingestion, data quality, feature coverage, and backtest summaries
+- richer strategy-to-strategy comparison output is still the remaining gap before `M1.4` can be marked validated
 
 ## Validation States
 - `pending`
