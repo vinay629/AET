@@ -51,40 +51,59 @@ if st is not None:
     st._config.set_option("theme.secondaryBackgroundColor", "#f8f9fa")
     st._config.set_option("theme.textColor", "#000000")
     
-    # Custom CSS for visibility - simplified version
+    # Custom CSS for clean, professional appearance
     st.markdown(
         """
         <style>
-        /* Force black text globally */
-        * {
-            color: #000000 !important;
+        /* Main app styling */
+        .main > div {
+            padding-top: 2rem;
         }
         
-        /* Light theme backgrounds */
-        .main, .block-container, .stApp {
-            background-color: #ffffff !important;
-        }
-        
-        /* Metrics */
+        /* Metric styling */
         .stMetric {
-            background-color: #f8f9fa !important;
-            padding: 1rem !important;
-            border-radius: 0.5rem !important;
-            border: 2px solid #dee2e6 !important;
-        }
-        .stMetric label, .stMetric .metric-value {
-            color: #000000 !important;
-            background-color: transparent !important;
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
         }
         
-        /* Tabs */
-        [data-baseweb="tab"] {
-            background-color: #ffffff !important;
-            color: #000000 !important;
+        /* Metric value styling */
+        .stMetric .metric-value {
+            font-weight: 700;
+            font-size: 1.5rem;
         }
+        
+        /* DataFrame styling */
+        .stDataFrame {
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+        }
+        
+        /* Tab styling */
         [data-baseweb="tab"][aria-selected="true"] {
-            background-color: #e7f3ff !important;
-            border-bottom: 3px solid #007bff !important;
+            border-bottom: 3px solid #007bff;
+            background-color: #e7f3ff;
+        }
+        
+        /* Alert styling */
+        .stAlert {
+            border-radius: 0.5rem;
+        }
+        
+        /* Button styling */
+        button[kind="primary"] {
+            font-weight: 600;
+        }
+        
+        /* Sidebar styling */
+        section[data-testid="stSidebar"] {
+            border-right: 1px solid #dee2e6;
+        }
+        
+        /* Container borders */
+        [data-testid="stContainer"] {
+            border-radius: 0.5rem;
         }
         </style>
         """,
@@ -257,7 +276,7 @@ if st is not None:
         # Emergency stop button (only in live mode)
         if is_live_mode:
             st.divider()
-            if st.button("🚨 EMERGENCY STOP", type="primary", use_container_width=True):
+            if st.button("🚨 EMERGENCY STOP", type="primary", width='stretch', key="main_emergency_stop"):
                 import os
                 with open("EMERGENCY_STOP.txt", "w") as f:
                     f.write("Emergency stop triggered from dashboard")
