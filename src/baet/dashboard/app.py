@@ -300,8 +300,18 @@ if st is not None:
         unsafe_allow_html=True,
     )
     
-    # Title
-    st.title("📈 BAET Paper Trading Dashboard")
+    # Title - dynamic based on mode
+    from baet.config.loader import load_settings
+    try:
+        settings = load_settings()
+        if hasattr(settings, 'live') and settings.live and settings.live.enabled:
+            st.title("📈 BAET Live Trading Dashboard (Testnet)")
+        elif hasattr(settings, 'paper') and settings.paper and settings.paper.enabled:
+            st.title("📈 BAET Paper Trading Dashboard")
+        else:
+            st.title("📈 BAET Observation Dashboard")
+    except:
+        st.title("📈 BAET Dashboard")
     
     # Sidebar
     st.sidebar.header("Configuration")
