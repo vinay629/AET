@@ -1,13 +1,10 @@
 app:
-  mode: paper
   logging_level: INFO
-
-paper:
-  enabled: true
-  initial_balance: 10000.0
-
-live:
-  enabled: false
-
+  mode: paper
 binance:
   live_stream_enabled: true
+live:
+  enabled: false
+paper:
+  enabled: true
+  initial_balance: 20000.0

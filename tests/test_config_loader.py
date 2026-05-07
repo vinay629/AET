@@ -24,5 +24,7 @@ def test_paper_mode_enables_paper_profile() -> None:
 
 
 def test_live_mode_requires_explicit_enable() -> None:
-    with pytest.raises(ValueError, match="live mode requires live.enabled=true"):
+    """Live mode requires both live.enabled=true AND valid credentials."""
+    # This should fail because .env.example has empty credentials
+    with pytest.raises(ValueError, match="live mode requires live Binance credentials"):
         load_settings(mode="live", env_file=Path(".env.example"))

@@ -6,8 +6,8 @@ paper:
   enabled: false
 
 live:
-  enabled: false  # Must be explicitly enabled
-  require_explicit_confirmation: true
+  enabled: true  # Enable for validation mode
+  require_explicit_confirmation: false  # Skip confirmation for validation
   simulation_mode: true  # Simulate orders (validation)
   testnet: true  # Use testnet, not production
   

@@ -13,6 +13,29 @@ def main():
     print("=" * 60)
     print()
     
+    # Check environment variables
+    print("0. Checking environment variables...")
+    import os
+    
+    live_key = os.getenv("BAET_LIVE_BINANCE_API_KEY")
+    live_secret = os.getenv("BAET_LIVE_BINANCE_SECRET")
+    
+    if not live_key or not live_secret:
+        print("   [ERROR] Environment variables not set!")
+        print()
+        print("   Set them with:")
+        print("     $env:BAET_LIVE_BINANCE_API_KEY='your_key'")
+        print("     $env:BAET_LIVE_BINANCE_SECRET='your_secret'")
+        print()
+        print("   Or create a .env file with:")
+        print("     BAET_LIVE_BINANCE_API_KEY=your_key")
+        print("     BAET_LIVE_BINANCE_SECRET=your_secret")
+        sys.exit(1)
+    
+    print(f"   [OK] BAET_LIVE_BINANCE_API_KEY found (length: {len(live_key)})")
+    print(f"   [OK] BAET_LIVE_BINANCE_SECRET found (length: {len(live_secret)})")
+    print()
+    
     try:
         from baet.config.loader import load_settings
         from baet.live.execution import LiveExecutionClient
@@ -28,18 +51,23 @@ def main():
         
         # Check API credentials
         print("2. Checking API credentials...")
-        from baet.config.models import SecretsConfig
-        secrets = SecretsConfig()
+        # Use secrets from settings, not a new empty SecretsConfig
+        secrets = settings.secrets
         
         if not secrets.live_binance_api_key or not secrets.live_binance_api_secret:
-            print("   ✗ API credentials not found!")
+            print("   [ERROR] API credentials not found in settings!")
+            print()
+            print("   Debug: secrets dict:")
+            import json
+            print(json.dumps({k: v if 'secret' not in k.lower() else f"[HIDDEN-{len(v)}]" 
+                              for k, v in secrets.model_dump().items()}, indent=2))
             print()
             print("   Set environment variables:")
-            print("     export BAET_LIVE_BINANCE_API_KEY=<your_key>")
-            print("     export BAET_LIVE_BINANCE_API_SECRET=<your_secret>")
+            print("     $env:BAET_LIVE_BINANCE_API_KEY='your_key'")
+            print("     $env:BAET_LIVE_BINANCE_SECRET='your_secret'")
             sys.exit(1)
         
-        print("   ✓ API credentials found")
+        print(f"   [OK] API credentials found (key length: {len(secrets.live_binance_api_key)})")
         print()
         
         # Initialize client in validation mode
@@ -50,19 +78,19 @@ def main():
             testnet=True,
             simulation=True,  # Don't actually submit orders
         )
-        print("   ✓ Client initialized")
+        print("   [OK] Client initialized")
         print()
         
         # Validate account access
         print("4. Validating account access...")
         try:
             account = client.get_account_info()
-            print(f"   ✓ Account type: {account.get('accountType', 'Unknown')}")
+            print(f"   [OK] Account type: {account.get('accountType', 'Unknown')}")
             
             balance = client.get_balance("USDT")
-            print(f"   ✓ USDT Balance: ${balance:.2f}")
+            print(f"   [OK] USDT Balance: ${balance:.2f}")
         except Exception as e:
-            print(f"   ✗ Failed: {e}")
+            print(f"   [ERROR] Failed: {e}")
             sys.exit(1)
         print()
         

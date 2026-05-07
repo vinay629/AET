@@ -155,6 +155,7 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_mode_guards(self) -> "Settings":
+        # Check live.enabled first, then credentials
         if self.app.mode == AppMode.LIVE and not self.live.enabled:
             raise ValueError("live mode requires live.enabled=true")
 
