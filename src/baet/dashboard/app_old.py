@@ -185,18 +185,15 @@ if st is not None:
         is_live_mode = False
         is_paper_mode = False
     
-    # Load data based on mode - load ONCE here
-    account_info = None  # Initialize
-    
+    # Load data based on mode
     if is_live_mode:
         try:
             from baet.dashboard.data_loader import load_live_account_info
-            account_info = load_live_account_info()  # Load ONCE
-            
+            live_account = load_live_account_info()
             portfolio_state = {
-                "cash": account_info.get("total_usdt_value", 0) if account_info.get("success") else 0,
-                "total_value": account_info.get("total_usdt_value", 0) if account_info.get("success") else 0,
-                "positions": account_info.get("balances", {}),
+                "cash": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                "total_value": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                "positions": live_account.get("balances", {}),
                 "is_live": True
             }
             recent_trades = []
@@ -234,6 +231,52 @@ if st is not None:
             daily_summary = {}
             log_entries = []
     
+    # Load data based on mode
+    if is_live_mode:
+        # Load live account info
+        try:
+            from baet.dashboard.data_loader import load_live_account_info
+            live_account = load_live_account_info()
+            portfolio_state = {
+                "cash": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                "total_value": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                "positions": live_account.get("balances", {}),
+                "is_live": True
+            }
+            recent_trades = []
+            equity_df = None
+            metrics = {}
+            daily_summary = {}
+            log_entries = []
+        except Exception as e:
+            st.error(f"Error loading live account: {e}")
+            portfolio_state = {}
+            recent_trades = []
+            equity_df = None
+            metrics = {}
+            daily_summary = {}
+            log_entries = []
+    else:
+        # Load paper/observation data
+        try:
+            portfolio_state = load_latest_state(log_dir)
+            recent_trades = load_recent_trades(log_dir, limit=50)
+            equity_df = load_equity_curve(log_dir)
+            metrics = calculate_performance_metrics(log_dir)
+            from datetime import datetime
+            today = datetime.now().strftime("%Y-%m-%d")
+            daily_summary = calculate_daily_summary(log_dir, date=today)
+            log_file = find_latest_log_file(log_dir)
+            log_entries = parse_log_file(log_file, max_entries=100) if log_file else []
+        except Exception as e:
+            st.error(f"Error loading data: {e}")
+            portfolio_state = {}
+            recent_trades = []
+            equity_df = None
+            metrics = {}
+            daily_summary = {}
+            log_entries = []
+    
     # Show mode indicator in sidebar with enhanced visuals
     with st.sidebar:
         st.divider()
@@ -244,28 +287,35 @@ if st is not None:
                 st.markdown("### 🔴 LIVE MODE ACTIVE")
                 st.warning("⚠️ Demo money at risk! Monitor positions closely.")
                 
-                # Show live account info in sidebar (use account_info loaded above)
+                # Show live account info in sidebar
                 st.markdown("#### 💼 Live Account (Testnet)")
-                if account_info and account_info.get("success"):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Total Value", f"${account_info.get('total_usdt_value', 0):.2f}")
-                    with col2:
-                        can_trade = "✅" if account_info.get('can_trade') else "❌"
-                        st.metric("Can Trade", can_trade)
+                try:
+                    from baet.dashboard.data_loader import load_live_account_info
+                    account_info = load_live_account_info()
                     
-                    # Show key balances
-                    balances = account_info.get("balances", {})
-                    if "USDT" in balances:
-                        usdt = balances["USDT"]
-                        st.text(f"USDT: {usdt['free']:.2f} free / {usdt['locked']:.2f} locked")
-                    
-                    # Show other assets
-                    for asset, data in sorted(balances.items())[:5]:  # Show top 5
-                        if asset != "USDT" and data["total"] > 0:
-                            st.text(f"{asset}: {data['total']:.6f}")
-                else:
-                    st.error(f"Cannot load account: {account_info.get('error', 'Unknown error')}")
+                    if account_info.get("success"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Total Value", f"${account_info.get('total_usdt_value', 0):.2f}")
+                        with col2:
+                            can_trade = "✅" if account_info.get('can_trade') else "❌"
+                            st.metric("Can Trade", can_trade)
+                        
+                        # Show key balances in expandable section
+                        balances = account_info.get("balances", {})
+                        with st.expander("View Balances", expanded=False):
+                            if "USDT" in balances:
+                                usdt = balances["USDT"]
+                                st.text(f"USDT: {usdt['free']:.2f} free / {usdt['locked']:.2f} locked")
+                            
+                            # Show other assets
+                            for asset, data in sorted(balances.items()):
+                                if asset != "USDT" and data["total"] > 0:
+                                    st.text(f"{asset}: {data['total']:.6f} (free: {data['free']:.6f})")
+                    else:
+                        st.error(f"Cannot load account: {account_info.get('error', 'Unknown error')}")
+                except Exception as e:
+                    st.error(f"Account info error: {e}")
         elif is_paper_mode:
             with st.container(border=True):
                 st.markdown("### 🟡 PAPER TRADING MODE")
@@ -278,7 +328,7 @@ if st is not None:
         # Emergency stop button (only in live mode)
         if is_live_mode:
             st.divider()
-            if st.button("🚨 EMERGENCY STOP", type="primary", width='stretch', key="sidebar_emergency_stop"):
+            if st.button("🚨 EMERGENCY STOP", type="primary", width='stretch', key="main_emergency_stop"):
                 import os
                 with open("EMERGENCY_STOP.txt", "w") as f:
                     f.write("Emergency stop triggered from dashboard")
@@ -294,45 +344,51 @@ if st is not None:
         
         # Show live account info prominently if in live mode
         if is_live_mode:
-            if account_info and account_info.get("success"):
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
-                with col2:
-                    st.metric("Account Type", account_info.get('account_type', 'N/A'))
-                with col3:
-                    st.metric("Can Trade", "✅ Yes" if account_info.get('can_trade') else "❌ No")
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                account_info = load_live_account_info()
                 
-                # Show key balances
-                st.subheader("Demo Account Balances (Testnet)")
-                balances = account_info.get("balances", {})
-                
-                # Display key assets
-                cols = st.columns(4)
-                with cols[0]:
-                    if "BTC" in balances:
-                        btc = balances["BTC"]
-                        st.metric("BTC", f"{btc['total']:.6f}", f"Free: {btc['free']:.6f}")
-                with cols[1]:
-                    if "ETH" in balances:
-                        eth = balances["ETH"]
-                        st.metric("ETH", f"{eth['total']:.6f}", f"Free: {eth['free']:.6f}")
-                with cols[2]:
-                    if "USDT" in balances:
-                        usdt = balances["USDT"]
-                        st.metric("USDT", f"{usdt['total']:.2f}", f"Free: {usdt['free']:.2f}")
-                with cols[3]:
-                    if "BNB" in balances:
-                        bnb = balances["BNB"]
-                        st.metric("BNB", f"{bnb['total']:.6f}", f"Free: {bnb['free']:.6f}")
-                
-                # Show all balances in expander
-                with st.expander("View All Balances"):
-                    for asset, data in sorted(balances.items()):
-                        if data["total"] > 0:
-                            st.text(f"{asset}: {data['total']:.6f} (Free: {data['free']:.6f}, Locked: {data['locked']:.6f})")
-            else:
-                st.error(f"Cannot load live account: {account_info.get('error', 'Unknown error') if account_info else 'Not loaded'}")
+                if account_info.get("success"):
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
+                    with col2:
+                        st.metric("Account Type", account_info.get('account_type', 'N/A'))
+                    with col3:
+                        st.metric("Can Trade", "✅ Yes" if account_info.get('can_trade') else "❌ No")
+                    
+                    # Show key balances
+                    st.subheader("Demo Account Balances (Testnet)")
+                    balances = account_info.get("balances", {})
+                    
+                    # Display key assets
+                    cols = st.columns(4)
+                    with cols[0]:
+                        if "BTC" in balances:
+                            btc = balances["BTC"]
+                            st.metric("BTC", f"{btc['total']:.6f}", f"Free: {btc['free']:.6f}")
+                    with cols[1]:
+                        if "ETH" in balances:
+                            eth = balances["ETH"]
+                            st.metric("ETH", f"{eth['total']:.6f}", f"Free: {eth['free']:.6f}")
+                    with cols[2]:
+                        if "USDT" in balances:
+                            usdt = balances["USDT"]
+                            st.metric("USDT", f"{usdt['total']:.2f}", f"Free: {usdt['free']:.2f}")
+                    with cols[3]:
+                        if "BNB" in balances:
+                            bnb = balances["BNB"]
+                            st.metric("BNB", f"{bnb['total']:.6f}", f"Free: {bnb['free']:.6f}")
+                    
+                    # Show all balances in expander
+                    with st.expander("View All Balances"):
+                        for asset, data in sorted(balances.items()):
+                            if data["total"] > 0:
+                                st.text(f"{asset}: {data['total']:.6f} (Free: {data['free']:.6f}, Locked: {data['locked']:.6f})")
+                else:
+                    st.error(f"Cannot load live account: {account_info.get('error', 'Unknown error')}")
+            except Exception as e:
+                st.error(f"Live account error: {e}")
         else:
             # Portfolio overview (paper/observation mode)
             render_portfolio_overview(portfolio_state)
@@ -351,26 +407,29 @@ if st is not None:
         if is_live_mode:
             # In live mode, show message that positions come from live account
             st.info("📡 **Live Mode**: Positions are managed by the live trading bot.")
-            if account_info and account_info.get("success"):
-                balances = account_info.get("balances", {})
-                # Show non-zero balances as "positions"
-                positions_data = []
-                for asset, data in balances.items():
-                    if data["total"] > 0 and asset != "USDT":
-                        positions_data.append({
-                            "Asset": asset,
-                            "Total": data["total"],
-                            "Free": data["free"],
-                            "Locked": data["locked"]
-                        })
-                if positions_data:
-                    import pandas as pd
-                    df = pd.DataFrame(positions_data)
-                    st.dataframe(df, width='stretch')
-                else:
-                    st.warning("No open positions found.")
-            else:
-                st.error(f"Cannot load account: {account_info.get('error', 'Not loaded')}")
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                account_info = load_live_account_info()
+                if account_info.get("success"):
+                    balances = account_info.get("balances", {})
+                    # Show non-zero balances as "positions"
+                    positions_data = []
+                    for asset, data in balances.items():
+                        if data["total"] > 0 and asset != "USDT":
+                            positions_data.append({
+                                "Asset": asset,
+                                "Total": data["total"],
+                                "Free": data["free"],
+                                "Locked": data["locked"]
+                            })
+                    if positions_data:
+                        import pandas as pd
+                        df = pd.DataFrame(positions_data)
+                        st.dataframe(df, width='stretch')
+                    else:
+                        st.warning("No open positions found.")
+            except Exception as e:
+                st.error(f"Error loading positions: {e}")
         else:
             positions = portfolio_state.get("positions", {})
             render_positions_table(positions)
@@ -390,9 +449,14 @@ if st is not None:
         if is_live_mode:
             st.info("📡 **Live Mode**: Performance metrics will be calculated after trades are executed.")
             # Show account value instead
-            if account_info and account_info.get("success"):
-                st.metric("Current Account Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
-                st.metric("Account Type", account_info.get('account_type', 'N/A'))
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                account_info = load_live_account_info()
+                if account_info.get("success"):
+                    st.metric("Current Account Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
+                    st.metric("Account Type", account_info.get('account_type', 'N/A'))
+            except Exception as e:
+                st.error(f"Error loading metrics: {e}")
         else:
             # Performance metrics
             render_performance_metrics(metrics)
@@ -419,6 +483,12 @@ if st is not None:
             st.warning("No logs yet. Start the live trading bot to see logs.")
         else:
             render_log_viewer(log_entries, max_entries=100)
+    
+    # Auto-refresh logic
+    if auto_refresh:
+        import time
+        time.sleep(refresh_interval)
+        st.rerun()
     
     # Footer
     st.sidebar.markdown("---")
