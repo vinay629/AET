@@ -268,3 +268,37 @@ def calculate_performance_metrics(log_dir: str = "logs/paper") -> dict[str, Any]
         "volatility": returns.std() * (252 ** 0.5),
         "win_rate": (returns > 0).sum() / len(returns) if len(returns) > 0 else 0.0,
     }
+
+
+def load_live_account_info() -> dict[str, Any]:
+    """Load live account information from Binance.
+    
+    Returns:
+        Dictionary with account info or error
+    """
+    try:
+        from baet.execution.live_client_observation import create_observation_client
+        
+        client = create_observation_client()
+        if not client:
+            return {
+                "success": False,
+                "error": "Failed to create observation client",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        account_info = client.get_account_info()
+        return account_info
+        
+    except ImportError:
+        return {
+            "success": False,
+            "error": "Live client module not available",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }

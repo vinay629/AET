@@ -375,6 +375,31 @@ if st is not None:
         if is_live_mode:
             st.error("🔴 **LIVE MODE ACTIVE**")
             st.warning("Real money at risk! Check positions regularly.")
+            
+            # Show live account info
+            st.markdown("### Live Account")
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                account_info = load_live_account_info()
+                
+                if account_info.get("success"):
+                    st.metric("Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
+                    
+                    # Show key balances
+                    balances = account_info.get("balances", {})
+                    if "USDT" in balances:
+                        usdt = balances["USDT"]
+                        st.text(f"USDT: {usdt['free']:.2f} (free) / {usdt['locked']:.2f} (locked)")
+                    
+                    # Show other assets
+                    for asset, data in balances.items():
+                        if asset != "USDT" and data["total"] > 0:
+                            st.text(f"{asset}: {data['total']:.6f}")
+                else:
+                    st.error(f"Cannot load account: {account_info.get('error', 'Unknown error')}")
+            except Exception as e:
+                st.error(f"Account info error: {e}")
+                
         elif is_paper_mode:
             st.info("🟡 **PAPER TRADING MODE**")
         else:
