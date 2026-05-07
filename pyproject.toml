@@ -18,6 +18,14 @@ research = [
     "numpy>=2.3.0",
     "scikit-learn>=1.7.0",
 ]
+dashboard = [
+    "streamlit>=1.57.0",
+    "plotly>=6.2.0",
+]
+monitoring = [
+    "psutil>=7.0.0",
+    "requests>=2.33.0",
+]
 
 [build-system]
 requires = ["hatchling"]
