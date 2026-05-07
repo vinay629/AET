@@ -22,9 +22,26 @@ class LiveClientObservation:
     
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        
+        # Get API credentials from secrets
+        secrets = settings.secrets
+        api_key = secrets.live_binance_api_key or secrets.binance_api_key
+        api_secret = secrets.live_binance_api_secret or secrets.binance_api_secret
+        
+        # Handle both SecretStr and regular strings
+        if hasattr(api_key, 'get_secret_value'):
+            api_key_str = api_key.get_secret_value()
+        else:
+            api_key_str = str(api_key) if api_key else ""
+        
+        if hasattr(api_secret, 'get_secret_value'):
+            api_secret_str = api_secret.get_secret_value()
+        else:
+            api_secret_str = str(api_secret) if api_secret else ""
+        
         self.client = BinanceClient(
-            settings.binance.api_key.get_secret_value(),
-            settings.binance.secret_key.get_secret_value(),
+            api_key_str,
+            api_secret_str,
             testnet=settings.live.testnet if hasattr(settings.live, 'testnet') else False
         )
         self.observation_mode = True
@@ -233,19 +250,34 @@ def create_observation_client() -> Optional[LiveClientObservation]:
     try:
         settings = load_settings()
         
-        # Check if live mode is enabled
+        # Check if live mode is enabled in config
+        if not hasattr(settings, 'live') or not settings.live:
+            print("Live mode not enabled in config")
+            return None
+        
         if not settings.live.enabled:
             print("Live mode not enabled in config")
             return None
         
-        # Check if we have API credentials
-        if not settings.binance.api_key or not settings.binance.secret_key:
+        # Check if we have API credentials in secrets
+        if not hasattr(settings, 'secrets'):
+            print("No secrets configured")
+            return None
+        
+        # Get API credentials from secrets
+        secrets = settings.secrets
+        api_key = secrets.live_binance_api_key or secrets.binance_api_key
+        api_secret = secrets.live_binance_api_secret or secrets.binance_api_secret
+        
+        if not api_key or not api_secret:
             print("API credentials not configured")
             return None
         
         return LiveClientObservation(settings)
     except Exception as e:
         print(f"Error creating observation client: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
