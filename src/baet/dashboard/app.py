@@ -67,6 +67,14 @@ if st is not None:
     # Sidebar
     st.sidebar.header("Configuration")
     
+    # Control Panel (if available)
+    try:
+        from baet.dashboard.control import render_control_panel
+        render_control_panel()
+        st.sidebar.divider()
+    except ImportError:
+        pass  # Control panel not available
+    
     # Log directory
     log_dir = st.sidebar.text_input(
         "Log Directory",
