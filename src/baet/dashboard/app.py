@@ -337,26 +337,59 @@ if st is not None:
     
     # Load data
     with st.spinner("Loading data..."):
-        # Portfolio state
-        portfolio_state = load_latest_state(log_dir)
+        # Check if live mode is enabled
+        from baet.config.loader import load_settings
+        try:
+            settings = load_settings()
+            is_live_mode = settings.live.enabled if hasattr(settings, 'live') else False
+        except:
+            is_live_mode = False
         
-        # Recent trades
-        recent_trades = load_recent_trades(log_dir, limit=50)
-        
-        # Equity curve
-        equity_df = load_equity_curve(log_dir)
-        
-        # Performance metrics
-        metrics = calculate_performance_metrics(log_dir)
-        
-        # Daily summary (today)
-        from datetime import datetime
-        today = datetime.now().strftime("%Y-%m-%d")
-        daily_summary = calculate_daily_summary(log_dir, date=today)
-        
-        # Recent log entries
-        log_file = find_latest_log_file(log_dir)
-        log_entries = parse_log_file(log_file, max_entries=100) if log_file else []
+        # Load live account info if in live mode
+        if is_live_mode:
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                live_account = load_live_account_info()
+                portfolio_state = {
+                    "cash": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                    "total_value": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                    "positions": live_account.get("balances", {}),
+                    "is_live": True
+                }
+                recent_trades = []
+                equity_df = None
+                metrics = {}
+                daily_summary = {}
+                log_entries = []
+            except Exception as e:
+                st.error(f"Error loading live account: {e}")
+                portfolio_state = {}
+                recent_trades = []
+                equity_df = None
+                metrics = {}
+                daily_summary = {}
+                log_entries = []
+        else:
+            # Portfolio state
+            portfolio_state = load_latest_state(log_dir)
+            
+            # Recent trades
+            recent_trades = load_recent_trades(log_dir, limit=50)
+            
+            # Equity curve
+            equity_df = load_equity_curve(log_dir)
+            
+            # Performance metrics
+            metrics = calculate_performance_metrics(log_dir)
+            
+            # Daily summary (today)
+            from datetime import datetime
+            today = datetime.now().strftime("%Y-%m-%d")
+            daily_summary = calculate_daily_summary(log_dir, date=today)
+            
+            # Recent log entries
+            log_file = find_latest_log_file(log_dir)
+            log_entries = parse_log_file(log_file, max_entries=100) if log_file else []
     
     # Main content
     # Check if live mode is enabled
@@ -421,8 +454,56 @@ if st is not None:
     with tab1:
         st.header("Portfolio Overview")
         
-        # Portfolio overview
-        render_portfolio_overview(portfolio_state)
+        # Show live account info prominently if in live mode
+        if is_live_mode:
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                account_info = load_live_account_info()
+                
+                if account_info.get("success"):
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
+                    with col2:
+                        st.metric("Account Type", account_info.get('account_type', 'N/A'))
+                    with col3:
+                        st.metric("Can Trade", "✅ Yes" if account_info.get('can_trade') else "❌ No")
+                    
+                    # Show key balances
+                    st.subheader("Demo Account Balances (Testnet)")
+                    balances = account_info.get("balances", {})
+                    
+                    # Display key assets
+                    cols = st.columns(4)
+                    with cols[0]:
+                        if "BTC" in balances:
+                            btc = balances["BTC"]
+                            st.metric("BTC", f"{btc['total']:.6f}", f"Free: {btc['free']:.6f}")
+                    with cols[1]:
+                        if "ETH" in balances:
+                            eth = balances["ETH"]
+                            st.metric("ETH", f"{eth['total']:.6f}", f"Free: {eth['free']:.6f}")
+                    with cols[2]:
+                        if "USDT" in balances:
+                            usdt = balances["USDT"]
+                            st.metric("USDT", f"{usdt['total']:.2f}", f"Free: {usdt['free']:.2f}")
+                    with cols[3]:
+                        if "BNB" in balances:
+                            bnb = balances["BNB"]
+                            st.metric("BNB", f"{bnb['total']:.6f}", f"Free: {bnb['free']:.6f}")
+                    
+                    # Show all balances in expander
+                    with st.expander("View All Balances"):
+                        for asset, data in sorted(balances.items()):
+                            if data["total"] > 0:
+                                st.text(f"{asset}: {data['total']:.6f} (Free: {data['free']:.6f}, Locked: {data['locked']:.6f})")
+                else:
+                    st.error(f"Cannot load live account: {account_info.get('error', 'Unknown error')}")
+            except Exception as e:
+                st.error(f"Live account error: {e}")
+        else:
+            # Portfolio overview (paper/observation mode)
+            render_portfolio_overview(portfolio_state)
         
         # Equity chart
         st.subheader("Equity Curve")
