@@ -291,7 +291,18 @@ def create_observation_client() -> Optional[LiveClientObservation]:
         
         if not api_key or not api_secret:
             print("API credentials not configured")
+            print(f"  live_binance_api_key set: {bool(secrets.live_binance_api_key)}")
+            print(f"  binance_api_key set: {bool(secrets.binance_api_key)}")
             return None
+        
+        # Convert to string if needed
+        if hasattr(api_key, 'get_secret_value'):
+            api_key = api_key.get_secret_value()
+        if hasattr(api_secret, 'get_secret_value'):
+            api_secret = api_secret.get_secret_value()
+        
+        print(f"  API Key length: {len(api_key)}")
+        print(f"  Secret length: {len(api_secret)}")
         
         return LiveClientObservation(settings)
     except Exception as e:
