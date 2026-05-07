@@ -44,98 +44,154 @@ if st is not None:
         initial_sidebar_state="expanded",
     )
     
-    # Custom CSS for better contrast and visibility
-    # Using !important to override Streamlit defaults
+    # Custom CSS for maximum visibility and contrast
+    # Using aggressive !important overrides to ensure visibility
     st.markdown(
         """
         <style>
-        /* Main content area - light background */
+        /* Force all text to be visible - global override */
+        * {
+            color: #000000 !important;
+        }
+        
+        /* Main content area - pure white background */
         .main > div {
             padding-top: 2rem;
-            background-color: #ffffff;
+            background-color: #ffffff !important;
         }
         
-        /* Metrics with better contrast */
+        /* All text elements - force black color */
+        p, span, div, label, h1, h2, h3, h4, h5, h6, li, td, th, a, button {
+            color: #000000 !important;
+        }
+        
+        /* Streamlit specific elements */
+        .stText, .stMarkdown, .stHeader, .stSubheader {
+            color: #000000 !important;
+        }
+        
+        /* Metrics - maximum contrast */
         .stMetric {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid #dee2e6;
+            background-color: #f8f9fa !important;
+            padding: 1rem !important;
+            border-radius: 0.5rem !important;
+            border: 2px solid #dee2e6 !important;
         }
         
-        /* Metric labels - dark gray for better contrast */
+        /* Metric labels - black text */
         .stMetric label {
-            color: #212529 !important;
-            font-weight: 600;
-            font-size: 0.875rem;
+            color: #000000 !important;
+            font-weight: 700 !important;
+            font-size: 0.875rem !important;
         }
         
-        /* Metric values - black for maximum contrast */
+        /* Metric values - black text, large */
         .stMetric .metric-value {
             color: #000000 !important;
-            font-weight: 700;
-            font-size: 1.5rem;
+            font-weight: 900 !important;
+            font-size: 1.75rem !important;
         }
         
-        /* Metric deltas - color based on value */
+        /* Metric deltas - black text */
         .stMetric .metric-delta {
-            font-weight: 600;
+            color: #000000 !important;
+            font-weight: 700 !important;
         }
         
-        /* DataFrames - better contrast */
+        /* DataFrames - black text on white */
         .stDataFrame {
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
+            border: 2px solid #000000 !important;
+            border-radius: 0.25rem !important;
+            background-color: #ffffff !important;
         }
         
-        /* DataFrame text - dark for contrast */
+        /* DataFrame cells - black text */
         .stDataFrame td, .stDataFrame th {
-            color: #212529;
+            color: #000000 !important;
+            background-color: #ffffff !important;
+            border: 1px solid #cccccc !important;
         }
         
-        /* Headers - dark for contrast */
+        /* Headers - black text, bold */
         h1, h2, h3, h4, h5, h6 {
-            color: #1a1a1a !important;
-            font-weight: 600;
+            color: #000000 !important;
+            font-weight: 900 !important;
         }
         
-        /* Sidebar - light background for contrast with dark text */
+        /* Sidebar - white background with black text */
         section[data-testid="stSidebar"] {
-            background-color: #f8f9fa !important;
+            background-color: #ffffff !important;
+            border-right: 2px solid #000000 !important;
         }
         
-        /* Sidebar text - dark for contrast */
+        /* Sidebar content - black text */
         section[data-testid="stSidebar"] * {
-            color: #212529 !important;
+            color: #000000 !important;
         }
         
-        /* Warning/Info boxes - better visibility */
+        /* Input fields - black text on white */
+        input, textarea, select {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+            border: 2px solid #cccccc !important;
+        }
+        
+        /* Buttons - black text on light gray */
+        button {
+            color: #000000 !important;
+            background-color: #f0f0f0 !important;
+            border: 2px solid #999999 !important;
+        }
+        
+        /* Alert boxes - black text with colored backgrounds */
         .stAlert {
-            border: 1px solid #ffc107;
-            background-color: #fff3cd !important;
+            color: #000000 !important;
+            border: 3px solid #000000 !important;
+            background-color: #ffff99 !important;
         }
         
-        /* Success messages */
+        /* Success messages - black text */
         .stSuccess {
-            border: 1px solid #28a745;
-            background-color: #d4edda !important;
+            color: #000000 !important;
+            border: 3px solid #000000 !important;
+            background-color: #ccffcc !important;
         }
         
-        /* Error messages */
+        /* Error messages - black text */
         .stError {
-            border: 1px solid #dc3545;
-            background-color: #f8d7da !important;
+            color: #000000 !important;
+            border: 3px solid #000000 !important;
+            background-color: #ffcccc !important;
         }
         
-        /* Info messages */
+        /* Info messages - black text */
         .stInfo {
-            border: 1px solid #17a2b8;
-            background-color: #d1ecf1 !important;
+            color: #000000 !important;
+            border: 3px solid #000000 !important;
+            background-color: #ccccff !important;
         }
         
-        /* Plotly charts - ensure text is visible */
+        /* Plotly charts - black text */
         .js-plotly-plot .plotly .main-svg text {
-            fill: #212529 !important;
+            fill: #000000 !important;
+            stroke: #000000 !important;
+        }
+        
+        /* Tabs - black text */
+        .stTabs [data-baseweb="tab"] {
+            color: #000000 !important;
+        }
+        
+        /* Tab content - black text */
+        .stTabs [data-baseweb="tab-panel"] * {
+            color: #000000 !important;
+        }
+        
+        /* Code blocks - black text on light background */
+        code, pre {
+            color: #000000 !important;
+            background-color: #f5f5f5 !important;
+            border: 1px solid #cccccc !important;
         }
         </style>
         """,
