@@ -34,7 +34,7 @@ timeout /t 3 /nobreak >nul
 
 REM Start Dashboard (Terminal 2)
 echo [2/3] Starting Dashboard...
-start "BAET Dashboard" cmd /c "cd /d %PROJECT_DIR% && streamlit run src\baet\dashboard\app.py --server.port 8501"
+start "BAET Dashboard" cmd /c "cd /d %PROJECT_DIR% && streamlit run src\baet\dashboard\app.py --server.port 8501 --theme.base dark"
 timeout /t 3 /nobreak >nul
 
 REM Start Monitor (Terminal 3 - Optional)

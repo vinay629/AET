@@ -84,7 +84,11 @@ REM Change to project directory
 cd /d %DASHBOARD_DIR%
 
 REM Start Streamlit dashboard
-streamlit run src\baet\dashboard\app.py --server.port %PORT% --theme %THEME%
+if /i "%THEME%"=="light" (
+    streamlit run src\baet\dashboard\app.py --server.port %PORT% --theme.base light
+) else (
+    streamlit run src\baet\dashboard\app.py --server.port %PORT% --theme.base dark
+)
 
 echo.
 echo Dashboard stopped.
