@@ -54,15 +54,23 @@ with st.sidebar:
     refresh_interval = st.slider("Refresh (seconds)", 10, 300, 30, disabled=not auto_refresh)
     
     if st.button("🔄 Refresh Now", use_container_width=True):
+        st.session_state.last_refresh = 0
         st.rerun()
     
-    # Auto-refresh logic
-    if auto_refresh:
-        import time
-        time.sleep(refresh_interval)
-        st.rerun()
-    
+    # Non-blocking auto-refresh using session state
+    import time
     from datetime import datetime
+    
+    if "last_refresh" not in st.session_state:
+        st.session_state.last_refresh = time.time()
+    
+    current_time = time.time()
+    time_since_refresh = current_time - st.session_state.last_refresh
+    
+    if auto_refresh and time_since_refresh > refresh_interval:
+        st.session_state.last_refresh = current_time
+        st.rerun()
+    
     st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
 
 # Main content
