@@ -66,6 +66,9 @@ Track delivery by validated checkpoints, not by code volume.
 - `M4.2a` implemented
 - `M4.3a` implemented
 - `M4.3b` implemented
+- `M4.4` implemented
+- `M5.1a` implemented
+- `M5.1b` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
@@ -84,6 +87,9 @@ Track delivery by validated checkpoints, not by code volume.
 - Stage 4.2a paper trading loop runs continuously without crashing: PaperPortfolio tracks positions/cash; PaperOrderSimulator applies slippage/fees; PaperTradingEngine runs continuous loop with error handling; 28 unit tests validate all components; integrates with risk engine (optional)
 - Stage 4.3a paper trading logs explain decisions end-to-end: PaperTradingLogger provides structured JSON logging; all decisions logged (signals, risk evaluations, order simulations, portfolio updates, engine events); log analysis script created; 17 unit tests validate logging system
 - Stage 4.3b Streamlit dashboard shows current paper trading state and daily summaries: Dashboard module with data_loader.py (find_latest_log_file, parse_log_file, load_latest_state, load_recent_trades, load_equity_curve, calculate_daily_summary, calculate_performance_metrics); components.py with 8 UI components; main app.py with 5 tabs; 19 unit tests validate all data loading functions; launcher script created
+- Stage 4.4 paper trading is stable over the target observation window: Observation mode with simulation engine; monitoring script with 5 stability criteria; validation script with 6 tests; daily checklist created; 6 control panel tests validate start/stop/emergency stop functionality
+- Stage 5.1a live readiness controls are implemented and documented: Dashboard Control Panel with start/stop/emergency stop functionality; process management via paper_trading_manager.py; consolidated BAET Complete Trading System launcher (start_baet.bat); 6 control panel tests pass
+- Stage 5.1b live execution path works in controlled validation conditions: LiveExecutionClient with testnet support and simulation mode; LiveTradingEngine for live decision execution; validation script successfully connects to Binance testnet, validates credentials, accesses account, and simulates orders; 9 live execution tests pass; python-binance dependency installed
 ## Validation States
 - `pending`
 - `active`
