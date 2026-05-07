@@ -6,31 +6,42 @@ paper:
   enabled: false
 
 live:
-  enabled: true  # Enable for validation mode
-  require_explicit_confirmation: false  # Skip confirmation for validation
-  simulation_mode: true  # Simulate orders (validation)
-  testnet: true  # Use testnet, not production
+  enabled: true  # Enable for live trading pilot
+  require_explicit_confirmation: true  # Manual confirmation required
+  simulation_mode: false  # REAL orders for pilot
+  testnet: false  # Use production (but with tiny capital)
   
-  # Account touchpoints (for validation)
+  # Risk limits for tiny-capital pilot
+  max_position_size_usdt: 25.0  # Max $25 per position
+  max_daily_loss_usdt: 10.0  # Stop if lose $10 in a day
+  max_concurrent_positions: 2  # Max 2 open positions
+  min_order_interval_seconds: 300  # 5 min between orders
+  max_single_loss_usdt: 5.0  # Max $5 loss per position
+  max_consecutive_losses: 3  # Stop after 3 losses
+  
+  # Account touchpoints (for live)
   account_touchpoints:
     - account_info
     - open_orders
     - order_status
+    - balance_lookup
+    - position_lookup
   
-  # Order submission (validation mode)
+  # Order submission (LIVE MODE)
   order_submission:
-    enabled: false  # Don't actually submit in validation
-    max_order_size: 10.0  # USD
-    min_order_size: 1.0   # USD
+    enabled: true  # REAL orders
+    max_order_size: 25.0  # USD - tiny size
+    min_order_size: 10.0   # USD - minimum
     test_symbols:
       - BTCUSDT
       - ETHUSDT
   
-  # Safety limits
+  # Safety limits for pilot
   safety:
     max_daily_trades: 5
-    max_position_value: 100.0  # USD
-    allowed_deviation_pct: 5.0  # Price deviation tolerance
+    max_position_value: 25.0  # USD
+    allowed_deviation_pct: 2.0  # Tighter price tolerance
+    emergency_stop_file: "EMERGENCY_STOP.txt"
 
 
 binance:

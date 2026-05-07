@@ -359,6 +359,35 @@ if st is not None:
         log_entries = parse_log_file(log_file, max_entries=100) if log_file else []
     
     # Main content
+    # Check if live mode is enabled
+    from baet.config.loader import load_settings
+    try:
+        settings = load_settings()
+        is_live_mode = settings.live.enabled if hasattr(settings, 'live') else False
+        is_paper_mode = settings.paper.enabled if hasattr(settings, 'paper') else False
+    except:
+        is_live_mode = False
+        is_paper_mode = False
+    
+    # Show mode indicator in sidebar
+    with st.sidebar:
+        st.markdown("---")
+        if is_live_mode:
+            st.error("🔴 **LIVE MODE ACTIVE**")
+            st.warning("Real money at risk! Check positions regularly.")
+        elif is_paper_mode:
+            st.info("🟡 **PAPER TRADING MODE**")
+        else:
+            st.success("🟢 **OBSERVATION MODE**")
+        
+        # Emergency stop button (only in live mode)
+        if is_live_mode:
+            if st.button("🚨 EMERGENCY STOP", type="primary", use_container_width=True):
+                import os
+                with open("EMERGENCY_STOP.txt", "w") as f:
+                    f.write("Emergency stop triggered from dashboard")
+                st.error("Emergency stop file created! Bot should stop soon.")
+    
     # Tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
         ["Overview", "Positions", "Trades", "Performance", "Logs"]
