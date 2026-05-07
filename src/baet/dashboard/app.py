@@ -36,13 +36,20 @@ if st is not None:
         parse_log_file,
     )
     
-    # Page config
+    # Page config with explicit light theme
     st.set_page_config(
         page_title="BAET Dashboard",
         page_icon="📈",
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    
+    # Force light theme configuration
+    st._config.set_option("theme.base", "light")
+    st._config.set_option("theme.primaryColor", "#007bff")
+    st._config.set_option("theme.backgroundColor", "#ffffff")
+    st._config.set_option("theme.secondaryBackgroundColor", "#f8f9fa")
+    st._config.set_option("theme.textColor", "#000000")
     
     # Custom CSS for maximum visibility and contrast
     # Using aggressive !important overrides to ensure visibility
@@ -54,8 +61,13 @@ if st is not None:
             color: #000000 !important;
         }
         
+        /* Force ALL backgrounds to be white/light - comprehensive override */
+        *, *::before, *::after {
+            background-color: transparent !important;
+        }
+        
         /* Main content area - pure white background */
-        .main > div {
+        .main > div, .main, .block-container, .stApp {
             padding-top: 2rem;
             background-color: #ffffff !important;
         }
@@ -63,15 +75,17 @@ if st is not None:
         /* All text elements - force black color */
         p, span, div, label, h1, h2, h3, h4, h5, h6, li, td, th, a, button {
             color: #000000 !important;
+            background-color: transparent !important;
         }
         
         /* Streamlit specific elements */
         .stText, .stMarkdown, .stHeader, .stSubheader {
             color: #000000 !important;
+            background-color: transparent !important;
         }
         
         /* Force all backgrounds to be light */
-        .main, .block-container, .stApp {
+        .main, .block-container, .stApp, body, html {
             background-color: #ffffff !important;
         }
         
@@ -119,6 +133,7 @@ if st is not None:
             color: #000000 !important;
             font-weight: 700 !important;
             font-size: 0.875rem !important;
+            background-color: transparent !important;
         }
         
         /* Metric values - black text, large */
@@ -126,12 +141,14 @@ if st is not None:
             color: #000000 !important;
             font-weight: 900 !important;
             font-size: 1.75rem !important;
+            background-color: transparent !important;
         }
         
         /* Metric deltas - black text */
         .stMetric .metric-delta {
             color: #000000 !important;
             font-weight: 700 !important;
+            background-color: transparent !important;
         }
         
         /* DataFrames - black text on white */
@@ -164,6 +181,7 @@ if st is not None:
         /* Sidebar content - black text */
         section[data-testid="stSidebar"] * {
             color: #000000 !important;
+            background-color: transparent !important;
         }
         
         /* Input fields - black text on white */
@@ -223,6 +241,7 @@ if st is not None:
         /* Tab content - black text */
         .stTabs [data-baseweb="tab-panel"] * {
             color: #000000 !important;
+            background-color: transparent !important;
         }
         
         /* Code blocks - black text on light background */
@@ -252,6 +271,29 @@ if st is not None:
         /* Force all text in plotly charts to be black */
         .plotly-graph-div text, .plotly-graph-div tspan {
             fill: #000000 !important;
+        }
+        
+        /* Override any remaining dark backgrounds */
+        .css-1d391kg, .css-1r6slb0, .css-12ttj6m, .css-1kyxreq {
+            background-color: #ffffff !important;
+        }
+        
+        /* Streamlit internal classes that might have dark backgrounds */
+        .css-1avcm0n, .css-1lcbmhc, .css-1q8dd3e, .css-1n76uvr {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        
+        /* Force all divs and spans to have transparent backgrounds unless specified */
+        div:not(.stMetric):not(.stDataFrame):not(.stAlert):not(.stSuccess):not(.stError):not(.stInfo) {
+            background-color: transparent !important;
+        }
+        
+        /* Override any CSS variables that might set dark backgrounds */
+        :root {
+            --background-color: #ffffff !important;
+            --secondary-background-color: #f8f9fa !important;
+            --text-color: #000000 !important;
         }
         </style>
         """,
