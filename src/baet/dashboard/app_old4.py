@@ -1,4 +1,4 @@
-"""Main Streamlit app for BAET dashboard."""
+"""Main Streamlit app for BAET dashboard - Clean version."""
 
 import sys
 from pathlib import Path
@@ -17,18 +17,8 @@ st.set_page_config(
 )
 
 # Title
-try:
-    from baet.config.loader import load_settings
-    settings = load_settings()
-    if hasattr(settings, 'live') and settings.live and settings.live.enabled:
-        st.title("📈 BAET Live Trading Dashboard (Testnet)")
-        st.caption("Environment: Testnet • Real-time demo trading")
-    else:
-        st.title("📈 BAET Observation Dashboard")
-        st.caption("Market observation mode • No trading active")
-except Exception as e:
-    st.title("📈 BAET Dashboard")
-    st.error(f"Config error: {e}")
+st.title("📈 BAET Live Trading Dashboard (Testnet)")
+st.caption("Environment: Testnet • Real-time demo trading")
 
 # Sidebar
 with st.sidebar:
@@ -79,7 +69,7 @@ st.header("Portfolio Overview")
 if is_live_mode:
     try:
         from baet.dashboard.data_loader import load_live_account_info_cached
-        account_info = load_live_account_info_cached(timeout_seconds=5)
+        account_info = load_live_account_info_cached(timeout_seconds=5)  # 5 second timeout
         
         if account_info and account_info.get("success"):
             col1, col2, col3 = st.columns(3)

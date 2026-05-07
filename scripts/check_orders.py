@@ -1,5 +1,6 @@
 """Check recent orders on testnet."""
 
+from pydantic import SecretStr
 from binance.client import Client
 from baet.config.loader import load_settings
 
@@ -9,9 +10,10 @@ secrets = settings.secrets
 api_key = secrets.live_binance_api_key or secrets.binance_api_key
 api_secret = secrets.live_binance_api_secret or secrets.binance_api_secret
 
-if hasattr(api_key, 'get_secret_value'):
+# Handle SecretStr properly
+if isinstance(api_key, SecretStr):
     api_key = api_key.get_secret_value()
-if hasattr(api_secret, 'get_secret_value'):
+if isinstance(api_secret, SecretStr):
     api_secret = api_secret.get_secret_value()
 
 client = Client(api_key, api_secret, testnet=True)

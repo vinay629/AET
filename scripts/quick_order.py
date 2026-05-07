@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from pydantic import SecretStr
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -20,10 +21,10 @@ def main():
     api_key = secrets.live_binance_api_key or secrets.binance_api_key
     api_secret = secrets.live_binance_api_secret or secrets.binance_api_secret
     
-    # Handle SecretStr
-    if hasattr(api_key, 'get_secret_value'):
+    # Handle SecretStr properly
+    if isinstance(api_key, SecretStr):
         api_key = api_key.get_secret_value()
-    if hasattr(api_secret, 'get_secret_value'):
+    if isinstance(api_secret, SecretStr):
         api_secret = api_secret.get_secret_value()
     
     # Create testnet client

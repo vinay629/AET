@@ -7,8 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from binance.client import Client as BinanceClient
-
+from binance.client import Client as BinanceClientfrom pydantic import SecretStr
 from baet.config.loader import load_settings
 from baet.config.models import Settings
 
@@ -32,13 +31,13 @@ class LiveClientObservation:
         api_key = secrets.live_binance_api_key or secrets.binance_api_key
         api_secret = secrets.live_binance_api_secret or secrets.binance_api_secret
         
-        # Handle both SecretStr and regular strings
-        if hasattr(api_key, 'get_secret_value'):
+        # Handle SecretStr properly
+        if isinstance(api_key, SecretStr):
             api_key_str = api_key.get_secret_value()
         else:
             api_key_str = str(api_key) if api_key else ""
         
-        if hasattr(api_secret, 'get_secret_value'):
+        if isinstance(api_secret, SecretStr):
             api_secret_str = api_secret.get_secret_value()
         else:
             api_secret_str = str(api_secret) if api_secret else ""
@@ -295,14 +294,22 @@ def create_observation_client() -> Optional[LiveClientObservation]:
             print(f"  binance_api_key set: {bool(secrets.binance_api_key)}")
             return None
         
-        # Convert to string if needed
-        if hasattr(api_key, 'get_secret_value'):
-            api_key = api_key.get_secret_value()
-        if hasattr(api_secret, 'get_secret_value'):
-            api_secret = api_secret.get_secret_value()
+        # Validate credentials are SecretStr and have values
+        if isinstance(api_key, SecretStr):
+            api_key_value = api_key.get_secret_value()
+        else:
+            api_key_value = str(api_key) if api_key else ""
+            
+        if isinstance(api_secret, SecretStr):
+            api_secret_value = api_secret.get_secret_value()
+        else:
+            api_secret_value = str(api_secret) if api_secret else ""
         
-        print(f"  API Key length: {len(api_key)}")
-        print(f"  Secret length: {len(api_secret)}")
+        if not api_key_value or not api_secret_value:
+            print("API credentials are empty")
+            return None
+        
+        print("  ✓ API credentials validated")
         
         return LiveClientObservation(settings)
     except Exception as e:

@@ -32,8 +32,8 @@ def main():
         print("     BAET_LIVE_BINANCE_SECRET=your_secret")
         sys.exit(1)
     
-    print(f"   [OK] BAET_LIVE_BINANCE_API_KEY found (length: {len(live_key)})")
-    print(f"   [OK] BAET_LIVE_BINANCE_SECRET found (length: {len(live_secret)})")
+    print(f"   [OK] BAET_LIVE_BINANCE_API_KEY found")
+    print(f"   [OK] BAET_LIVE_BINANCE_SECRET found")
     print()
     
     try:
@@ -57,17 +57,12 @@ def main():
         if not secrets.live_binance_api_key or not secrets.live_binance_api_secret:
             print("   [ERROR] API credentials not found in settings!")
             print()
-            print("   Debug: secrets dict:")
-            import json
-            print(json.dumps({k: v if 'secret' not in k.lower() else f"[HIDDEN-{len(v)}]" 
-                              for k, v in secrets.model_dump().items()}, indent=2))
-            print()
             print("   Set environment variables:")
             print("     $env:BAET_LIVE_BINANCE_API_KEY='your_key'")
             print("     $env:BAET_LIVE_BINANCE_SECRET='your_secret'")
             sys.exit(1)
         
-        print(f"   [OK] API credentials found (key length: {len(secrets.live_binance_api_key)})")
+        print(f"   [OK] API credentials found in settings")
         print()
         
         # Initialize client in validation mode

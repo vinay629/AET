@@ -1,19 +1,26 @@
 """Simple test to debug testnet connection."""
 
+import os
 from binance.client import Client
 
-# Your testnet credentials
-API_KEY = "fhLjAkADLHUP4N51WRJiPNMqr3r2sCb2ectAUorHD7jAS5aigGdZv4djc3Ir5Wur"
-SECRET = "T5MR1pmv3k6NaIJqRce04JZYdmkZZciQJ8SBYWHoAKi7LW3BcJgMuoGjrORE7ngA"
+# Load credentials from environment variables
+API_KEY = os.getenv("BAET_TESTNET_API_KEY", "")
+API_SECRET = os.getenv("BAET_TESTNET_API_SECRET", "")
 
 print("Testing testnet connection...")
-print(f"API Key length: {len(API_KEY)}")
-print(f"Secret length: {len(SECRET)}")
-print(f"API Key starts with: {API_KEY[:20]}")
-print(f"Secret starts with: {SECRET[:20]}")
+
+# Check if credentials are provided
+if not API_KEY or not API_SECRET:
+    print("❌ Error: BAET_TESTNET_API_KEY and BAET_TESTNET_API_SECRET must be set.")
+    print("Set them using environment variables:")
+    print("  $env:BAET_TESTNET_API_KEY='your_testnet_api_key'")
+    print("  $env:BAET_TESTNET_API_SECRET='your_testnet_api_secret'")
+    exit(1)
+
+print("✅ Credentials loaded from environment variables")
 
 try:
-    client = Client(API_KEY, SECRET, testnet=True)
+    client = Client(API_KEY, API_SECRET, testnet=True)
     print("\n✅ Client created successfully")
     
     print("\nFetching account info...")

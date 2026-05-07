@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, SecretStr, model_validator
 
 from baet.core.enums import AppMode
 
@@ -133,10 +133,10 @@ class DashboardConfig(BaseModel):
 
 
 class SecretsConfig(BaseModel):
-    binance_api_key: str = ""
-    binance_api_secret: str = ""
-    live_binance_api_key: str = ""
-    live_binance_api_secret: str = ""
+    binance_api_key: SecretStr = SecretStr("")
+    binance_api_secret: SecretStr = SecretStr("")
+    live_binance_api_key: SecretStr = SecretStr("")
+    live_binance_api_secret: SecretStr = SecretStr("")
 
 
 class Settings(BaseModel):

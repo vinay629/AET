@@ -6,6 +6,7 @@ from typing import Any
 
 import yaml
 from dotenv import load_dotenv
+from pydantic import SecretStr
 
 from baet.config.models import SecretsConfig, Settings
 
@@ -33,11 +34,15 @@ def _read_yaml(path: Path) -> dict[str, Any]:
 
 def _load_secret_settings() -> SecretsConfig:
     """Load secrets from environment variables."""
+    def _get_secret(env_var: str) -> SecretStr:
+        value = os.getenv(env_var, "")
+        return SecretStr(value) if value else SecretStr("")
+    
     return SecretsConfig(
-        binance_api_key=os.getenv("BAET_BINANCE_API_KEY", ""),
-        binance_api_secret=os.getenv("BAET_BINANCE_API_SECRET", ""),
-        live_binance_api_key=os.getenv("BAET_LIVE_BINANCE_API_KEY", os.getenv("BAET_BINANCE_API_KEY", "")),
-        live_binance_api_secret=os.getenv("BAET_LIVE_BINANCE_API_SECRET", os.getenv("BAET_BINANCE_API_SECRET", "")),
+        binance_api_key=_get_secret("BAET_BINANCE_API_KEY"),
+        binance_api_secret=_get_secret("BAET_BINANCE_API_SECRET"),
+        live_binance_api_key=_get_secret("BAET_LIVE_BINANCE_API_KEY") if os.getenv("BAET_LIVE_BINANCE_API_KEY") else _get_secret("BAET_BINANCE_API_KEY"),
+        live_binance_api_secret=_get_secret("BAET_LIVE_BINANCE_API_SECRET") if os.getenv("BAET_LIVE_BINANCE_API_SECRET") else _get_secret("BAET_BINANCE_API_SECRET"),
     )
 
 

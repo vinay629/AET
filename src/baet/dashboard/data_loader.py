@@ -4,8 +4,13 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 import pandas as pd
+
+
+# Thread pool for timeout support
+_executor = ThreadPoolExecutor(max_workers=1)
 
 
 def find_latest_log_file(log_dir: str = "logs/paper") -> Optional[Path]:
@@ -301,4 +306,70 @@ def load_live_account_info() -> dict[str, Any]:
             "success": False,
             "error": str(e),
             "timestamp": datetime.now().isoformat()
+        }
+
+
+def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
+    """Load live account info with timeout support (non-blocking).
+    
+    This wrapper adds:
+    - Timeout protection (prevents hanging)
+    - Simple caching using session state
+    
+    Args:
+        timeout_seconds: Maximum time to wait for API response
+        
+    Returns:
+        Dictionary with account info or error
+    """
+    # Try to use streamlit session state for simple caching
+    try:
+        import streamlit as st
+        
+        # Check if we have a cached result in session state
+        cache_key = "_live_account_cache"
+        cache_time_key = "_live_account_cache_time"
+        
+        if cache_key in st.session_state:
+            import time
+            current_time = time.time()
+            cache_time = st.session_state.get(cache_time_key, 0)
+            
+            # Use cached result if less than 30 seconds old
+            if current_time - cache_time < 30:
+                return st.session_state[cache_key]
+        
+        # Fetch with timeout
+        future = _executor.submit(load_live_account_info)
+        try:
+            result = future.result(timeout=timeout_seconds)
+            
+            # Cache result
+            import time
+            st.session_state[cache_key] = result
+            st.session_state[cache_time_key] = time.time()
+            
+            return result
+        except FuturesTimeoutError:
+            return {
+                "success": False,
+                "error": f"API request timed out after {timeout_seconds}s",
+                "timestamp": datetime.now().isoformat()
+            }
+    except Exception as e:
+        # Fallback: no session state available, just fetch with timeout
+        future = _executor.submit(load_live_account_info)
+        try:
+            return future.result(timeout=timeout_seconds)
+        except FuturesTimeoutError:
+            return {
+                "success": False,
+                "error": f"API request timed out after {timeout_seconds}s",
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as fetch_error:
+            return {
+                "success": False,
+                "error": str(fetch_error),
+                "timestamp": datetime.now().isoformat()
         }
