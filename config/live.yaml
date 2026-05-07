@@ -6,8 +6,32 @@ paper:
   enabled: false
 
 live:
-  enabled: false
+  enabled: false  # Must be explicitly enabled
   require_explicit_confirmation: true
+  simulation_mode: true  # Simulate orders (validation)
+  testnet: true  # Use testnet, not production
+  
+  # Account touchpoints (for validation)
+  account_touchpoints:
+    - account_info
+    - open_orders
+    - order_status
+  
+  # Order submission (validation mode)
+  order_submission:
+    enabled: false  # Don't actually submit in validation
+    max_order_size: 10.0  # USD
+    min_order_size: 1.0   # USD
+    test_symbols:
+      - BTCUSDT
+      - ETHUSDT
+  
+  # Safety limits
+  safety:
+    max_daily_trades: 5
+    max_position_value: 100.0  # USD
+    allowed_deviation_pct: 5.0  # Price deviation tolerance
+
 
 binance:
   live_stream_enabled: true

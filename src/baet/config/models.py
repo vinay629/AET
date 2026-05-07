@@ -46,9 +46,33 @@ class PaperTradingConfig(BaseModel):
 
 
 class LiveConfig(BaseModel):
+    """Configuration for live trading."""
     enabled: bool = False
     require_explicit_confirmation: bool = True
-    account_touchpoints: list[str] = Field(default_factory=list)
+    simulation_mode: bool = True
+    testnet: bool = True
+    
+    # Order submission
+    order_submission: dict = Field(default_factory=lambda: {
+        "enabled": False,
+        "max_order_size": 10.0,
+        "min_order_size": 1.0,
+        "test_symbols": ["BTCUSDT", "ETHUSDT"],
+    })
+    
+    # Safety limits
+    safety: dict = Field(default_factory=lambda: {
+        "max_daily_trades": 5,
+        "max_position_value": 100.0,
+        "allowed_deviation_pct": 5.0,
+    })
+    
+    # Account touchpoints
+    account_touchpoints: list[str] = Field(default_factory=lambda: [
+        "account_info",
+        "open_orders",
+        "order_status",
+    ])
 
 
 class BinanceConfig(BaseModel):
