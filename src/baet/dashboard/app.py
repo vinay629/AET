@@ -70,6 +70,42 @@ if st is not None:
             color: #000000 !important;
         }
         
+        /* Force all backgrounds to be light */
+        .main, .block-container, .stApp {
+            background-color: #ffffff !important;
+        }
+        
+        /* Tab headers - ensure they have white backgrounds and black text */
+        [data-baseweb="tab"], [data-baseweb="tab"] * {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #cccccc !important;
+        }
+        
+        /* Active tab - make sure it's distinguishable */
+        [data-baseweb="tab"][aria-selected="true"] {
+            background-color: #f0f0f0 !important;
+            color: #000000 !important;
+            border-bottom: 3px solid #007bff !important;
+        }
+        
+        /* Tab content areas - white background */
+        [data-baseweb="tab-panel"] {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        
+        /* Chart containers - white background */
+        .stPlotlyChart, .plotly-graph-div, .js-plotly-plot {
+            background-color: #ffffff !important;
+        }
+        
+        /* Chart titles and labels - black text */
+        .plotly .gtitle, .plotly text {
+            fill: #000000 !important;
+            color: #000000 !important;
+        }
+        
         /* Metrics - maximum contrast */
         .stMetric {
             background-color: #f8f9fa !important;
@@ -116,6 +152,7 @@ if st is not None:
         h1, h2, h3, h4, h5, h6 {
             color: #000000 !important;
             font-weight: 900 !important;
+            background-color: transparent !important;
         }
         
         /* Sidebar - white background with black text */
@@ -180,6 +217,7 @@ if st is not None:
         /* Tabs - black text */
         .stTabs [data-baseweb="tab"] {
             color: #000000 !important;
+            background-color: #ffffff !important;
         }
         
         /* Tab content - black text */
@@ -192,6 +230,28 @@ if st is not None:
             color: #000000 !important;
             background-color: #f5f5f5 !important;
             border: 1px solid #cccccc !important;
+        }
+        
+        /* Specific fix for tab titles that might be blending */
+        .stTabs [data-baseweb="tab"] span {
+            color: #000000 !important;
+            background-color: transparent !important;
+        }
+        
+        /* Ensure all containers have white backgrounds */
+        .stContainer, .stVerticalBlock, .stHorizontalBlock {
+            background-color: #ffffff !important;
+        }
+        
+        /* Fix for any dark theme remnants */
+        [data-theme="dark"], [data-testid*="dark"] {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        
+        /* Force all text in plotly charts to be black */
+        .plotly-graph-div text, .plotly-graph-div tspan {
+            fill: #000000 !important;
         }
         </style>
         """,
