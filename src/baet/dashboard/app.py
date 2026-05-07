@@ -90,157 +90,6 @@ if st is not None:
         """,
         unsafe_allow_html=True,
     )
-            background-color: transparent !important;
-        }
-        
-        /* DataFrames - black text on white */
-        .stDataFrame {
-            border: 2px solid #000000 !important;
-            border-radius: 0.25rem !important;
-            background-color: #ffffff !important;
-        }
-        
-        /* DataFrame cells - black text */
-        .stDataFrame td, .stDataFrame th {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            border: 1px solid #cccccc !important;
-        }
-        
-        /* Headers - black text, bold */
-        h1, h2, h3, h4, h5, h6 {
-            color: #000000 !important;
-            font-weight: 900 !important;
-            background-color: transparent !important;
-        }
-        
-        /* Sidebar - white background with black text */
-        section[data-testid="stSidebar"] {
-            background-color: #ffffff !important;
-            border-right: 2px solid #000000 !important;
-        }
-        
-        /* Sidebar content - black text */
-        section[data-testid="stSidebar"] * {
-            color: #000000 !important;
-            background-color: transparent !important;
-        }
-        
-        /* Input fields - black text on white */
-        input, textarea, select {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            border: 2px solid #cccccc !important;
-        }
-        
-        /* Buttons - black text on light gray */
-        button {
-            color: #000000 !important;
-            background-color: #f0f0f0 !important;
-            border: 2px solid #999999 !important;
-        }
-        
-        /* Alert boxes - black text with colored backgrounds */
-        .stAlert {
-            color: #000000 !important;
-            border: 3px solid #000000 !important;
-            background-color: #ffff99 !important;
-        }
-        
-        /* Success messages - black text */
-        .stSuccess {
-            color: #000000 !important;
-            border: 3px solid #000000 !important;
-            background-color: #ccffcc !important;
-        }
-        
-        /* Error messages - black text */
-        .stError {
-            color: #000000 !important;
-            border: 3px solid #000000 !important;
-            background-color: #ffcccc !important;
-        }
-        
-        /* Info messages - black text */
-        .stInfo {
-            color: #000000 !important;
-            border: 3px solid #000000 !important;
-            background-color: #ccccff !important;
-        }
-        
-        /* Plotly charts - black text */
-        .js-plotly-plot .plotly .main-svg text {
-            fill: #000000 !important;
-            stroke: #000000 !important;
-        }
-        
-        /* Tabs - black text */
-        .stTabs [data-baseweb="tab"] {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-        }
-        
-        /* Tab content - black text */
-        .stTabs [data-baseweb="tab-panel"] * {
-            color: #000000 !important;
-            background-color: transparent !important;
-        }
-        
-        /* Code blocks - black text on light background */
-        code, pre {
-            color: #000000 !important;
-            background-color: #f5f5f5 !important;
-            border: 1px solid #cccccc !important;
-        }
-        
-        /* Specific fix for tab titles that might be blending */
-        .stTabs [data-baseweb="tab"] span {
-            color: #000000 !important;
-            background-color: transparent !important;
-        }
-        
-        /* Ensure all containers have white backgrounds */
-        .stContainer, .stVerticalBlock, .stHorizontalBlock {
-            background-color: #ffffff !important;
-        }
-        
-        /* Fix for any dark theme remnants */
-        [data-theme="dark"], [data-testid*="dark"] {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        
-        /* Force all text in plotly charts to be black */
-        .plotly-graph-div text, .plotly-graph-div tspan {
-            fill: #000000 !important;
-        }
-        
-        /* Override any remaining dark backgrounds */
-        .css-1d391kg, .css-1r6slb0, .css-12ttj6m, .css-1kyxreq {
-            background-color: #ffffff !important;
-        }
-        
-        /* Streamlit internal classes that might have dark backgrounds */
-        .css-1avcm0n, .css-1lcbmhc, .css-1q8dd3e, .css-1n76uvr {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        
-        /* Force all divs and spans to have transparent backgrounds unless specified */
-        div:not(.stMetric):not(.stDataFrame):not(.stAlert):not(.stSuccess):not(.stError):not(.stInfo) {
-            background-color: transparent !important;
-        }
-        
-        /* Override any CSS variables that might set dark backgrounds */
-        :root {
-            --background-color: #ffffff !important;
-            --secondary-background-color: #f8f9fa !important;
-            --text-color: #000000 !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
     
     # Title - dynamic based on mode
     from baet.config.loader import load_settings
@@ -260,36 +109,47 @@ if st is not None:
         st.error(f"Config error: {e}")
     
     # Sidebar
-    st.sidebar.header("Configuration")
-    
-    # Control Panel (if available)
-    try:
-        from baet.dashboard.control import render_control_panel
-        render_control_panel()
-        st.sidebar.divider()
-    except ImportError:
-        pass  # Control panel not available
-    
-    # Log directory
-    log_dir = st.sidebar.text_input(
-        "Log Directory",
-        value="logs/paper",
-    )
-    
-    # Auto-refresh
-    auto_refresh = st.sidebar.checkbox("Auto Refresh", value=True)
-    refresh_interval = st.sidebar.slider(
-        "Refresh Interval (seconds)",
-        min_value=10,
-        max_value=300,
-        value=30,
-        step=10,
-        disabled=not auto_refresh,
-    )
-    
-    # Manual refresh button
-    if st.sidebar.button("Refresh Now"):
-        st.rerun()
+    with st.sidebar:
+        st.header("⚙️ Configuration")
+        
+        # Control Panel (if available)
+        try:
+            from baet.dashboard.control import render_control_panel
+            render_control_panel()
+            st.divider()
+        except ImportError:
+            pass  # Control panel not available
+        
+        # Log directory
+        st.subheader("📁 Data Source")
+        log_dir = st.text_input(
+            "Log Directory",
+            value="logs/paper",
+            help="Directory containing trading logs"
+        )
+        
+        st.divider()
+        
+        # Auto-refresh settings
+        st.subheader("🔄 Refresh Settings")
+        auto_refresh = st.checkbox("Auto Refresh", value=True, help="Automatically refresh dashboard data")
+        refresh_interval = st.slider(
+            "Refresh Interval (seconds)",
+            min_value=10,
+            max_value=300,
+            value=30,
+            step=10,
+            disabled=not auto_refresh,
+            help="Time between automatic refreshes"
+        )
+        
+        # Manual refresh button
+        if st.button("🔄 Refresh Now", use_container_width=True):
+            st.rerun()
+        
+        # Last updated timestamp
+        from datetime import datetime
+        st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
     
     # Check if live mode is enabled
     try:
@@ -346,45 +206,58 @@ if st is not None:
             daily_summary = {}
             log_entries = []
     
-    # Show mode indicator in sidebar
+    # Show mode indicator in sidebar with enhanced visuals
     with st.sidebar:
-        st.markdown("---")
+        st.divider()
+        
+        # Mode status with colored containers
         if is_live_mode:
-            st.error("🔴 **LIVE MODE ACTIVE**")
-            st.warning("Demo money at risk! Check positions regularly.")
-            
-            # Show live account info in sidebar
-            st.markdown("### Live Account (Testnet)")
-            try:
-                from baet.dashboard.data_loader import load_live_account_info
-                account_info = load_live_account_info()
+            with st.container(border=True):
+                st.markdown("### 🔴 LIVE MODE ACTIVE")
+                st.warning("⚠️ Demo money at risk! Monitor positions closely.")
                 
-                if account_info.get("success"):
-                    st.metric("Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
+                # Show live account info in sidebar
+                st.markdown("#### 💼 Live Account (Testnet)")
+                try:
+                    from baet.dashboard.data_loader import load_live_account_info
+                    account_info = load_live_account_info()
                     
-                    # Show key balances
-                    balances = account_info.get("balances", {})
-                    if "USDT" in balances:
-                        usdt = balances["USDT"]
-                        st.text(f"USDT: {usdt['free']:.2f} (free) / {usdt['locked']:.2f} (locked)")
-                    
-                    # Show other assets
-                    for asset, data in balances.items():
-                        if asset != "USDT" and data["total"] > 0:
-                            st.text(f"{asset}: {data['total']:.6f}")
-                else:
-                    st.error(f"Cannot load account: {account_info.get('error', 'Unknown error')}")
-            except Exception as e:
-                st.error(f"Account info error: {e}")
-                
+                    if account_info.get("success"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Total Value", f"${account_info.get('total_usdt_value', 0):.2f}")
+                        with col2:
+                            can_trade = "✅" if account_info.get('can_trade') else "❌"
+                            st.metric("Can Trade", can_trade)
+                        
+                        # Show key balances in expandable section
+                        balances = account_info.get("balances", {})
+                        with st.expander("View Balances", expanded=False):
+                            if "USDT" in balances:
+                                usdt = balances["USDT"]
+                                st.text(f"USDT: {usdt['free']:.2f} free / {usdt['locked']:.2f} locked")
+                            
+                            # Show other assets
+                            for asset, data in sorted(balances.items()):
+                                if asset != "USDT" and data["total"] > 0:
+                                    st.text(f"{asset}: {data['total']:.6f} (free: {data['free']:.6f})")
+                    else:
+                        st.error(f"Cannot load account: {account_info.get('error', 'Unknown error')}")
+                except Exception as e:
+                    st.error(f"Account info error: {e}")
         elif is_paper_mode:
-            st.info("🟡 **PAPER TRADING MODE**")
+            with st.container(border=True):
+                st.markdown("### 🟡 PAPER TRADING MODE")
+                st.info("📊 Simulated trading with virtual funds")
         else:
-            st.success("🟢 **OBSERVATION MODE**")
+            with st.container(border=True):
+                st.markdown("### 🟢 OBSERVATION MODE")
+                st.success("👁️ Market observation only • No trading")
         
         # Emergency stop button (only in live mode)
         if is_live_mode:
-            if st.button("🚨 EMERGENCY STOP", type="primary", width='stretch'):
+            st.divider()
+            if st.button("🚨 EMERGENCY STOP", type="primary", use_container_width=True):
                 import os
                 with open("EMERGENCY_STOP.txt", "w") as f:
                     f.write("Emergency stop triggered from dashboard")
