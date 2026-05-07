@@ -51,103 +51,45 @@ if st is not None:
     st._config.set_option("theme.secondaryBackgroundColor", "#f8f9fa")
     st._config.set_option("theme.textColor", "#000000")
     
-    # Custom CSS for maximum visibility and contrast
-    # Using aggressive !important overrides to ensure visibility
+    # Custom CSS for visibility - simplified version
     st.markdown(
         """
         <style>
-        /* Force all text to be visible - global override */
+        /* Force black text globally */
         * {
             color: #000000 !important;
         }
         
-        /* Force ALL backgrounds to be white/light - comprehensive override */
-        *, *::before, *::after {
-            background-color: transparent !important;
-        }
-        
-        /* Main content area - pure white background */
-        .main > div, .main, .block-container, .stApp {
-            padding-top: 2rem;
+        /* Light theme backgrounds */
+        .main, .block-container, .stApp {
             background-color: #ffffff !important;
         }
         
-        /* All text elements - force black color */
-        p, span, div, label, h1, h2, h3, h4, h5, h6, li, td, th, a, button {
-            color: #000000 !important;
-            background-color: transparent !important;
-        }
-        
-        /* Streamlit specific elements */
-        .stText, .stMarkdown, .stHeader, .stSubheader {
-            color: #000000 !important;
-            background-color: transparent !important;
-        }
-        
-        /* Force all backgrounds to be light */
-        .main, .block-container, .stApp, body, html {
-            background-color: #ffffff !important;
-        }
-        
-        /* Tab headers - ensure they have white backgrounds and black text */
-        [data-baseweb="tab"], [data-baseweb="tab"] * {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            border: 1px solid #cccccc !important;
-        }
-        
-        /* Active tab - make sure it's distinguishable */
-        [data-baseweb="tab"][aria-selected="true"] {
-            background-color: #f0f0f0 !important;
-            color: #000000 !important;
-            border-bottom: 3px solid #007bff !important;
-        }
-        
-        /* Tab content areas - white background */
-        [data-baseweb="tab-panel"] {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        
-        /* Chart containers - white background */
-        .stPlotlyChart, .plotly-graph-div, .js-plotly-plot {
-            background-color: #ffffff !important;
-        }
-        
-        /* Chart titles and labels - black text */
-        .plotly .gtitle, .plotly text {
-            fill: #000000 !important;
-            color: #000000 !important;
-        }
-        
-        /* Metrics - maximum contrast */
+        /* Metrics */
         .stMetric {
             background-color: #f8f9fa !important;
             padding: 1rem !important;
             border-radius: 0.5rem !important;
             border: 2px solid #dee2e6 !important;
         }
-        
-        /* Metric labels - black text */
-        .stMetric label {
+        .stMetric label, .stMetric .metric-value {
             color: #000000 !important;
-            font-weight: 700 !important;
-            font-size: 0.875rem !important;
             background-color: transparent !important;
         }
         
-        /* Metric values - black text, large */
-        .stMetric .metric-value {
+        /* Tabs */
+        [data-baseweb="tab"] {
+            background-color: #ffffff !important;
             color: #000000 !important;
-            font-weight: 900 !important;
-            font-size: 1.75rem !important;
-            background-color: transparent !important;
         }
-        
-        /* Metric deltas - black text */
-        .stMetric .metric-delta {
-            color: #000000 !important;
-            font-weight: 700 !important;
+        [data-baseweb="tab"][aria-selected="true"] {
+            background-color: #e7f3ff !important;
+            border-bottom: 3px solid #007bff !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
             background-color: transparent !important;
         }
         
@@ -305,11 +247,14 @@ if st is not None:
     try:
         settings = load_settings()
         if hasattr(settings, 'live') and settings.live and settings.live.enabled:
-            st.title("📈 BAET Live Trading Dashboard (Testnet)")
+            st.title("📈 BAET Live Trading Dashboard")
+            st.caption("Environment: Testnet • Real-time demo trading")
         elif hasattr(settings, 'paper') and settings.paper and settings.paper.enabled:
             st.title("📈 BAET Paper Trading Dashboard")
+            st.caption("Simulated trading with virtual funds")
         else:
             st.title("📈 BAET Observation Dashboard")
+            st.caption("Market observation mode • No trading active")
     except Exception as e:
         st.title("📈 BAET Dashboard")
         st.error(f"Config error: {e}")
@@ -439,7 +384,7 @@ if st is not None:
         
         # Emergency stop button (only in live mode)
         if is_live_mode:
-            if st.button("🚨 EMERGENCY STOP", type="primary", use_container_width=True):
+            if st.button("🚨 EMERGENCY STOP", type="primary", width='stretch'):
                 import os
                 with open("EMERGENCY_STOP.txt", "w") as f:
                     f.write("Emergency stop triggered from dashboard")
@@ -536,7 +481,7 @@ if st is not None:
                     if positions_data:
                         import pandas as pd
                         df = pd.DataFrame(positions_data)
-                        st.dataframe(df, use_container_width=True)
+                        st.dataframe(df, width='stretch')
                     else:
                         st.warning("No open positions found.")
             except Exception as e:
