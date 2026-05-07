@@ -310,8 +310,9 @@ if st is not None:
             st.title("📈 BAET Paper Trading Dashboard")
         else:
             st.title("📈 BAET Observation Dashboard")
-    except:
+    except Exception as e:
         st.title("📈 BAET Dashboard")
+        st.error(f"Config error: {e}")
     
     # Sidebar
     st.sidebar.header("Configuration")
@@ -345,72 +346,60 @@ if st is not None:
     if st.sidebar.button("Refresh Now"):
         st.rerun()
     
-    # Load data
-    with st.spinner("Loading data..."):
-        # Check if live mode is enabled
-        from baet.config.loader import load_settings
-        try:
-            settings = load_settings()
-            is_live_mode = settings.live.enabled if hasattr(settings, 'live') else False
-        except:
-            is_live_mode = False
-        
-        # Load live account info if in live mode
-        if is_live_mode:
-            try:
-                from baet.dashboard.data_loader import load_live_account_info
-                live_account = load_live_account_info()
-                portfolio_state = {
-                    "cash": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
-                    "total_value": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
-                    "positions": live_account.get("balances", {}),
-                    "is_live": True
-                }
-                recent_trades = []
-                equity_df = None
-                metrics = {}
-                daily_summary = {}
-                log_entries = []
-            except Exception as e:
-                st.error(f"Error loading live account: {e}")
-                portfolio_state = {}
-                recent_trades = []
-                equity_df = None
-                metrics = {}
-                daily_summary = {}
-                log_entries = []
-        else:
-            # Portfolio state
-            portfolio_state = load_latest_state(log_dir)
-            
-            # Recent trades
-            recent_trades = load_recent_trades(log_dir, limit=50)
-            
-            # Equity curve
-            equity_df = load_equity_curve(log_dir)
-            
-            # Performance metrics
-            metrics = calculate_performance_metrics(log_dir)
-            
-            # Daily summary (today)
-            from datetime import datetime
-            today = datetime.now().strftime("%Y-%m-%d")
-            daily_summary = calculate_daily_summary(log_dir, date=today)
-            
-            # Recent log entries
-            log_file = find_latest_log_file(log_dir)
-            log_entries = parse_log_file(log_file, max_entries=100) if log_file else []
-    
-    # Main content
     # Check if live mode is enabled
-    from baet.config.loader import load_settings
     try:
         settings = load_settings()
-        is_live_mode = settings.live.enabled if hasattr(settings, 'live') else False
-        is_paper_mode = settings.paper.enabled if hasattr(settings, 'paper') else False
+        is_live_mode = settings.live.enabled if hasattr(settings, 'live') and settings.live else False
+        is_paper_mode = settings.paper.enabled if hasattr(settings, 'paper') and settings.paper else False
     except:
         is_live_mode = False
         is_paper_mode = False
+    
+    # Load data based on mode
+    if is_live_mode:
+        # Load live account info
+        try:
+            from baet.dashboard.data_loader import load_live_account_info
+            live_account = load_live_account_info()
+            portfolio_state = {
+                "cash": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                "total_value": live_account.get("total_usdt_value", 0) if live_account.get("success") else 0,
+                "positions": live_account.get("balances", {}),
+                "is_live": True
+            }
+            recent_trades = []
+            equity_df = None
+            metrics = {}
+            daily_summary = {}
+            log_entries = []
+        except Exception as e:
+            st.error(f"Error loading live account: {e}")
+            portfolio_state = {}
+            recent_trades = []
+            equity_df = None
+            metrics = {}
+            daily_summary = {}
+            log_entries = []
+    else:
+        # Load paper/observation data
+        try:
+            portfolio_state = load_latest_state(log_dir)
+            recent_trades = load_recent_trades(log_dir, limit=50)
+            equity_df = load_equity_curve(log_dir)
+            metrics = calculate_performance_metrics(log_dir)
+            from datetime import datetime
+            today = datetime.now().strftime("%Y-%m-%d")
+            daily_summary = calculate_daily_summary(log_dir, date=today)
+            log_file = find_latest_log_file(log_dir)
+            log_entries = parse_log_file(log_file, max_entries=100) if log_file else []
+        except Exception as e:
+            st.error(f"Error loading data: {e}")
+            portfolio_state = {}
+            recent_trades = []
+            equity_df = None
+            metrics = {}
+            daily_summary = {}
+            log_entries = []
     
     # Show mode indicator in sidebar
     with st.sidebar:
