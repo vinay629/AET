@@ -2,13 +2,16 @@
 
 import sys
 from pathlib import Path
+import time
+from datetime import datetime
+
+# Debug: Print when app starts loading
+print("DEBUG: BAET Dashboard app starting to load...", flush=True)
 
 # Add src to path so we can import baet
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import streamlit as st
-import time
-from datetime import datetime
 
 # Page config
 st.set_page_config(
