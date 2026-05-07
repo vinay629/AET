@@ -417,10 +417,10 @@ if st is not None:
         st.markdown("---")
         if is_live_mode:
             st.error("🔴 **LIVE MODE ACTIVE**")
-            st.warning("Real money at risk! Check positions regularly.")
+            st.warning("Demo money at risk! Check positions regularly.")
             
-            # Show live account info
-            st.markdown("### Live Account")
+            # Show live account info in sidebar
+            st.markdown("### Live Account (Testnet)")
             try:
                 from baet.dashboard.data_loader import load_live_account_info
                 account_info = load_live_account_info()
@@ -514,50 +514,97 @@ if st is not None:
         else:
             # Portfolio overview (paper/observation mode)
             render_portfolio_overview(portfolio_state)
-        
-        # Equity chart
-        st.subheader("Equity Curve")
-        render_equity_chart(equity_df)
-        
-        # Daily summary
-        st.subheader("Today's Summary")
-        render_daily_summary(daily_summary)
+            
+            # Equity chart
+            st.subheader("Equity Curve")
+            render_equity_chart(equity_df)
+            
+            # Daily summary
+            st.subheader("Today's Summary")
+            render_daily_summary(daily_summary)
     
     with tab2:
         st.header("Current Positions")
         
-        positions = portfolio_state.get("positions", {})
-        render_positions_table(positions)
+        if is_live_mode:
+            # In live mode, show message that positions come from live account
+            st.info("📡 **Live Mode**: Positions are managed by the live trading bot.")
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                account_info = load_live_account_info()
+                if account_info.get("success"):
+                    balances = account_info.get("balances", {})
+                    # Show non-zero balances as "positions"
+                    positions_data = []
+                    for asset, data in balances.items():
+                        if data["total"] > 0 and asset != "USDT":
+                            positions_data.append({
+                                "Asset": asset,
+                                "Total": data["total"],
+                                "Free": data["free"],
+                                "Locked": data["locked"]
+                            })
+                    if positions_data:
+                        import pandas as pd
+                        df = pd.DataFrame(positions_data)
+                        st.dataframe(df, use_container_width=True)
+                    else:
+                        st.warning("No open positions found.")
+            except Exception as e:
+                st.error(f"Error loading positions: {e}")
+        else:
+            positions = portfolio_state.get("positions", {})
+            render_positions_table(positions)
     
     with tab3:
         st.header("Recent Trades")
         
-        render_recent_trades(recent_trades, limit=50)
+        if is_live_mode:
+            st.info("📡 **Live Mode**: Trade history will appear here when the live bot places orders.")
+            st.warning("No trades yet. The bot is in observation mode (no orders placed).")
+        else:
+            render_recent_trades(recent_trades, limit=50)
     
     with tab4:
         st.header("Performance Metrics")
         
-        # Performance metrics
-        render_performance_metrics(metrics)
-        
-        # Equity chart (full width)
-        st.subheader("Equity Curve (Detailed)")
-        render_equity_chart(equity_df)
-        
-        # Export button
-        if not equity_df.empty:
-            csv = equity_df.to_csv(index=False)
-            st.download_button(
-                label="Download Equity Curve (CSV)",
-                data=csv,
-                file_name=f"baet_equity_curve_{today}.csv",
-                mime="text/csv",
-            )
+        if is_live_mode:
+            st.info("📡 **Live Mode**: Performance metrics will be calculated after trades are executed.")
+            # Show account value instead
+            try:
+                from baet.dashboard.data_loader import load_live_account_info
+                account_info = load_live_account_info()
+                if account_info.get("success"):
+                    st.metric("Current Account Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
+                    st.metric("Account Type", account_info.get('account_type', 'N/A'))
+            except Exception as e:
+                st.error(f"Error loading metrics: {e}")
+        else:
+            # Performance metrics
+            render_performance_metrics(metrics)
+            
+            # Equity chart (full width)
+            st.subheader("Equity Curve (Detailed)")
+            render_equity_chart(equity_df)
+            
+            # Export button
+            if not equity_df.empty:
+                csv = equity_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Equity Curve (CSV)",
+                    data=csv,
+                    file_name=f"baet_equity_curve_{today}.csv",
+                    mime="text/csv",
+                )
     
     with tab5:
         st.header("Log Viewer")
         
-        render_log_viewer(log_entries, max_entries=100)
+        if is_live_mode:
+            st.info("📡 **Live Mode**: Live trading logs will appear here.")
+            st.warning("No logs yet. Start the live trading bot to see logs.")
+        else:
+            render_log_viewer(log_entries, max_entries=100)
     
     # Auto-refresh logic
     if auto_refresh:
