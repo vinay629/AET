@@ -86,3 +86,12 @@ backtest:
 reporting:
   backtests_dir: data/results/backtests
   summaries_dir: data/results/summaries
+
+dashboard:
+  enabled: true
+  port: 8501
+  theme: "dark"
+  auto_refresh: true
+  refresh_interval_seconds: 30
+  max_recent_trades: 50
+  max_log_entries: 100

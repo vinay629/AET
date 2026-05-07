@@ -65,6 +65,7 @@ Track delivery by validated checkpoints, not by code volume.
 - `M4.1b` implemented
 - `M4.2a` implemented
 - `M4.3a` implemented
+- `M4.3b` implemented
 
 ## Verification Notes
 - Stage 0 remains green under current checks
@@ -80,7 +81,9 @@ Track delivery by validated checkpoints, not by code volume.
 - Stage 3.4 intelligence stack validation reporting implemented: build_intelligence_stack_comparison(), build_regime_performance_report(), and validate_intelligence_stack() functions compare baseline vs ensemble vs ML strategies and validate that intelligence stack improves performance
 - Stage 4.1a risk policy documented and decision-complete: RiskPolicy model with PositionSizingPolicy, DrawdownProtectionPolicy, RegimeRiskPolicy, StrategyRiskPolicy, PortfolioRiskPolicy, EmergencyPolicy; RiskEngine evaluates all signals and CAN override strategy decisions; 35 unit tests validate all components
 - Stage 4.1b centralized risk checks gate every trade path: RiskEngine integrated into ensemble layer (StaticEnsemble, AdaptiveEnsemble) and backtest engine (PortfolioBacktestEngine); integration module (risk/integration.py) provides helper functions; 22 integration tests validate all paths; backward compatible (risk engine is optional)
-- Stage 4.2a paper trading loop runs continuously without crashing: PaperPortfolio tracks positions/cash; PaperOrderSimulator applies slippage/fees; PaperTradingEngine runs continuous loop with error handling; 28 unit tests validate all components; integrates with risk engine (optional)- Stage 4.3.a paper trading logs explain decisions end-to-end: PaperTradingLogger provides structured JSON logging; all decisions logged (signals, risk evaluations, order simulations, portfolio updates, engine events); log analysis script created; 17 unit tests validate logging system
+- Stage 4.2a paper trading loop runs continuously without crashing: PaperPortfolio tracks positions/cash; PaperOrderSimulator applies slippage/fees; PaperTradingEngine runs continuous loop with error handling; 28 unit tests validate all components; integrates with risk engine (optional)
+- Stage 4.3a paper trading logs explain decisions end-to-end: PaperTradingLogger provides structured JSON logging; all decisions logged (signals, risk evaluations, order simulations, portfolio updates, engine events); log analysis script created; 17 unit tests validate logging system
+- Stage 4.3b Streamlit dashboard shows current paper trading state and daily summaries: Dashboard module with data_loader.py (find_latest_log_file, parse_log_file, load_latest_state, load_recent_trades, load_equity_curve, calculate_daily_summary, calculate_performance_metrics); components.py with 8 UI components; main app.py with 5 tabs; 19 unit tests validate all data loading functions; launcher script created
 ## Validation States
 - `pending`
 - `active`

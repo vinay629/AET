@@ -97,6 +97,17 @@ class ReportingConfig(BaseModel):
     summaries_dir: Path = Path("data/results/summaries")
 
 
+class DashboardConfig(BaseModel):
+    """Configuration for Streamlit dashboard."""
+    enabled: bool = True
+    port: int = 8501
+    theme: str = "dark"
+    auto_refresh: bool = True
+    refresh_interval_seconds: int = 30
+    max_recent_trades: int = 50
+    max_log_entries: int = 100
+
+
 class SecretsConfig(BaseModel):
     binance_api_key: str = ""
     binance_api_secret: str = ""
@@ -115,6 +126,7 @@ class Settings(BaseModel):
     features: FeatureConfig = Field(default_factory=FeatureConfig)
     backtest: BacktestConfig = Field(default_factory=BacktestConfig)
     reporting: ReportingConfig = Field(default_factory=ReportingConfig)
+    dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
     secrets: SecretsConfig = Field(default_factory=SecretsConfig)
 
     @model_validator(mode="after")
