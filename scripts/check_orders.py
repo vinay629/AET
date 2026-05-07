@@ -1,0 +1,31 @@
+"""Check recent orders on testnet."""
+
+from binance.client import Client
+from baet.config.loader import load_settings
+
+settings = load_settings()
+secrets = settings.secrets
+
+api_key = secrets.live_binance_api_key or secrets.binance_api_key
+api_secret = secrets.live_binance_api_secret or secrets.binance_api_secret
+
+if hasattr(api_key, 'get_secret_value'):
+    api_key = api_key.get_secret_value()
+if hasattr(api_secret, 'get_secret_value'):
+    api_secret = api_secret.get_secret_value()
+
+client = Client(api_key, api_secret, testnet=True)
+
+print("Recent BTCUSDT Orders:")
+print("=" * 60)
+
+orders = client.get_all_orders(symbol='BTCUSDT')
+
+for order in orders[-5:]:  # Last 5 orders
+    print(f"  ID: {order['orderId']}")
+    print(f"    Side: {order['side']}")
+    print(f"    Type: {order['type']}")
+    print(f"    Status: {order['status']}")
+    print(f"    Executed: {order['executedQty']} BTC")
+    print(f"    Total: ${float(order['cummulativeQuoteQty']):.2f}")
+    print()
