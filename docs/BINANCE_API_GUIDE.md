@@ -260,6 +260,34 @@ GET /api/v3/trades
 ]
 ```
 
+#### Historical Block Trades (New - May 2026)
+```
+GET /api/v3/historicalBlockTrades
+```
+**Weight:** 25
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| symbol | STRING | YES | Trading pair |
+| fromId | LONG | YES | Block trade ID to fetch from |
+| limit | LONG | NO | Default: 500; Max: 1000 |
+
+**Response:**
+```json
+[
+  {
+    "id": 582,
+    "price": "0.052",
+    "qty": "5838",
+    "quoteQty": "303.576",
+    "time": 1772506983321,
+    "isBuyerMaker": true
+  }
+]
+```
+
 #### Historical Trades
 ```
 GET /api/v3/historicalTrades
@@ -472,6 +500,8 @@ POST /api/v3/order
 ```
 **Weight:** 1  
 **Unfilled Order Count:** +1
+
+**New Field (May 2026):** `expiryReason` - Returned for expired orders to explain why the order expired (e.g., price range execution rule).
 
 **Parameters:**
 
@@ -723,6 +753,8 @@ GET /api/v3/account
 GET /api/v3/order
 ```
 **Weight:** 4
+
+**New Field (May 2026):** `expiryReason` - Returned for expired orders. Also appears in `GET /api/v3/allOrders` and `GET /api/v3/orderList`.
 
 #### Current Open Orders
 ```

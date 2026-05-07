@@ -44,17 +44,98 @@ if st is not None:
         initial_sidebar_state="expanded",
     )
     
-    # Custom CSS
+    # Custom CSS for better contrast and visibility
+    # Using !important to override Streamlit defaults
     st.markdown(
         """
         <style>
+        /* Main content area - light background */
         .main > div {
             padding-top: 2rem;
+            background-color: #ffffff;
         }
+        
+        /* Metrics with better contrast */
         .stMetric {
-            background-color: #f0f2f6;
+            background-color: #f8f9fa;
             padding: 1rem;
             border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+        
+        /* Metric labels - dark gray for better contrast */
+        .stMetric label {
+            color: #212529 !important;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        /* Metric values - black for maximum contrast */
+        .stMetric .metric-value {
+            color: #000000 !important;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        /* Metric deltas - color based on value */
+        .stMetric .metric-delta {
+            font-weight: 600;
+        }
+        
+        /* DataFrames - better contrast */
+        .stDataFrame {
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+        }
+        
+        /* DataFrame text - dark for contrast */
+        .stDataFrame td, .stDataFrame th {
+            color: #212529;
+        }
+        
+        /* Headers - dark for contrast */
+        h1, h2, h3, h4, h5, h6 {
+            color: #1a1a1a !important;
+            font-weight: 600;
+        }
+        
+        /* Sidebar - light background for contrast with dark text */
+        section[data-testid="stSidebar"] {
+            background-color: #f8f9fa !important;
+        }
+        
+        /* Sidebar text - dark for contrast */
+        section[data-testid="stSidebar"] * {
+            color: #212529 !important;
+        }
+        
+        /* Warning/Info boxes - better visibility */
+        .stAlert {
+            border: 1px solid #ffc107;
+            background-color: #fff3cd !important;
+        }
+        
+        /* Success messages */
+        .stSuccess {
+            border: 1px solid #28a745;
+            background-color: #d4edda !important;
+        }
+        
+        /* Error messages */
+        .stError {
+            border: 1px solid #dc3545;
+            background-color: #f8d7da !important;
+        }
+        
+        /* Info messages */
+        .stInfo {
+            border: 1px solid #17a2b8;
+            background-color: #d1ecf1 !important;
+        }
+        
+        /* Plotly charts - ensure text is visible */
+        .js-plotly-plot .plotly .main-svg text {
+            fill: #212529 !important;
         }
         </style>
         """,

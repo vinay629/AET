@@ -125,7 +125,7 @@ class DashboardConfig(BaseModel):
     """Configuration for Streamlit dashboard."""
     enabled: bool = True
     port: int = 8501
-    theme: str = "dark"
+    theme: str = "light"  # Use "light" for better contrast and visibility
     auto_refresh: bool = True
     refresh_interval_seconds: int = 30
     max_recent_trades: int = 50

@@ -90,7 +90,7 @@ reporting:
 dashboard:
   enabled: true
   port: 8501
-  theme: "dark"
+  theme: "light"  # Use light theme for better contrast and visibility
   auto_refresh: true
   refresh_interval_seconds: 30
   max_recent_trades: 50
