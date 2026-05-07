@@ -18,10 +18,14 @@ class LiveClientObservation:
     
     Used for Phase 3 (Day 1-2) to validate signals
     without risking capital.
+    
+    Supports both testnet (demo) and production.
+    Testnet URL: testnet.binance.vision
     """
     
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self.testnet = settings.live.testnet if hasattr(settings.live, 'testnet') else True
         
         # Get API credentials from secrets
         secrets = settings.secrets
@@ -39,11 +43,27 @@ class LiveClientObservation:
         else:
             api_secret_str = str(api_secret) if api_secret else ""
         
-        self.client = BinanceClient(
-            api_key_str,
-            api_secret_str,
-            testnet=settings.live.testnet if hasattr(settings.live, 'testnet') else False
-        )
+        # Initialize client with testnet support
+        # According to Binance API docs:
+        # - Testnet uses: https://testnet.binance.vision
+        # - Production uses: https://api.binance.com
+        if self.testnet:
+            # Testnet configuration
+            self.client = BinanceClient(
+                api_key_str,
+                api_secret_str,
+                testnet=True
+            )
+            print(f"✅ Connected to Binance TESTNET (demo/sandbox)")
+        else:
+            # Production configuration
+            self.client = BinanceClient(
+                api_key_str,
+                api_secret_str,
+                testnet=False
+            )
+            print(f"⚠️ Connected to Binance PRODUCTION (real money)")
+        
         self.observation_mode = True
         self.signals_generated = []
         self.account_info_cache = None
