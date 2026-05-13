@@ -7,8 +7,8 @@ Usage:
     python scripts/paper_trading_manager.py emergency-stop
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 # Add src to path
@@ -43,9 +43,9 @@ def main():
     try:
         from baet.dashboard.control import (
             check_paper_trading_status,
+            emergency_stop,
             start_paper_trading,
             stop_paper_trading,
-            emergency_stop,
         )
     except ImportError as e:
         print(f"Error: Could not import control module: {e}")
@@ -76,7 +76,7 @@ def main():
             print("Paper Trading Status")
             print("=" * 40)
             if status.get("running"):
-                print(f"Status: ● RUNNING")
+                print("Status: ● RUNNING")
                 print(f"PID: {status.get('pid', 'Unknown')}")
                 print(f"Uptime: {status.get('uptime_str', 'Unknown')}")
             else:

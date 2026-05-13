@@ -1,11 +1,10 @@
 """Tests for ensemble decision layer."""
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
 
+from baet.core.models import RegimeLabel
 from baet.strategies.ensemble import EnsembleConfig, StaticEnsemble, StrategyWeight
-from baet.core.models import RegimeLabel, StrategyMetadata
 
 
 def create_sample_signals(strategy_name: str, n_periods: int = 10) -> pd.DataFrame:
@@ -255,7 +254,7 @@ def test_static_ensemble_end_to_end():
             'confidence': 0.6,
             'size_hint': 0.05,
             'strategy_name': 'mean_reverter',
-            'reason': f'Mean reversion HOLD'
+            'reason': 'Mean reversion HOLD'
         })
     
     strategy_signals = {

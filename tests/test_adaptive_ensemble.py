@@ -1,12 +1,10 @@
 """Tests for adaptive ensemble with performance-based weight updates."""
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from baet.strategies.adaptive_ensemble import AdaptiveEnsemble, PerformanceTracker
-from baet.strategies.ensemble import EnsembleConfig, StrategyWeight
-from baet.core.models import RegimeLabel
+from baet.strategies.ensemble import EnsembleConfig
 
 
 def create_sample_returns(n_periods: int = 30) -> pd.DataFrame:
@@ -85,7 +83,7 @@ def test_performance_tracker_sharpe():
     returns = create_sample_returns(30)
     
     # Initial Sharpe should be 0 (not enough data or just initialized)
-    sharpe_initial = tracker.get_sharpe('strategy_a')
+    tracker.get_sharpe('strategy_a')
     
     # Update tracking
     tracker.update('strategy_a', signals, returns)

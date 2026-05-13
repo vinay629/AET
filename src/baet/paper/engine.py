@@ -35,8 +35,8 @@ class PaperTradingEngine:
         self.max_consecutive_errors = 10
         
         # Lazy imports to avoid circular imports
-        from baet.paper.portfolio import PaperPortfolio
         from baet.paper.order_simulator import PaperOrderSimulator
+        from baet.paper.portfolio import PaperPortfolio
         
         # Set up decision logger first
         self.paper_logger = paper_logger
@@ -234,7 +234,7 @@ class PaperTradingEngine:
                 )
                 
                 # Execute buy
-                success = self.portfolio.buy(
+                self.portfolio.buy(
                     symbol=symbol,
                     units=units,
                     price=fill_price,
@@ -275,7 +275,7 @@ class PaperTradingEngine:
                     )
                     
                     # Execute sell
-                    success = self.portfolio.sell(
+                    self.portfolio.sell(
                         symbol=symbol,
                         units=units,
                         price=fill_price,

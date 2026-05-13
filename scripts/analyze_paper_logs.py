@@ -2,9 +2,8 @@
 
 import json
 import sys
-from pathlib import Path
 from collections import defaultdict
-from datetime import datetime
+from pathlib import Path
 
 
 def parse_log_file(log_file: Path) -> list[dict]:
@@ -67,7 +66,7 @@ def print_summary(entries: list[dict]):
     if entries:
         timestamps = [e.get("timestamp") for e in entries if e.get("timestamp")]
         if timestamps:
-            print(f"\nTime range:")
+            print("\nTime range:")
             print(f"  First: {min(timestamps)}")
             print(f"  Last: {max(timestamps)}")
     
@@ -130,7 +129,7 @@ def export_to_csv(entries: list[dict], output_file: Path, entry_type: str | None
         entries = filter_by_type(entries, entry_type)
     
     if not entries:
-        print(f"No entries to export")
+        print("No entries to export")
         return
     
     # Flatten entries

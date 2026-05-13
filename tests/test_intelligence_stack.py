@@ -1,13 +1,11 @@
 """Tests for intelligence stack validation reporting."""
 
-import pytest
 import pandas as pd
-import numpy as np
 
 from baet.reporting.comparison import (
     build_intelligence_stack_comparison,
     build_regime_performance_report,
-    validate_intelligence_stack
+    validate_intelligence_stack,
 )
 
 
@@ -116,9 +114,9 @@ def test_validate_intelligence_stack():
     assert validation['baseline_count'] == 2
     assert validation['ensemble_count'] == 1
     assert validation['ml_count'] == 1
-    assert validation['ensemble_improves_sharpe'] == True
-    assert validation['ml_improves_sharpe'] == True
-    assert validation['validation_passed'] == True
+    assert validation['ensemble_improves_sharpe']
+    assert validation['ml_improves_sharpe']
+    assert validation['validation_passed']
 
 
 def test_validate_intelligence_stack_no_improvement():
@@ -129,9 +127,9 @@ def test_validate_intelligence_stack_no_improvement():
     
     validation = validate_intelligence_stack(baseline, ensemble, ml, min_improvement=0.0)
     
-    assert validation['ensemble_improves_sharpe'] == False
-    assert validation['ml_improves_sharpe'] == False
-    assert validation['validation_passed'] == False
+    assert not validation['ensemble_improves_sharpe']
+    assert not validation['ml_improves_sharpe']
+    assert not validation['validation_passed']
 
 
 def test_validate_intelligence_stack_empty():
@@ -144,7 +142,7 @@ def test_validate_intelligence_stack_empty():
     assert validation['baseline_count'] == 0
     assert validation['ensemble_count'] == 0
     assert validation['ml_count'] == 0
-    assert validation['validation_passed'] == False
+    assert not validation['validation_passed']
     
     validation = validate_intelligence_stack(baseline, empty, empty)
     assert validation['baseline_count'] == 1
@@ -162,9 +160,9 @@ def test_validate_intelligence_stack_mixed():
     assert validation['baseline_count'] == 1
     assert validation['ensemble_count'] == 1
     assert validation['ml_count'] == 0
-    assert validation['ensemble_improves_sharpe'] == True
-    assert validation['ml_improves_sharpe'] == False
-    assert validation['validation_passed'] == True  # Ensemble improves
+    assert validation['ensemble_improves_sharpe']
+    assert not validation['ml_improves_sharpe']
+    assert validation['validation_passed']  # Ensemble improves
 
 
 def test_intelligence_stack_end_to_end():
@@ -205,8 +203,8 @@ def test_intelligence_stack_end_to_end():
     # Validate stack
     validation = validate_intelligence_stack(baseline, ensemble, ml, min_improvement=10.0)  # 10% improvement
     
-    assert validation['validation_passed'] == True
-    assert validation['ensemble_improves_sharpe'] == True
-    assert validation['ml_improves_sharpe'] == True
+    assert validation['validation_passed']
+    assert validation['ensemble_improves_sharpe']
+    assert validation['ml_improves_sharpe']
     assert validation['ensemble_sharpe_improvement'] > 10.0
     assert validation['ml_sharpe_improvement'] > 10.0

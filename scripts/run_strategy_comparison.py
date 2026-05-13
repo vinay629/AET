@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from baet.config.loader import load_settings
 from baet.data.storage import ParquetMarketDataStore
-from baet.reporting.comparison import build_summary_statistics, build_ranking_by_criteria
+from baet.reporting.comparison import build_ranking_by_criteria, build_summary_statistics
 from baet.reporting.workflows import run_strategy_comparison
 
 
@@ -25,7 +25,7 @@ def main() -> None:
     # Load settings
     settings = load_settings(mode="dev")
     store = ParquetMarketDataStore(settings)
-    print(f"\nSettings loaded from mode: dev")
+    print("\nSettings loaded from mode: dev")
     print(f"Processing data from: {settings.storage.processed_data_dir}")
     
     # Load market data
@@ -60,7 +60,7 @@ def main() -> None:
         sys.exit(1)
     
     # Print results
-    print(f"\n✓ Comparison completed successfully!")
+    print("\n✓ Comparison completed successfully!")
     print(f"✓ Backtested {len(metrics)} strategies\n")
     
     # Print rankings
@@ -104,7 +104,7 @@ def main() -> None:
     print("ARTIFACTS SAVED TO")
     print("-" * 80)
     print(f"Location: {output_dir}")
-    print(f"Files:")
+    print("Files:")
     if output_dir.exists():
         for file in output_dir.glob("*"):
             print(f"  - {file.name}")

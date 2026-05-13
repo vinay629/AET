@@ -17,22 +17,21 @@ except ImportError:
 if st is not None:
     # Import components and data loader
     from baet.dashboard.components import (
+        render_daily_summary,
+        render_equity_chart,
+        render_log_viewer,
+        render_performance_metrics,
         render_portfolio_overview,
         render_positions_table,
         render_recent_trades,
-        render_performance_metrics,
-        render_equity_chart,
-        render_daily_summary,
-        render_risk_status,
-        render_log_viewer,
     )
     from baet.dashboard.data_loader import (
-        load_latest_state,
-        load_recent_trades,
-        load_equity_curve,
         calculate_daily_summary,
         calculate_performance_metrics,
         find_latest_log_file,
+        load_equity_curve,
+        load_latest_state,
+        load_recent_trades,
         parse_log_file,
     )
     

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import pandas as pd
-import numpy as np
 from dataclasses import dataclass
 from typing import Optional
+
+import numpy as np
+import pandas as pd
 
 try:
     from sklearn.ensemble import RandomForestClassifier
@@ -14,8 +15,8 @@ try:
 except ImportError:
     SKLEARN_AVAILABLE = False
 
-from baet.strategies.contracts import StrategyContract, SIGNAL_COLUMNS
 from baet.core.models import StrategyMetadata
+from baet.strategies.contracts import SIGNAL_COLUMNS, StrategyContract
 
 
 @dataclass
