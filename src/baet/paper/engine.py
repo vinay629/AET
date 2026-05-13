@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 
@@ -13,7 +14,9 @@ from baet.core.brain import ScoringEnsemble
 from baet.plugins.markov import MarkovPlugin
 from baet.plugins.ml_scoring import MLScoringPlugin
 from baet.plugins.technical import TechnicalIndicatorPlugin
+from baet.reporting.audit_trail import AuditTrail
 from baet.risk.engine import RiskEngine
+from baet.risk.m5_2_limits import M5Point2RiskTracker
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +79,17 @@ class PaperTradingEngine:
             [TechnicalIndicatorPlugin(), MLScoringPlugin(), MarkovPlugin()]
         )
 
-        logger.info("PaperTradingEngine initialized with AI Brain")
+        # Initialize M5.2 compliance: audit trail
+        audit_log_dir = Path("logs") / "audit"
+        self.audit_trail = AuditTrail(log_dir=audit_log_dir)
+
+        # Initialize M5.2 compliance: risk limit tracker
+        m5_2_limits = None
+        if hasattr(config, "live") and hasattr(config.live, "m5_2"):
+            m5_2_limits = config.live.m5_2
+        self.risk_tracker = M5Point2RiskTracker(limits=m5_2_limits)
+
+        logger.info("PaperTradingEngine initialized with AI Brain + M5.2 compliance")
 
     def start(self) -> None:
         """Start the paper trading loop."""
@@ -152,6 +165,16 @@ class PaperTradingEngine:
         """Stop the paper trading loop."""
         self.running = False
         logger.info("Paper trading loop stopped")
+
+        # Audit trail: log engine stop
+        self.audit_trail.log_system_event(
+            event_type="ENGINE_STOPPED",
+            message=f"Paper trading stopped. Trades: {len(self.portfolio.trades)}",
+            metadata={
+                "total_trades": len(self.portfolio.trades),
+                "final_value": self.portfolio.get_total_value(),
+            },
+        )
 
         if self.paper_logger:
             self.paper_logger.log_engine_event(
