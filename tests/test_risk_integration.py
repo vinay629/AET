@@ -1,23 +1,21 @@
 """Tests for M4.1b Risk Integration - Centralized Risk Checks Gate Every Trade Path."""
 
-import pytest
 from datetime import datetime
-from unittest.mock import MagicMock
 
 import pandas as pd
+import pytest
 
+from baet.config.models import RiskConfig
 from baet.risk.engine import RiskEngine
 from baet.risk.integration import (
     create_risk_engine_from_config,
-    evaluate_strategy_signal,
     evaluate_combined_signals,
-    update_risk_engine_state,
-    should_execute_trade,
+    evaluate_strategy_signal,
     extract_risk_metadata,
+    should_execute_trade,
+    update_risk_engine_state,
 )
 from baet.risk.policy import RiskPolicy, StrategyRiskPolicy
-from baet.config.models import RiskConfig
-
 
 # ========== Helper Functions ==========
 
@@ -61,7 +59,7 @@ def test_evaluate_strategy_signal_approves_valid():
     result = evaluate_strategy_signal(engine, signal)
     
     assert result is not None
-    assert result['risk_approved'] == True
+    assert result['risk_approved']
     assert result['action'] == "BUY"
 
 
@@ -99,7 +97,7 @@ def test_evaluate_strategy_signal_with_regime():
     result = evaluate_strategy_signal(engine, signal, regime=RegimeLabel.TRENDING)
     
     assert result is not None
-    assert result['risk_approved'] == True
+    assert result['risk_approved']
 
 
 # ========== Test evaluate_combined_signals ==========
@@ -182,12 +180,12 @@ def test_should_execute_trade_approved():
     signal['risk_approved'] = True
     signal['action'] = "BUY"
     
-    assert should_execute_trade(signal) == True
+    assert should_execute_trade(signal)
 
 
 def test_should_execute_trade_rejected():
     """Test that rejected trades should not execute."""
-    assert should_execute_trade(None) == False  # None = rejected
+    assert not should_execute_trade(None)  # None = rejected
 
 
 def test_should_execute_trade_hold():
@@ -196,7 +194,7 @@ def test_should_execute_trade_hold():
     signal['risk_approved'] = True
     signal['action'] = "HOLD"
     
-    assert should_execute_trade(signal) == False
+    assert not should_execute_trade(signal)
 
 
 # ========== Test extract_risk_metadata ==========
@@ -210,7 +208,7 @@ def test_extract_risk_metadata_approved():
     
     metadata = extract_risk_metadata(signal)
     
-    assert metadata['risk_approved'] == True
+    assert metadata['risk_approved']
     assert 'All checks passed' in metadata['risk_reasons']
 
 
@@ -218,7 +216,7 @@ def test_extract_risk_metadata_rejected():
     """Test extracting metadata from rejected signal."""
     metadata = extract_risk_metadata(None)  # None = rejected
     
-    assert metadata['risk_approved'] == False
+    assert not metadata['risk_approved']
     assert 'rejected' in metadata['risk_reasons'][0].lower()
 
 
@@ -240,7 +238,7 @@ def test_extract_risk_metadata_with_adjustments():
 
 def test_ensemble_with_risk_engine():
     """Test that ensemble works with risk engine."""
-    from baet.strategies.ensemble import StaticEnsemble, EnsembleConfig
+    from baet.strategies.ensemble import EnsembleConfig, StaticEnsemble
     
     engine = create_risk_engine()
     config = EnsembleConfig(name="test_ensemble")
@@ -252,7 +250,7 @@ def test_ensemble_with_risk_engine():
 
 def test_ensemble_without_risk_engine():
     """Test that ensemble works without risk engine (backward compatible)."""
-    from baet.strategies.ensemble import StaticEnsemble, EnsembleConfig
+    from baet.strategies.ensemble import EnsembleConfig, StaticEnsemble
     
     config = EnsembleConfig(name="test_ensemble")
     ensemble = StaticEnsemble(config)  # No risk engine

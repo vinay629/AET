@@ -6,11 +6,9 @@ from typing import Optional
 
 import pandas as pd
 
-from baet.core.models import RegimeLabel
 from baet.config.models import RiskConfig
-from baet.risk.checks import RiskCheckResult
+from baet.core.models import RegimeLabel
 from baet.risk.engine import RiskEngine
-from baet.risk.policy import RiskPolicy
 
 
 def create_risk_engine_from_config(config: RiskConfig) -> RiskEngine:

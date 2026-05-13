@@ -1,7 +1,6 @@
 """Quick validation test for paper trading engine before starting M4.4 observation."""
 
 import sys
-import time
 from pathlib import Path
 
 # Add src to path
@@ -35,7 +34,6 @@ def test_paper_engine_startup():
         print("4. Testing single iteration...")
         try:
             # Monkey-patch _iteration to avoid infinite loop
-            original_iteration = engine._iteration
             iteration_count = [0]
             
             def mock_iteration():

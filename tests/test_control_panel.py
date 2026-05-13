@@ -22,15 +22,15 @@ class TestCheckPaperTradingStatus:
     
     def test_psutil_not_installed(self):
         """Test when psutil is not available."""
+
         from baet.dashboard import control
-        import importlib
         
         # Mock psutil as not available
         original = control.HAS_PSUTIL
         try:
             control.HAS_PSUTIL = False
             result = control.check_paper_trading_status()
-            assert result["running"] == False
+            assert not result["running"]
             assert "error" in result
         finally:
             control.HAS_PSUTIL = original
@@ -57,15 +57,15 @@ class TestStopPaperTrading:
     
     def test_stop_when_not_running(self):
         """Test stop when not running."""
-        from baet.dashboard.control import stop_paper_trading
-        
         # Mock status to return not running
         from unittest.mock import patch
+
+        from baet.dashboard.control import stop_paper_trading
         
         with patch('baet.dashboard.control.check_paper_trading_status') as mock:
             mock.return_value = {"running": False}
             success, msg = stop_paper_trading()
-            assert success == False
+            assert not success
             assert "not running" in msg.lower()
 
 
@@ -74,14 +74,14 @@ class TestEmergencyStop:
     
     def test_emergency_stop_when_not_running(self):
         """Test emergency stop when not running."""
-        from baet.dashboard.control import emergency_stop
-        
         from unittest.mock import patch
+
+        from baet.dashboard.control import emergency_stop
         
         with patch('baet.dashboard.control.check_paper_trading_status') as mock:
             mock.return_value = {"running": False}
             success, msg = emergency_stop()
-            assert success == False
+            assert not success
 
 
 class TestUpdateConfig:

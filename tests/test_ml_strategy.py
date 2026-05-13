@@ -1,11 +1,11 @@
 """Tests for ML-based trading strategy."""
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 
-from baet.strategies.ml_strategy import MLRandomForestStrategy
 from baet.strategies.contracts import SIGNAL_COLUMNS
+from baet.strategies.ml_strategy import MLRandomForestStrategy
 
 
 def create_ml_test_data(n_periods: int = 100) -> pd.DataFrame:
@@ -54,9 +54,9 @@ def test_ml_strategy_supports():
     """Test that ML strategy supports any symbol/timeframe."""
     strategy = MLRandomForestStrategy()
     
-    assert strategy.supports('BTCUSDT', '1d') == True
-    assert strategy.supports('ETHUSDT', '4h') == True
-    assert strategy.supports('ANYTHING', '1m') == True
+    assert strategy.supports('BTCUSDT', '1d')
+    assert strategy.supports('ETHUSDT', '4h')
+    assert strategy.supports('ANYTHING', '1m')
 
 
 def test_ml_strategy_insufficient_data():
@@ -222,6 +222,6 @@ def test_ml_strategy_end_to_end():
     if strategy.is_trained:
         assert len(signals) > 0
         # Should have some non-HOLD signals if threshold is reasonable
-        non_hold = signals[signals['action'] != 'HOLD']
+        signals[signals['action'] != 'HOLD']
         # May or may not have non-HOLD signals depending on predictions
         assert 'strategy_name' in signals.columns

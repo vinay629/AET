@@ -1,12 +1,9 @@
-"""Main Streamlit app for BAET dashboard - Corrected version."""
+"""Main Streamlit app for BAET dashboard - Working version."""
 
 import sys
 from pathlib import Path
 import time
 from datetime import datetime
-
-# Debug: Print when app starts loading
-print("DEBUG: BAET Dashboard app starting to load...", flush=True)
 
 # Add src to path so we can import baet
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -26,13 +23,6 @@ try:
     from baet.config.loader import load_settings
     settings = load_settings()
     is_live_mode = settings.live.enabled if hasattr(settings, 'live') and settings.live else False
-    
-    if is_live_mode:
-        st.title("📈 BAET Live Trading Dashboard (Testnet)")
-        st.caption("Environment: Testnet • Real-time demo trading")
-    else:
-        st.title("📈 BAET Observation Dashboard")
-        st.caption("Market observation mode • No trading active")
 except Exception as e:
     st.title("📈 BAET Dashboard")
     st.error(f"Config error: {e}")
@@ -154,61 +144,88 @@ else:
         daily_summary = calculate_daily_summary(log_dir, date=today)
         metrics = calculate_performance_metrics(log_dir)
         
-        # Show portfolio overview
-        if portfolio_state and portfolio_state.get('total_value'):
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Portfolio Value", f"${portfolio_state.get('total_value', 0):.2f}")
-            with col2:
-                cash = portfolio_state.get('cash', 0)
-                st.metric("Cash", f"${cash:.2f}")
-            with col3:
-                positions_count = len([p for p in portfolio_state.get('positions', {}).values() if p.get('amount', 0) > 0])
-                st.metric("Open Positions", positions_count)
-            
-            # Show positions
-            st.subheader("Current Positions")
-            positions = portfolio_state.get("positions", {})
-            if positions:
-                import pandas as pd
-                pos_data = []
-                for symbol, pos in positions.items():
-                    if pos.get('amount', 0) > 0:
-                        pos_data.append({
-                            "Symbol": symbol,
-                            "Amount": pos.get('amount', 0),
-                            "Entry Price": pos.get('entry_price', 0),
-                            "Current Value": pos.get('current_value', 0)
-                        })
-                if pos_data:
-                    df = pd.DataFrame(pos_data)
-                    st.dataframe(df, use_container_width=True)
-                else:
-                    st.info("No open positions")
-            else:
-                st.info("No position data available")
-            
-            # Show recent trades
-            if recent_trades:
-                st.subheader("Recent Trades")
-                import pandas as pd
-                trades_df = pd.DataFrame(recent_trades)
-                st.dataframe(trades_df, use_container_width=True)
-            
-            # Show equity curve
-            if not equity_df.empty:
-                st.subheader("Equity Curve")
-                st.line_chart(equity_df.set_index('timestamp')['total_value'])
-        else:
-            st.warning("No portfolio data found in logs. Run paper trading to generate data.")
-            
-    except Exception as e:
-        st.error(f"Error loading paper trading data: {e}")
-        st.info("🟢 Observation Mode - No live data to display")
+        # Daily summary (today)
+        from datetime import datetime
+        today = datetime.now().strftime("%Y-%m-%d")
+        daily_summary = calculate_daily_summary(log_dir, date=today)
+        
+        # Recent log entries
+        log_file = find_latest_log_file(log_dir)
+        log_entries = parse_log_file(log_file, max_entries=100) if log_file else []
+    
+    # Main content
+    # Tabs
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        ["Overview", "Positions", "Trades", "Performance", "Logs"]
+    )
+    
+    with tab1:
+        st.header("Portfolio Overview")
+        
+        # Portfolio overview
+        render_portfolio_overview(portfolio_state)
+        
+        # Equity and Win Rate Charts
+        col_left, col_right = st.columns(2)
+        with col_left:
+            st.subheader("Equity Curve")
+            render_equity_chart(equity_df, key="overview_equity")
+        with col_right:
+            st.subheader("Win Rate")
+            render_win_rate_chart(equity_df, window=1000)
 
-# Footer
-st.sidebar.markdown("---")
-st.sidebar.markdown(
-    "**BAET** - Binance Adaptive Ensemble Trader\n"
-    f"Dashboard updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-)
+        # Brain Transparency
+        render_brain_transparency(log_entries)
+        
+        # Daily summary
+        st.subheader("Today's Summary")
+        render_daily_summary(daily_summary)
+    
+    with tab2:
+        st.header("Current Positions")
+        
+        positions = portfolio_state.get("positions", {})
+        render_positions_table(positions)
+    
+    with tab3:
+        st.header("Recent Trades")
+        
+        render_recent_trades(recent_trades, limit=50)
+    
+    with tab4:
+        st.header("Performance Metrics")
+        
+        # Performance metrics
+        render_performance_metrics(metrics)
+        
+        # Equity chart (full width)
+        st.subheader("Equity Curve (Detailed)")
+        render_equity_chart(equity_df, key="performance_equity")
+        
+        # Export button
+        if not equity_df.empty:
+            csv = equity_df.to_csv(index=False)
+            st.download_button(
+                label="Download Equity Curve (CSV)",
+                data=csv,
+                file_name=f"baet_equity_curve_{today}.csv",
+                mime="text/csv",
+            )
+    
+    with tab5:
+        st.header("Log Viewer")
+        
+        render_log_viewer(log_entries, max_entries=100)
+    
+    # Auto-refresh logic
+    if auto_refresh:
+        import time
+        time.sleep(refresh_interval)
+        st.rerun()
+    
+    # Footer
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(
+        "**BAET** - Binance Adaptive Ensemble Trader\n"
+        f"Dashboard updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )

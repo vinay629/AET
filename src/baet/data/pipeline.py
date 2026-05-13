@@ -10,6 +10,12 @@ from baet.data.validation import validate_candles
 from baet.strategies.baselines import build_buy_and_hold_signals
 
 
+# Lazy imports to avoid circular imports
+def _get_summaries():
+    from baet.reporting import summaries
+    return summaries
+
+
 # Lazy import to avoid circular imports
 def _get_portfolio_backtest_engine():
     from baet.execution.backtest import PortfolioBacktestEngine
@@ -40,16 +46,18 @@ class ResearchPipeline:
         candles = self.provider.fetch_klines(symbol, timeframe, start_time, end_time)
         validated = validate_candles(candles, timeframe)
         self.store.write_raw_candles(validated, symbol, timeframe)
+        summaries = _get_summaries()
         return {
-            "ingestion": build_ingestion_summary(validated, symbol, timeframe),
-            "quality": build_data_quality_summary(validated, timeframe),
+            "ingestion": summaries.build_ingestion_summary(validated, symbol, timeframe),
+            "quality": summaries.build_data_quality_summary(validated, timeframe),
         }
 
     def build_features(self, symbol: str, timeframe: str) -> dict[str, object]:
         candles = self.store.read_raw_candles(symbol, timeframe)
         features = self.feature_builder.build(candles)
         self.store.write_features(features, symbol, timeframe)
-        return build_feature_coverage_summary(features)
+        summaries = _get_summaries()
+        return summaries.build_feature_coverage_summary(features)
 
     def run_baseline_backtest(self, run_name: str) -> tuple[BacktestArtifacts, dict[str, object]]:
         market_frames = {}

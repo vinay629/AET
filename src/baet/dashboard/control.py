@@ -6,11 +6,9 @@ Provides start/stop/emergency stop functionality and configuration management.
 from __future__ import annotations
 
 import os
-import sys
 import subprocess
-import json
+import sys
 from pathlib import Path
-from typing import Optional
 
 try:
     import psutil
@@ -24,9 +22,7 @@ try:
 except ImportError:
     HAS_STREAMLIT = False
 
-from baet.config.loader import load_settings, CONFIG_DIR
-from baet.config.models import Settings
-
+from baet.config.loader import CONFIG_DIR, load_settings
 
 # Process name to look for
 PROCESS_KEYWORDS = ["baet.paper.engine", "start_observation.py", "start_paper_trading"]
@@ -187,6 +183,8 @@ def get_config() -> dict:
         return {
             "initial_balance": settings.paper.initial_balance,
             "loop_interval_seconds": settings.paper.loop_interval_seconds,
+            "duration_days": settings.paper.duration_days,
+            "timeframe": settings.paper.timeframe,
             "stop_on_error": settings.paper.stop_on_error,
             "max_consecutive_errors": settings.paper.max_consecutive_errors,
         }
@@ -237,7 +235,12 @@ def update_config(updates: dict) -> tuple[bool, str]:
 
 
 def render_control_panel():
-    """Render the control panel in Streamlit sidebar."""
+    """
+    Render the interactive control panel in the Streamlit sidebar.
+
+    Allows the user to start/stop the autonomous engine and configure
+    trading duration and timeframe without writing code.
+    """
     if not HAS_STREAMLIT:
         print("Streamlit not available")
         return
@@ -325,6 +328,19 @@ def render_control_panel():
                 step=10,
             )
             
+            new_duration = st.selectbox(
+                "Autonomous Duration",
+                options=[None, 1, 7, 30],
+                format_func=lambda x: "Indefinite" if x is None else f"{x} day(s)",
+                index=0 if config.get("duration_days") is None else [1, 7, 30].index(config.get("duration_days")) + 1 if config.get("duration_days") in [1, 7, 30] else 0
+            )
+
+            new_timeframe = st.selectbox(
+                "Trading Timeframe",
+                options=["1m", "5m", "15m", "1h", "4h", "1d"],
+                index=["1m", "5m", "15m", "1h", "4h", "1d"].index(config.get("timeframe", "1h"))
+            )
+
             new_stop_on_error = st.checkbox(
                 "Stop on Error",
                 value=bool(config.get("stop_on_error", False)),
@@ -334,6 +350,8 @@ def render_control_panel():
                 updates = {
                     "paper.initial_balance": new_balance,
                     "paper.loop_interval_seconds": new_interval,
+                    "paper.duration_days": new_duration,
+                    "paper.timeframe": new_timeframe,
                     "paper.stop_on_error": new_stop_on_error,
                 }
                 success, msg = update_config(updates)

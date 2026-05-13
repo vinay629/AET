@@ -33,6 +33,8 @@ class PaperTradingConfig(BaseModel):
     enabled: bool = True
     initial_balance: float = 10_000.0
     loop_interval_seconds: int = 60
+    duration_days: Optional[int] = None
+    timeframe: str = "1h"
     stop_on_error: bool = False
     max_consecutive_errors: int = 10
     notification_webhook: str = ""

@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-import pandas as pd
-import numpy as np
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from baet.core.models import RegimeLabel, StrategyMetadata
+import numpy as np
+import pandas as pd
+
 from baet.strategies.ensemble import EnsembleConfig, StaticEnsemble, StrategyWeight
-from baet.strategies.contracts import SIGNAL_COLUMNS
+
+if TYPE_CHECKING:
+    from baet.risk.engine import RiskEngine
 
 
 @dataclass
@@ -91,7 +93,7 @@ class AdaptiveEnsemble(StaticEnsemble):
     """Adaptive ensemble that updates strategy weights based on performance."""
     
     def __init__(self, config: EnsembleConfig, performance_window: int = 20, 
-                 risk_engine: Optional[RiskEngine] = None):
+                 risk_engine: Optional["RiskEngine"] = None):
         super().__init__(config, risk_engine=risk_engine)  # Pass risk_engine to parent
         self.performance_tracker = PerformanceTracker(window=performance_window)
         self.historical_weights: List[Dict] = []  # Track weight history
