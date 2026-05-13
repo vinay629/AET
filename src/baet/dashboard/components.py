@@ -162,11 +162,12 @@ def render_performance_metrics(metrics: dict[str, Any]):
         )
 
 
-def render_equity_chart(df: pd.DataFrame):
+def render_equity_chart(df: pd.DataFrame, key: Optional[str] = None):
     """Render equity curve chart.
     
     Args:
         df: DataFrame with equity curve data
+        key: Unique key for the chart
     """
     if df.empty:
         st.info("No equity curve data")
@@ -185,7 +186,90 @@ def render_equity_chart(df: pd.DataFrame):
         showlegend=False
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=key)
+
+
+def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000):
+    """Render win rate chart for the last N trades.
+
+    Args:
+        equity_df: DataFrame with equity curve data
+        window: Number of trades to consider
+    """
+    if equity_df.empty or "returns" not in equity_df.columns:
+        # Try to calculate returns if not present
+        if not equity_df.empty and "total_value" in equity_df.columns:
+            equity_df = equity_df.copy()
+            equity_df["returns"] = equity_df["total_value"].pct_change()
+        else:
+            st.info("No trade data for win rate chart")
+            return
+
+    # Use only entries with an action (trade points)
+    trades = equity_df[equity_df["action"].isin(["BUY", "SELL"])].copy()
+
+    if trades.empty:
+        st.info("No trades executed yet")
+        return
+
+    # Take last N trades
+    trades = trades.tail(window)
+
+    # Calculate cumulative win rate
+    # A trade is considered a "win" if its return was positive
+    trades["is_win"] = (trades["returns"] > 0).astype(int)
+    trades["cumulative_wins"] = trades["is_win"].cumsum()
+    trades["trade_index"] = range(1, len(trades) + 1)
+    trades["win_rate"] = (trades["cumulative_wins"] / trades["trade_index"]) * 100
+
+    fig = px.line(
+        trades,
+        x="trade_index",
+        y="win_rate",
+        title=f"Cumulative Win Rate (Last {len(trades)} Trades)",
+        labels={"trade_index": "Trade Number", "win_rate": "Win Rate (%)"},
+        range_y=[0, 100]
+    )
+
+    st.plotly_chart(fig, use_container_width=True, key="win_rate_chart_unique")
+
+
+def render_brain_transparency(log_entries: list[dict]):
+    """Render AI Brain scoring breakdown for transparency."""
+    st.subheader("🧠 AI Brain Transparency")
+
+    # Find latest BRAIN_SCORING event
+    brain_events = [e for e in log_entries if e.get("type") == "BRAIN_SCORING"]
+    if not brain_events:
+        st.info("No brain scoring data available yet.")
+        return
+
+    latest = brain_events[-1]
+    score = latest.get("score", 0.0)
+    components = latest.get("components", {})
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.metric("Overall Brain Score", f"{score:.2f}",
+                  delta="Bullish" if score > 0.3 else "Bearish" if score < -0.3 else "Neutral")
+
+    with col2:
+        # Bar chart for components
+        comp_data = []
+        for name, info in components.items():
+            comp_data.append({
+                "Plugin": name,
+                "Score": info.get("score", 0.0),
+                "Weight": info.get("weight", 1.0)
+            })
+
+        if comp_data:
+            comp_df = pd.DataFrame(comp_data)
+            fig = px.bar(comp_df, x="Plugin", y="Score", color="Score",
+                         title="Plugin Score Breakdown",
+                         color_continuous_scale="RdYlGn", range_y=[-1, 1])
+            st.plotly_chart(fig, use_container_width=True)
 
 
 def render_daily_summary(summary: dict[str, Any]):

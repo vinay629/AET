@@ -9,6 +9,10 @@ from typing import Optional
 
 from baet.config.models import Settings
 from baet.risk.engine import RiskEngine
+from baet.core.brain import ScoringEnsemble
+from baet.plugins.technical import TechnicalIndicatorPlugin
+from baet.plugins.ml_scoring import MLScoringPlugin
+from baet.plugins.markov import MarkovPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +34,7 @@ class PaperTradingEngine:
         self.config = config
         self.risk_engine = risk_engine
         self.running = False
+        self.start_time: Optional[datetime] = None
         self.last_update_time: Optional[datetime] = None
         self.consecutive_errors = 0
         self.max_consecutive_errors = 10
@@ -60,7 +65,14 @@ class PaperTradingEngine:
                 "has_risk_engine": risk_engine is not None,
             })
         
-        logger.info("PaperTradingEngine initialized")
+        # Initialize AI Brain
+        self.brain = ScoringEnsemble([
+            TechnicalIndicatorPlugin(),
+            MLScoringPlugin(),
+            MarkovPlugin()
+        ])
+
+        logger.info("PaperTradingEngine initialized with AI Brain")
     
     def start(self) -> None:
         """Start the paper trading loop."""
@@ -69,6 +81,7 @@ class PaperTradingEngine:
             return
         
         self.running = True
+        self.start_time = datetime.now()
         self.consecutive_errors = 0
         
         logger.info("Paper trading loop started")
@@ -82,6 +95,14 @@ class PaperTradingEngine:
         
         while self.running:
             try:
+                # Check for autonomous duration expiry
+                if self.config.paper.duration_days:
+                    elapsed = datetime.now() - self.start_time
+                    if elapsed.total_seconds() > self.config.paper.duration_days * 24 * 3600:
+                        logger.info(f"Autonomous duration of {self.config.paper.duration_days} days reached. Stopping.")
+                        self.stop()
+                        break
+
                 self._iteration()
                 self.consecutive_errors = 0  # Reset on success
                 self.last_update_time = datetime.now()
@@ -137,19 +158,29 @@ class PaperTradingEngine:
         # 2. Update features (placeholder for now)
         features = self._update_features(market_data)
         
-        # 3. Generate strategy signals (placeholder for now)
-        signals = self._generate_signals(features)
+        # 3. AI Brain Scoring
+        # Convert features to DataFrame for brain
+        if not features:
+            # Fallback for demonstration
+            dummy_data = pd.DataFrame({"close": [100.0] * 50})
+            brain_result = self.brain.calculate_combined_score(dummy_data)
+        else:
+            brain_result = self.brain.calculate_combined_score(features)
+
+        # Log Brain Result
+        if self.paper_logger:
+            self.paper_logger.log_engine_event("BRAIN_SCORING", brain_result)
+
+        # 4. Generate strategy signals from brain score
+        signals = self._generate_signals_from_brain(brain_result, market_data)
         
         # Log signals
         if self.paper_logger and signals:
             for symbol, signal in signals.items():
                 self.paper_logger.log_signal_received(symbol, signal)
         
-        # 4. Combine signals (if ensemble configured)
-        combined = self._combine_signals(signals)
-        
         # 5. Make decisions
-        decisions = self._make_decisions(combined)
+        decisions = self._make_decisions(signals)
         
         # 6. Run risk checks (if risk engine available)
         approved = self._run_risk_checks(decisions)
@@ -178,6 +209,29 @@ class PaperTradingEngine:
         logger.debug("Updating features (not implemented)")
         return {}
     
+    def _generate_signals_from_brain(self, brain_result: dict, market_data: dict) -> dict:
+        """Generate signals from brain scoring result."""
+        score = brain_result.get("score", 0.0)
+        signals = {}
+
+        for symbol in self.config.market.symbols:
+            action = "HOLD"
+            confidence = abs(score)
+
+            if score > 0.3:
+                action = "BUY"
+            elif score < -0.3:
+                action = "SELL"
+
+            signals[symbol] = {
+                "timestamp": datetime.now().isoformat(),
+                "symbol": symbol,
+                "action": action,
+                "confidence": confidence,
+                "reason": f"AI Brain Score: {score:.2f}"
+            }
+        return signals
+
     def _generate_signals(self, features: dict) -> dict:
         """Generate signals from all configured strategies."""
         # TODO: Implement strategy signal generation
@@ -222,6 +276,16 @@ class PaperTradingEngine:
     def _execute_paper_trades(self, approved: list, market_data: dict) -> None:
         """Execute approved paper trades."""
         for decision in approved:
+            # Feedback loop for brain
+            # In a real scenario, we'd wait for the trade to close
+            # For now, we simulate a learning step after each execution
+            trade_outcome = {
+                "symbol": decision.get("symbol"),
+                "pnl_pct": 0.01 if decision.get("action") == "BUY" else -0.01, # Dummy feedback
+                "action": decision.get("action")
+            }
+            self.brain.learn_from_trade(trade_outcome)
+
             symbol = decision.get("symbol")
             action = decision.get("action", "HOLD")
             price = market_data.get(symbol, {}).get("price", 0)

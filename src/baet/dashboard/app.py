@@ -25,6 +25,8 @@ if st is not None:
         render_daily_summary,
         render_risk_status,
         render_log_viewer,
+        render_win_rate_chart,
+        render_brain_transparency,
     )
     from baet.dashboard.data_loader import (
         load_latest_state,
@@ -131,9 +133,17 @@ if st is not None:
         # Portfolio overview
         render_portfolio_overview(portfolio_state)
         
-        # Equity chart
-        st.subheader("Equity Curve")
-        render_equity_chart(equity_df)
+        # Equity and Win Rate Charts
+        col_left, col_right = st.columns(2)
+        with col_left:
+            st.subheader("Equity Curve")
+            render_equity_chart(equity_df, key="overview_equity")
+        with col_right:
+            st.subheader("Win Rate")
+            render_win_rate_chart(equity_df, window=1000)
+
+        # Brain Transparency
+        render_brain_transparency(log_entries)
         
         # Daily summary
         st.subheader("Today's Summary")
@@ -158,7 +168,7 @@ if st is not None:
         
         # Equity chart (full width)
         st.subheader("Equity Curve (Detailed)")
-        render_equity_chart(equity_df)
+        render_equity_chart(equity_df, key="performance_equity")
         
         # Export button
         if not equity_df.empty:
