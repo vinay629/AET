@@ -7,6 +7,8 @@ import time
 from datetime import datetime
 from typing import Optional
 
+import pandas as pd
+
 from baet.config.models import Settings
 from baet.risk.engine import RiskEngine
 from baet.core.brain import ScoringEnsemble

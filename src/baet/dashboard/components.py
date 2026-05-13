@@ -303,7 +303,6 @@ def render_performance_metrics(metrics: dict[str, Any]):
         )
 
 
-<<<<<<< HEAD
 def render_equity_chart(df: pd.DataFrame, key: Optional[str] = None):
     """Render equity curve chart with enhanced styling.
     
