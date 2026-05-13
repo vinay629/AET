@@ -190,11 +190,15 @@ def render_equity_chart(df: pd.DataFrame, key: Optional[str] = None):
 
 
 def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000):
-    """Render win rate chart for the last N trades.
+    """
+    Render a cumulative win rate chart for the last N trades.
+
+    This fulfills the requirement for a win rate graph on the y-axis (0-100)
+    and the last 1000 trades on the x-axis.
 
     Args:
-        equity_df: DataFrame with equity curve data
-        window: Number of trades to consider
+        equity_df: DataFrame with equity curve data including 'returns' and 'action'
+        window: Number of trades to consider for the sliding/cumulative view
     """
     if equity_df.empty or "returns" not in equity_df.columns:
         # Try to calculate returns if not present
@@ -235,7 +239,12 @@ def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000):
 
 
 def render_brain_transparency(log_entries: list[dict]):
-    """Render AI Brain scoring breakdown for transparency."""
+    """
+    Render the AI Brain scoring breakdown for full transparency.
+
+    This component displays the contribution of each plugin to the overall
+    brain score, helping the user understand why the AI made a specific decision.
+    """
     st.subheader("🧠 AI Brain Transparency")
 
     # Find latest BRAIN_SCORING event

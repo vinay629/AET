@@ -29,9 +29,15 @@ class ScoringPlugin(ABC):
     metadata: PluginMetadata
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the plugin with an optional configuration.
+
+        Args:
+            config: A dictionary containing plugin-specific settings.
+        """
         self.config = config or {}
-        self.weight = 1.0  # Initial weight in the ensemble
-        self.performance_history: list[float] = []
+        self.weight = 1.0  # Initial weight in the ensemble, used for scoring aggregation
+        self.performance_history: list[float] = [] # Stores PnL of trades influenced by this plugin
 
     @abstractmethod
     def calculate_score(self, data: pd.DataFrame) -> float:
@@ -57,7 +63,12 @@ class ScoringPlugin(ABC):
         pass
 
     def get_status(self) -> Dict[str, Any]:
-        """Return the current status/health of the plugin."""
+        """
+        Return the current status/health of the plugin.
+
+        Returns:
+            A dictionary containing the plugin's name, current weight, and average historical performance.
+        """
         return {
             "name": self.metadata.name,
             "weight": self.weight,

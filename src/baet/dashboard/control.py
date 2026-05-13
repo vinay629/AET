@@ -239,7 +239,12 @@ def update_config(updates: dict) -> tuple[bool, str]:
 
 
 def render_control_panel():
-    """Render the control panel in Streamlit sidebar."""
+    """
+    Render the interactive control panel in the Streamlit sidebar.
+
+    Allows the user to start/stop the autonomous engine and configure
+    trading duration and timeframe without writing code.
+    """
     if not HAS_STREAMLIT:
         print("Streamlit not available")
         return

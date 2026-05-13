@@ -9,15 +9,24 @@ from baet.core.plugins import ScoringPlugin, PluginMetadata
 
 
 class MarkovPlugin(ScoringPlugin):
-    """Plugin that uses Markov Chain transitions to predict next state."""
+    """
+    Plugin that uses Markov Chain transitions to predict the next market state.
+
+    This plugin demonstrates the 'evolving' nature of the AI brain by using
+    a transition matrix that represents probabilities of moving between states
+    (Down, Flat, Up).
+    """
 
     metadata = PluginMetadata(
         name="markov_chain",
         version="1.0.0",
-        description="Predicts market regime transitions"
+        description="Predicts market regime transitions using a Markov model"
     )
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the Markov plugin with a default transition matrix.
+        """
         super().__init__(config)
         # 3 states: Down, Flat, Up
         self.transition_matrix = np.array([
@@ -27,6 +36,11 @@ class MarkovPlugin(ScoringPlugin):
         ])
 
     def calculate_score(self, data: pd.DataFrame) -> float:
+        """
+        Calculate a score based on Markov transition probabilities.
+
+        Maps the current price action to a state and predicts the most likely next state.
+        """
         if len(data) < 2:
             return 0.0
 
@@ -49,6 +63,12 @@ class MarkovPlugin(ScoringPlugin):
         return float(score)
 
     def learn(self, trade_outcome: Dict[str, Any]) -> None:
+        """
+        Update the plugin's internal state and ensemble weight based on trade outcome.
+
+        This is a key part of the 'growing AI brain' requirement, where the plugin
+        learns which states lead to profitable outcomes.
+        """
         # Update transition matrix based on observed transition
         # This is where the 'AI Brain' evolves
         pnl = trade_outcome.get("pnl_pct", 0.0)

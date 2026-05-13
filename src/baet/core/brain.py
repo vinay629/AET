@@ -19,11 +19,19 @@ class ScoringEnsemble:
 
     It aggregates scores from all plugins using their weights and
     provides a final recommendation. It also distributes learning
-    feedback to all plugins.
+    feedback to all plugins, allowing the system to evolve over time
+    by learning from 'wrong' trades.
     """
 
     def __init__(self, plugins: List[ScoringPlugin]):
+        """
+        Initialize the ScoringEnsemble with a list of plugins.
+
+        Args:
+            plugins: List of ScoringPlugin instances that will contribute to the decision.
+        """
         self.plugins = plugins
+        # Stores the last calculated scores per plugin for the learning feedback loop
         self.last_scores: Dict[str, float] = {}
 
     def calculate_combined_score(self, data: pd.DataFrame) -> Dict[str, Any]:

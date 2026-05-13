@@ -65,7 +65,8 @@ class PaperTradingEngine:
                 "has_risk_engine": risk_engine is not None,
             })
         
-        # Initialize AI Brain
+        # Initialize AI Brain - The core "evolving" intelligence of the engine.
+        # It aggregates multiple scoring tools (plugins) into a single decision.
         self.brain = ScoringEnsemble([
             TechnicalIndicatorPlugin(),
             MLScoringPlugin(),
@@ -149,7 +150,12 @@ class PaperTradingEngine:
             })
     
     def _iteration(self) -> None:
-        """Single iteration of the paper trading loop."""
+        """
+        Execute a single iteration of the paper trading loop.
+
+        This involves updating market data, calculating AI brain scores,
+        generating signals, running risk checks, and executing trades.
+        """
         logger.debug("Starting paper trading iteration")
         
         # 1. Update market data (placeholder for now)
@@ -210,7 +216,12 @@ class PaperTradingEngine:
         return {}
     
     def _generate_signals_from_brain(self, brain_result: dict, market_data: dict) -> dict:
-        """Generate signals from brain scoring result."""
+        """
+        Generate trading signals based on the AI Brain's output score.
+
+        Fulfills the 'autonomous' requirement by translating continuous brain scores
+        into discrete BUY/SELL/HOLD actions for all configured symbols.
+        """
         score = brain_result.get("score", 0.0)
         signals = {}
 

@@ -19,6 +19,11 @@ class TechnicalIndicatorPlugin(ScoringPlugin):
     )
 
     def calculate_score(self, data: pd.DataFrame) -> float:
+        """
+        Calculate a score based on technical indicators.
+
+        Currently uses RSI to determine overbought (>70) or oversold (<30) conditions.
+        """
         if len(data) < 30:
             return 0.0
 
@@ -43,6 +48,12 @@ class TechnicalIndicatorPlugin(ScoringPlugin):
         return float(np.clip(rsi_score, -1.0, 1.0))
 
     def learn(self, trade_outcome: Dict[str, Any]) -> None:
+        """
+        Evolve the plugin weight based on trade performance.
+
+        If the plugin contributed to a losing trade, its influence is reduced.
+        If it contributed to a winning trade, its influence is increased.
+        """
         pnl = trade_outcome.get("pnl_pct", 0.0)
         self.performance_history.append(pnl)
 

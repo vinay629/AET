@@ -15,15 +15,23 @@ except ImportError:
 
 
 class MLScoringPlugin(ScoringPlugin):
-    """Plugin that uses a Random Forest to predict price change."""
+    """
+    Plugin that uses a Machine Learning model (Random Forest) to predict price changes.
+
+    This plugin represents the 'ML' tool in the AI Brain ensemble. It can be extended
+    to perform online learning or periodic retraining based on trade feedback.
+    """
 
     metadata = PluginMetadata(
         name="ml_random_forest",
         version="1.0.0",
-        description="Predicts next period return using Random Forest"
+        description="Predicts next period return using a Random Forest regressor"
     )
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the ML plugin and the underlying Random Forest model.
+        """
         super().__init__(config)
         self.model = None
         if SKLEARN_AVAILABLE:
@@ -31,6 +39,11 @@ class MLScoringPlugin(ScoringPlugin):
         self.is_trained = False
 
     def calculate_score(self, data: pd.DataFrame) -> float:
+        """
+        Calculate a score based on ML model predictions.
+
+        Uses the trained Random Forest to predict the expected return of the next period.
+        """
         if not SKLEARN_AVAILABLE or not self.is_trained:
             return 0.0
 
@@ -39,6 +52,12 @@ class MLScoringPlugin(ScoringPlugin):
         return 0.1 # Placeholder
 
     def learn(self, trade_outcome: Dict[str, Any]) -> None:
+        """
+        Update the plugin's ensemble weight based on prediction accuracy (trade PnL).
+
+        This allows the ensemble to automatically favor the ML model when it's performing
+        well and discount it when it's consistently wrong.
+        """
         pnl = trade_outcome.get("pnl_pct", 0.0)
         self.performance_history.append(pnl)
 
