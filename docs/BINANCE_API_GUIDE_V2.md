@@ -1,7 +1,7 @@
 # Binance API Complete Guide (Latest - May 7, 2026)
 
-> **Based on official Binance Spot API Documentation**  
-> **Last Updated:** May 7, 2026 (Latest Commit: 18a5f24)  
+> **Based on official Binance Spot API Documentation**
+> **Last Updated:** May 7, 2026 (Latest Commit: 18a5f24)
 > **Source:** https://github.com/binance/binance-spot-api-docs
 >
 > **This is the current/recommended version.** For the older guide, see `BINANCE_API_GUIDE.md`.
@@ -147,7 +147,7 @@ WS_DATA_URL = "wss://data-stream.binance.vision"
 ```
 GET /api/v3/ping
 ```
-**Weight:** 1  
+**Weight:** 1
 **Parameters:** None
 
 **Response:**
@@ -159,7 +159,7 @@ GET /api/v3/ping
 ```
 GET /api/v3/time
 ```
-**Weight:** 1  
+**Weight:** 1
 **Parameters:** None
 
 **Response:**
@@ -414,7 +414,7 @@ GET /api/v3/klines
 ```
 POST /api/v3/order
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +1
 
 **New Field (May 2026):** `expiryReason` - Returned for expired orders
@@ -771,7 +771,7 @@ timestamp: Current time in ms or μs
 ```
 PUT /api/v3/order/amend/keepPriority
 ```
-**Weight:** 4 (changed from 1 in April 2025)  
+**Weight:** 4 (changed from 1 in April 2025)
 **Unfilled Order Count:** 0
 
 ### Order Types
@@ -841,14 +841,14 @@ from datetime import datetime
 
 class BinanceClient2026:
     """Updated client with May 2026 features."""
-    
+
     def __init__(self, api_key, api_secret):
         self.api_key = api_key
         self.api_secret = api_secret
         self.base_url = "https://api.binance.com"
         self.session = requests.Session()
         self.session.headers.update({'X-MBX-APIKEY': api_key})
-    
+
     def get_block_trades(self, symbol, from_id):
         """New endpoint - May 2026"""
         params = {
@@ -861,14 +861,14 @@ class BinanceClient2026:
             f"{self.base_url}/api/v3/historicalBlockTrades",
             params=params
         ).json()
-    
+
     def get_reference_price(self, symbol):
         """Get reference price - March 2026"""
         return self.session.get(
             f"{self.base_url}/api/v3/referencePrice",
             params={'symbol': symbol}
         ).json()
-    
+
     def _sign(self, params):
         query = urlencode(params)
         signature = hmac.new(
@@ -889,30 +889,30 @@ import threading
 
 class BinanceWS2026:
     """WebSocket client with serverShutdown handling."""
-    
+
     def __init__(self):
         self.ws = None
         self.reconnecting = False
-    
+
     def on_message(self, ws, message):
         data = json.loads(message)
-        
+
         # Handle serverShutdown (New - May 2026)
         if data.get('e') == 'serverShutdown':
             print("Server shutting down! Reconnecting...")
             self.reconnecting = True
             self.reconnect()
             return
-        
+
         # Process other messages
         print(data)
-    
+
     def reconnect(self):
         """Establish new connection before disconnection."""
         if not self.reconnecting:
             thread = threading.Thread(target=self.start)
             thread.start()
-    
+
     def start(self):
         self.ws = websocket.WebSocketApp(
             "wss://stream.binance.com:9443/ws/btcusdt@trade",

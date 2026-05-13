@@ -9,7 +9,6 @@ This module validates and enforces the M5.2 live pilot risk limits:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from baet.config.models import M5Point2RiskLimits
 
@@ -25,7 +24,7 @@ class M5Point2RiskTracker:
     concurrent_positions: int = 0
     position_pls: dict[str, float] = field(default_factory=dict)
     emergency_stop_triggered: bool = False
-    last_breach_reason: Optional[str] = None
+    last_breach_reason: str | None = None
 
     def reset_daily(self) -> None:
         """Reset daily metrics (call at start of each trading day)."""
@@ -34,7 +33,7 @@ class M5Point2RiskTracker:
         self.consecutive_losses = 0
         self.position_pls.clear()
 
-    def check_can_trade(self) -> tuple[bool, Optional[str]]:
+    def check_can_trade(self) -> tuple[bool, str | None]:
         """Check if new trade can be made.
 
         Returns:
@@ -70,9 +69,7 @@ class M5Point2RiskTracker:
 
         return True, None
 
-    def on_trade_executed(
-        self, position_id: str, quantity: float, entry_price: float
-    ) -> None:
+    def on_trade_executed(self, position_id: str, quantity: float, entry_price: float) -> None:
         """Record a trade execution.
 
         Args:
@@ -116,9 +113,7 @@ class M5Point2RiskTracker:
 
         del self.position_pls[position_id]
 
-    def on_position_updated(
-        self, position_id: str, current_pl: float
-    ) -> tuple[bool, Optional[str]]:
+    def on_position_updated(self, position_id: str, current_pl: float) -> tuple[bool, str | None]:
         """Check position for stop-loss (unrealized loss limit).
 
         Args:
@@ -169,9 +164,7 @@ class M5Point2RiskTracker:
             "consecutive_losses": self.consecutive_losses,
             "concurrent_positions": self.concurrent_positions,
             "daily_loss_limit": self.limits.daily_loss_limit,
-            "daily_loss_remaining": (
-                self.limits.daily_loss_limit - abs(self.daily_realized_pl)
-            ),
+            "daily_loss_remaining": (self.limits.daily_loss_limit - abs(self.daily_realized_pl)),
             "consecutive_loss_limit": self.limits.consecutive_loss_limit,
             "max_concurrent_positions": self.limits.max_concurrent_positions,
             "max_daily_trades": self.limits.max_daily_trades,

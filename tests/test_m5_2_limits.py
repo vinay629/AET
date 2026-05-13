@@ -1,7 +1,6 @@
 """Tests for M5.2 risk limit validation."""
 
 import pytest
-
 from baet.config.models import M5Point2RiskLimits
 from baet.risk.m5_2_limits import M5Point2RiskTracker
 
