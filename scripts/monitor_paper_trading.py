@@ -1,10 +1,10 @@
 """Monitor paper trading stability during M4.4 observation window."""
 
-import time
 import json
-from pathlib import Path
-from datetime import datetime, timedelta
 import sys
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
 
 try:
     import psutil
@@ -168,7 +168,7 @@ def print_status_report(process_status: dict, log_status: dict,
     print("="*60)
     
     # Process status
-    print(f"\n[Process]")
+    print("\n[Process]")
     if process_status["status"] == "running":
         print(f"  ✅ Running (PID: {process_status['pid']})")
         print(f"  ⏱️  Uptime: {process_status['runtime_str']}")
@@ -176,7 +176,7 @@ def print_status_report(process_status: dict, log_status: dict,
         print(f"  ❌ {process_status.get('message', 'Not running')}")
     
     # Log status
-    print(f"\n[Log Files]")
+    print("\n[Log Files]")
     if log_status["status"] == "ok":
         print(f"  ✅ Fresh (updated {log_status['last_update_minutes_ago']} min ago)")
         print(f"  📄 Latest: {log_status['latest_log']}")
@@ -187,11 +187,11 @@ def print_status_report(process_status: dict, log_status: dict,
         print(f"  ❌ {log_status.get('message', 'Error')}")
     
     # Dashboard status
-    print(f"\n[Dashboard]")
+    print("\n[Dashboard]")
     if dashboard_status["status"] == "ok":
-        print(f"  ✅ Accessible")
+        print("  ✅ Accessible")
     elif dashboard_status["status"] == "not_running":
-        print(f"  ⚠️  Not running")
+        print("  ⚠️  Not running")
     else:
         print(f"  ❌ {dashboard_status.get('message', 'Error')}")
     
@@ -200,7 +200,7 @@ def print_status_report(process_status: dict, log_status: dict,
     if error_status["error_count"] > 0:
         print(f"  ❌ Errors: {error_status['error_count']}")
     else:
-        print(f"  ✅ No errors")
+        print("  ✅ No errors")
     if error_status["warning_count"] > 0:
         print(f"  ⚠️  Warnings: {error_status['warning_count']}")
     
@@ -218,7 +218,7 @@ def main():
     parser.add_argument("--dashboard-port", type=int, default=8501, help="Dashboard port")
     args = parser.parse_args()
     
-    print(f"Starting paper trading monitor...")
+    print("Starting paper trading monitor...")
     print(f"Log directory: {args.log_dir}")
     print(f"Check interval: {args.interval} seconds")
     if args.once:

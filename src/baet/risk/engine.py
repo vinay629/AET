@@ -5,8 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Optional
 
-import pandas as pd
-
 from baet.core.models import RegimeLabel
 from baet.risk.checks import RiskCheckResult, RiskViolation
 from baet.risk.policy import RiskPolicy
@@ -68,9 +66,8 @@ class RiskEngine:
             )
         
         # Run all risk checks
-        all_violations = []
         adjusted_size = signal.get('size_hint', 0.1)
-        adjusted_action = signal.get('action', 'HOLD')
+        signal.get('action', 'HOLD')
         
         # 1. Check emergency conditions
         emergency_result = self._check_emergency_conditions()
@@ -159,7 +156,7 @@ class RiskEngine:
             violations.append(RiskViolation(
                 rule="max_risk_per_trade",
                 severity="warning",
-                message=f"Position size reduced due to risk limit",
+                message="Position size reduced due to risk limit",
                 current_value=risk_amount,
                 threshold_value=max_risk_amount,
             ))
@@ -256,7 +253,7 @@ class RiskEngine:
                 violations=[RiskViolation(
                     rule="regime_max_exposure",
                     severity="warning",
-                    message=f"Regime-based exposure limit reached",
+                    message="Regime-based exposure limit reached",
                     current_value=current_exposure,
                     threshold_value=max_exposure,
                     symbol=signal.get('symbol'),
@@ -287,7 +284,7 @@ class RiskEngine:
         
         # Check strategy-specific allocation limit
         if strategy_name in self.policy.strategy.max_strategy_allocation:
-            max_alloc = self.policy.strategy.max_strategy_allocation[strategy_name]
+            self.policy.strategy.max_strategy_allocation[strategy_name]
             # This would need historical allocation tracking
             # For now, just pass
             pass

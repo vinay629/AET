@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 from baet.core.models import RegimeLabel, RegimeMetadata
 

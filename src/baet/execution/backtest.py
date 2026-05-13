@@ -27,7 +27,15 @@ class PortfolioBacktestEngine(BacktestEngine):
     ) -> BacktestArtifacts:
         prepared = []
         for key, market in market_frames.items():
-            signal_frame = signals[key][["close_time", "signal"]].copy()
+            # Check if signals need adaptation
+            sig = signals[key]
+            if "close_time" not in sig.columns and "timestamp" in sig.columns:
+                sig = sig.rename(columns={"timestamp": "close_time"})
+
+            if "signal" not in sig.columns and "target_position" in sig.columns:
+                sig["signal"] = (sig["target_position"] > 0).astype(int)
+
+            signal_frame = sig[["close_time", "signal"]].copy()
             merged = market.merge(signal_frame, on="close_time", how="left").fillna({"signal": 0})
             merged["symbol_key"] = f"{key[0]}:{key[1]}"
             prepared.append(merged)
@@ -62,7 +70,7 @@ class PortfolioBacktestEngine(BacktestEngine):
                         'symbol': row["symbol"],
                         'timestamp': timestamp,
                     }
-                    RiskEngine = _get_risk_engine()
+                    _get_risk_engine()
                     result = self.risk_engine.evaluate_signal(signal_dict)
                     
                     if not result.approved or result.adjusted_action == 'HOLD':

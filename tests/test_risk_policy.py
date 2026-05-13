@@ -1,24 +1,21 @@
 """Tests for M4.1a Risk Policy - Documented and Decision-Complete."""
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
-import pandas as pd
+import pytest
 
+from baet.core.models import RegimeLabel
 from baet.risk.checks import RiskCheckResult, RiskViolation
 from baet.risk.engine import RiskEngine
 from baet.risk.policy import (
-    RiskPolicy,
-    PositionSizingPolicy,
     DrawdownProtectionPolicy,
-    RegimeRiskPolicy,
-    StrategyRiskPolicy,
-    PortfolioRiskPolicy,
     EmergencyPolicy,
+    PortfolioRiskPolicy,
+    PositionSizingPolicy,
+    RegimeRiskPolicy,
+    RiskPolicy,
+    StrategyRiskPolicy,
 )
-from baet.core.models import RegimeLabel
-
 
 # ========== Policy Model Tests ==========
 
@@ -51,7 +48,7 @@ def test_drawdown_protection_policy_defaults():
     
     assert policy.max_portfolio_drawdown == 0.15
     assert policy.max_daily_loss == 0.05
-    assert policy.trailing_stop_enabled == True
+    assert policy.trailing_stop_enabled
     assert policy.kill_switch_drawdown == 0.20
 
 
@@ -87,7 +84,7 @@ def test_emergency_policy_defaults():
     """Test EmergencyPolicy with defaults."""
     policy = EmergencyPolicy()
     
-    assert policy.kill_switch_enabled == True
+    assert policy.kill_switch_enabled
     assert "portfolio_drawdown_exceeded" in policy.kill_switch_conditions
     assert policy.cooldown_period_hours == 24
 
@@ -98,7 +95,7 @@ def test_risk_policy_master():
     
     assert policy.position_sizing.max_risk_per_trade == 0.01
     assert policy.drawdown.max_portfolio_drawdown == 0.15
-    assert policy.emergency.kill_switch_enabled == True
+    assert policy.emergency.kill_switch_enabled
 
 
 def test_risk_policy_get_max_exposure_for_regime():
@@ -116,17 +113,17 @@ def test_risk_policy_is_strategy_enabled():
     """Test strategy enabled/blacklisted checks."""
     # Empty enabled list means all enabled
     policy = RiskPolicy()
-    assert policy.is_strategy_enabled("my_strategy") == True
+    assert policy.is_strategy_enabled("my_strategy")
     
     # With enabled list
     policy = RiskPolicy(strategy=StrategyRiskPolicy(enabled_strategies=["strat_a", "strat_b"]))
-    assert policy.is_strategy_enabled("strat_a") == True
-    assert policy.is_strategy_enabled("strat_c") == False
+    assert policy.is_strategy_enabled("strat_a")
+    assert not policy.is_strategy_enabled("strat_c")
     
     # With blacklist
     policy = RiskPolicy(strategy=StrategyRiskPolicy(blacklisted_strategies=["bad_strat"]))
-    assert policy.is_strategy_enabled("good_strat") == True
-    assert policy.is_strategy_enabled("bad_strat") == False
+    assert policy.is_strategy_enabled("good_strat")
+    assert not policy.is_strategy_enabled("bad_strat")
 
 
 # ========== Risk Check Result Tests ==========
@@ -135,7 +132,7 @@ def test_risk_check_result_approve():
     """Test creating approved result."""
     result = RiskCheckResult.approve(action="BUY", size=0.1, reasons=["All good"])
     
-    assert result.approved == True
+    assert result.approved
     assert result.action == "BUY"
     assert result.adjusted_action == "BUY"
     assert result.risk_score == 0.0
@@ -149,7 +146,7 @@ def test_risk_check_result_reject():
         violations=[]
     )
     
-    assert result.approved == False
+    assert not result.approved
     assert result.adjusted_action == "HOLD"  # Force HOLD
     assert result.adjusted_size == 0.0
     assert result.risk_score == 1.0
@@ -164,7 +161,7 @@ def test_risk_check_result_modify():
         reasons=["Size reduced"]
     )
     
-    assert result.approved == True
+    assert result.approved
     assert result.adjusted_size == 0.1
     assert result.risk_score == 0.3
 
@@ -233,7 +230,7 @@ def test_risk_engine_initialization():
     engine = create_risk_engine()
     
     assert engine.policy is not None
-    assert engine.kill_switch_active == False
+    assert not engine.kill_switch_active
     assert engine.portfolio_state['total_equity'] == 10000.0
 
 
@@ -244,7 +241,7 @@ def test_risk_engine_approves_valid_signal():
     
     result = engine.evaluate_signal(signal)
     
-    assert result.approved == True
+    assert result.approved
     assert result.adjusted_action == "BUY"
 
 
@@ -258,7 +255,7 @@ def test_risk_engine_rejects_blacklisted_strategy():
     
     result = engine.evaluate_signal(signal)
     
-    assert result.approved == False
+    assert not result.approved
     assert any("blacklist" in r.lower() for r in result.reasons)
 
 
@@ -285,7 +282,7 @@ def test_risk_engine_kill_switch():
     signal = create_test_signal()
     result = engine.evaluate_signal(signal)
     
-    assert result.approved == False
+    assert not result.approved
     assert "Kill-switch" in result.reasons[0]
 
 
@@ -301,7 +298,7 @@ def test_risk_engine_drawdown_protection():
     result = engine.evaluate_signal(signal)
     
     # Should be rejected due to drawdown
-    assert result.approved == False
+    assert not result.approved
 
 
 def test_risk_engine_kill_switch_drawdown():
@@ -316,8 +313,8 @@ def test_risk_engine_kill_switch_drawdown():
     result = engine.evaluate_signal(signal)
     
     # Kill-switch should be activated
-    assert engine.kill_switch_active == True
-    assert result.approved == False
+    assert engine.kill_switch_active
+    assert not result.approved
 
 
 def test_risk_engine_regime_risk():
@@ -331,7 +328,7 @@ def test_risk_engine_regime_risk():
     signal = create_test_signal()
     result = engine.evaluate_signal(signal, regime=RegimeLabel.HIGH_VOLATILITY)
     
-    assert result.approved == False  # Exposure 30% > 10% limit
+    assert not result.approved  # Exposure 30% > 10% limit
 
 
 def test_risk_engine_portfolio_exposure():
@@ -344,7 +341,7 @@ def test_risk_engine_portfolio_exposure():
     signal = create_test_signal()
     result = engine.evaluate_signal(signal)
     
-    assert result.approved == False
+    assert not result.approved
 
 
 def test_risk_engine_concentration_limit():
@@ -359,7 +356,7 @@ def test_risk_engine_concentration_limit():
     signal = create_test_signal(symbol='BTCUSDT')
     result = engine.evaluate_signal(signal)
     
-    assert result.approved == False
+    assert not result.approved
 
 
 def test_risk_engine_max_active_positions():
@@ -375,7 +372,7 @@ def test_risk_engine_max_active_positions():
     signal = create_test_signal(symbol='NEWUSDT', action='BUY')
     result = engine.evaluate_signal(signal)
     
-    assert result.approved == False
+    assert not result.approved
 
 
 def test_risk_engine_updates_portfolio_state():
@@ -400,8 +397,8 @@ def test_risk_engine_reset_kill_switch():
     
     # Reset should work
     result = engine.reset_kill_switch()
-    assert result == True
-    assert engine.kill_switch_active == False
+    assert result
+    assert not engine.kill_switch_active
 
 
 def test_risk_engine_emergency_cooldown():
@@ -414,7 +411,7 @@ def test_risk_engine_emergency_cooldown():
     
     # Try to reset during cooldown (should fail because require_manual_reset=True)
     result = engine.reset_kill_switch()
-    assert result == True  # Actually, with manual reset allowed, it should work
+    assert result  # Actually, with manual reset allowed, it should work
     # The policy says require_manual_reset=True, but reset_kill_switch checks this
     # and returns True if it resets. Let me fix the test expectation.
     # Actually, looking at the code: if require_manual_reset, it DOES allow reset
@@ -430,7 +427,7 @@ def test_risk_engine_all_checks_pass():
     
     result = engine.evaluate_signal(signal, regime=RegimeLabel.TRENDING)
     
-    assert result.approved == True
+    assert result.approved
     assert result.adjusted_action == "BUY"
     assert len(result.reasons) > 0
 
@@ -448,7 +445,7 @@ def test_risk_engine_can_override_to_hold():
     result = engine.evaluate_signal(signal)
     
     # Engine MUST be able to override to HOLD
-    assert result.approved == False
+    assert not result.approved
     assert result.adjusted_action == "HOLD"
 
 
@@ -514,7 +511,7 @@ def test_risk_engine_end_to_end():
     engine.portfolio_state['peak_equity'] = 10000.0
     
     result = engine.evaluate_signal(signals_to_test[0])
-    assert result.approved == False  # Should be rejected now (20% > 15% limit)
+    assert not result.approved  # Should be rejected now (20% > 15% limit)
 
 
 if __name__ == "__main__":

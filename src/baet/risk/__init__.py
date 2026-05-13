@@ -4,20 +4,20 @@ from baet.risk.checks import RiskCheckResult, RiskViolation
 from baet.risk.engine import RiskEngine
 from baet.risk.integration import (
     create_risk_engine_from_config,
-    evaluate_strategy_signal,
     evaluate_combined_signals,
-    update_risk_engine_state,
-    should_execute_trade,
+    evaluate_strategy_signal,
     extract_risk_metadata,
+    should_execute_trade,
+    update_risk_engine_state,
 )
 from baet.risk.policy import (
+    DrawdownProtectionPolicy,
     EmergencyPolicy,
     PortfolioRiskPolicy,
     PositionSizingPolicy,
     RegimeRiskPolicy,
     RiskPolicy,
     StrategyRiskPolicy,
-    DrawdownProtectionPolicy,
 )
 
 __all__ = [

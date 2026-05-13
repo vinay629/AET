@@ -1,11 +1,10 @@
 """Tests for regime detection module."""
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from baet.strategies.regime import VolatilityTrendRegimeDetector
 from baet.core.models import RegimeLabel
+from baet.strategies.regime import VolatilityTrendRegimeDetector
 
 
 def create_sample_data(n_periods: int = 100) -> pd.DataFrame:
@@ -62,9 +61,9 @@ def test_regime_labels_valid():
     result = detector.detect(data)
     
     # All regimes should be valid enum values
-    valid_labels = {label.value for label in RegimeLabel}
+    valid_labels = {label for label in RegimeLabel}
     for regime in result['regime']:
-        assert regime.value in valid_labels
+        assert regime in valid_labels
 
 
 def test_regime_detection_reproducible():

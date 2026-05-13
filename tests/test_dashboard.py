@@ -1,26 +1,22 @@
 """Tests for M4.3.b Streamlit Dashboard."""
 
 import sys
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from baet.dashboard.data_loader import (
-    find_latest_log_file,
-    parse_log_file,
-    load_latest_state,
-    load_recent_trades,
-    load_equity_curve,
     calculate_daily_summary,
     calculate_performance_metrics,
+    find_latest_log_file,
+    load_equity_curve,
+    load_latest_state,
+    load_recent_trades,
+    parse_log_file,
 )
-
 
 # ========== Test Data Loader ==========
 

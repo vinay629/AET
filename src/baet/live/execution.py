@@ -1,7 +1,7 @@
 """Live execution module for BAET."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 try:
     from binance.client import Client as BinanceClient

@@ -21,7 +21,7 @@ def main():
         print(f"Error: Dashboard app not found at {APP_PATH}")
         sys.exit(1)
     
-    print(f"Starting BAET Dashboard...")
+    print("Starting BAET Dashboard...")
     print(f"App path: {APP_PATH}")
     print(f"Port: {PORT}")
     print(f"URL: http://localhost:{PORT}")

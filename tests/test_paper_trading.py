@@ -1,24 +1,22 @@
 """Tests for M4.2.a Paper Trading Loop - Runs Continuously Without Crashing."""
 
-import pytest
-from datetime import datetime
-from unittest.mock import MagicMock, patch
 import time
+from datetime import datetime
+from unittest.mock import patch
 
+import pytest
+
+from baet.config.models import PaperTradingConfig, Settings
 from baet.paper.engine import PaperTradingEngine
-from baet.paper.portfolio import PaperPortfolio
 from baet.paper.order_simulator import PaperOrderSimulator
-from baet.config.models import Settings, PaperTradingConfig
-
+from baet.paper.portfolio import PaperPortfolio
 
 # ========== Helper Functions ==========
 
 def create_test_settings():
     """Create test settings for paper trading."""
     from baet.config.models import (
-        AppConfig, MarketConfig, StorageConfig, 
-        PaperTradingConfig, LiveConfig, BinanceConfig,
-        RiskConfig, FeatureConfig, BacktestConfig, ReportingConfig, SecretsConfig
+        AppConfig,
     )
     from baet.core.enums import AppMode
     
@@ -53,7 +51,7 @@ def test_paper_portfolio_buy_insufficient_cash_first():
     # This should fail because 0.5 * 20000 + 10 = 10010 > 10000
     result = portfolio.buy(symbol="BTCUSDT", units=0.5, price=20000.0, fee=10.0)
     
-    assert result == False  # Should fail
+    assert not result  # Should fail
     assert portfolio.cash == 10000.0  # Unchanged
 
 
@@ -63,7 +61,7 @@ def test_paper_portfolio_buy_sufficient_cash():
     
     result = portfolio.buy(symbol="BTCUSDT", units=0.5, price=20000.0, fee=10.0)
     
-    assert result == True
+    assert result
     assert portfolio.cash == 20000.0 - 10010.0  # 9990.0
     assert "BTCUSDT" in portfolio.positions
     assert portfolio.positions["BTCUSDT"]["units"] == 0.5
@@ -76,7 +74,7 @@ def test_paper_portfolio_buy_insufficient_cash():
     
     result = portfolio.buy(symbol="BTCUSDT", units=0.5, price=20000.0, fee=10.0)
     
-    assert result == False  # Should fail
+    assert not result  # Should fail
     assert portfolio.cash == 100.0  # Unchanged
 
 
@@ -90,7 +88,7 @@ def test_paper_portfolio_sell():
     # Then sell
     result = portfolio.sell(symbol="BTCUSDT", units=0.5, price=21000.0, fee=10.0)
     
-    assert result == True
+    assert result
     assert "BTCUSDT" not in portfolio.positions  # Position closed
     assert portfolio.cash > 10000.0  # Made profit
 
@@ -105,7 +103,7 @@ def test_paper_portfolio_sell_insufficient_units():
     # Try to sell too much
     result = portfolio.sell(symbol="BTCUSDT", units=1.0, price=21000.0, fee=10.0)
     
-    assert result == False  # Should fail
+    assert not result  # Should fail
     assert portfolio.positions["BTCUSDT"]["units"] == 0.5  # Unchanged
 
 
@@ -247,7 +245,7 @@ def test_engine_initialization():
     engine = PaperTradingEngine(settings)
     
     assert engine.config == settings
-    assert engine.running == False
+    assert not engine.running
     assert engine.portfolio is not None
     assert engine.order_simulator is not None
 
@@ -267,7 +265,7 @@ def test_engine_start_stop():
     engine.stop()
     thread.join(timeout=5)
     
-    assert engine.running == False
+    assert not engine.running
 
 
 def test_engine_does_not_crash():
@@ -362,7 +360,7 @@ def test_portfolio_with_order_simulator():
     fill_price, units, fee = simulator.simulate_buy(price=20000.0, units=0.5)
     result = portfolio.buy(symbol="BTCUSDT", units=units, price=fill_price, fee=fee)
     
-    assert result == True
+    assert result
     assert portfolio.positions["BTCUSDT"]["units"] == 0.5
 
 
