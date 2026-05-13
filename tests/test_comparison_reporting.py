@@ -3,8 +3,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from baet.config.loader import load_settings
 from baet.core.models import BacktestArtifacts, StrategyMetadata
@@ -51,11 +51,17 @@ def _create_mock_artifacts(total_return: float, max_dd: float, trade_count: int 
     initial_equity = 10_000.0
     final_equity = initial_equity * (1.0 + total_return)
     
+    equity_values = np.linspace(initial_equity, final_equity, len(index))
+    if max_dd < 0:
+        # Inject a drawdown
+        mid_point = len(index) // 2
+        equity_values[mid_point:] = equity_values[mid_point:] * (1.0 + max_dd)
+
     equity_curve = pd.DataFrame({
         "timestamp": index,
         "cash": [initial_equity / 2.0] * len(index),
         "market_value": [initial_equity * (0.5 + i * 0.01) for i in range(len(index))],
-        "equity": np.linspace(initial_equity, final_equity, len(index)),
+        "equity": equity_values,
     })
     
     trades = pd.DataFrame({

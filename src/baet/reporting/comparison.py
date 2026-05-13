@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from baet.core.models import BacktestArtifacts, StrategyMetadata
 
@@ -97,9 +97,17 @@ def build_strategy_metrics_row(
 
     if not artifacts.equity_curve.empty:
         equity = artifacts.equity_curve["equity"].astype("float64")
-        running_max = equity.cummax()
-        drawdowns = (equity / running_max) - 1.0
-        max_drawdown = float(drawdowns.min())
+        if (equity > 0).all():
+            running_max = equity.cummax()
+            drawdowns = (equity / running_max) - 1.0
+            max_drawdown = float(drawdowns.min())
+        else:
+            # Fallback for equity curves with zero or negative values
+            equity_norm = equity - equity.min() + 1.0
+            running_max = equity_norm.cummax()
+            drawdowns = (equity_norm / running_max) - 1.0
+            max_drawdown = float(drawdowns.min())
+
         daily_returns = equity.pct_change().fillna(0.0)
         sharpe_ratio = calculate_sharpe_ratio(daily_returns)
         sortino_ratio = calculate_sortino_ratio(daily_returns)
@@ -129,7 +137,7 @@ def build_ranked_summary(metrics: pd.DataFrame) -> pd.DataFrame:
         return metrics
     ranked = metrics.sort_values(
         by=["sharpe_ratio", "total_return", "max_drawdown"],
-        ascending=[False, False, True],
+        ascending=[False, False, False],
     ).reset_index(drop=True)
     ranked["rank"] = ranked.index + 1
     return ranked
@@ -144,13 +152,13 @@ def build_ranking_by_criteria(metrics: pd.DataFrame, criteria: str = "sharpe") -
     elif criteria == "return":
         ranked = metrics.sort_values(by="total_return", ascending=False).reset_index(drop=True)
     elif criteria == "drawdown":
-        ranked = metrics.sort_values(by="max_drawdown", ascending=True).reset_index(drop=True)
+        ranked = metrics.sort_values(by="max_drawdown", ascending=False).reset_index(drop=True)
     elif criteria == "calmar":
         ranked = metrics.sort_values(by="calmar_ratio", ascending=False).reset_index(drop=True)
     else:
         ranked = metrics.sort_values(
             by=["sharpe_ratio", "total_return", "max_drawdown"],
-            ascending=[False, False, True],
+            ascending=[False, False, False],
         ).reset_index(drop=True)
     ranked["rank"] = ranked.index + 1
     return ranked

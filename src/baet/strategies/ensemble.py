@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
+
 import pandas as pd
-import numpy as np
+
+if TYPE_CHECKING:
+    from baet.risk.engine import RiskEngine
 
 from baet.core.models import RegimeLabel, StrategyMetadata
-from baet.strategies.contracts import StrategyContract, SIGNAL_COLUMNS
+from baet.strategies.contracts import SIGNAL_COLUMNS
 
 
 @dataclass
@@ -48,7 +51,7 @@ class EnsembleConfig:
 class StaticEnsemble:
     """Static ensemble that combines multiple strategy signals into one decision stream."""
     
-    def __init__(self, config: EnsembleConfig, risk_engine: Optional[RiskEngine] = None):
+    def __init__(self, config: EnsembleConfig, risk_engine: Optional["RiskEngine"] = None):
         self.config = config
         self.risk_engine = risk_engine  # NEW: Optional RiskEngine
         
@@ -76,7 +79,7 @@ class StaticEnsemble:
         # Merge regime data if provided
         regime_map = {}
         if regime_data is not None and 'regime' in regime_data.columns:
-            regime_map = dict(zip(regime_data['timestamp'], regime_data['regime']))
+            regime_map = dict(zip(regime_data['timestamp'], regime_data['regime'], strict=False))
         
         # Combine all signals with weights
         all_signals = []

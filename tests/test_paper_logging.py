@@ -2,15 +2,14 @@
 
 import json
 import tempfile
-from pathlib import Path
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from pathlib import Path
 
 import pytest
 
 from baet.paper.logging import PaperTradingLogger, create_paper_logger_from_config
-from baet.paper.portfolio import PaperPortfolio
 from baet.paper.order_simulator import PaperOrderSimulator
+from baet.paper.portfolio import PaperPortfolio
 
 
 def close_logger(logger):
@@ -99,7 +98,7 @@ def test_logger_log_risk_evaluation():
         
         entry = json.loads(lines[-1])
         assert entry["type"] == "RISK_EVALUATION"
-        assert entry["result"]["passed"] == True
+        assert entry["result"]["passed"]
         
         close_logger(logger)
 
@@ -233,7 +232,7 @@ def test_portfolio_with_logger():
         portfolio = PaperPortfolio(initial_balance=20000.0, logger=logger)  # Enough balance
         
         result = portfolio.buy(symbol="BTCUSDT", units=0.5, price=20000.0, fee=10.0)
-        assert result == True  # Buy should succeed
+        assert result  # Buy should succeed
         
         # Check that trade was logged
         log_file = list(Path(tmpdir).glob("paper_trading_*.log"))[0]
@@ -257,7 +256,7 @@ def test_portfolio_without_logger():
     
     result = portfolio.buy(symbol="BTCUSDT", units=0.5, price=20000.0, fee=10.0)
     
-    assert result == True
+    assert result
     assert portfolio.cash < 20000.0
 
 

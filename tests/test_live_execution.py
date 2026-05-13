@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -19,8 +19,8 @@ class TestLiveExecutionClient:
         from baet.live.execution import LiveExecutionClient
         
         try:
-            client = LiveExecutionClient("key", "secret")
-            assert False, "Should have raised ImportError"
+            LiveExecutionClient("key", "secret")
+            raise AssertionError("Should have raised ImportError")
         except ImportError as e:
             assert "python-binance" in str(e)
     
@@ -33,7 +33,7 @@ class TestLiveExecutionClient:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
         
-        client = LiveExecutionClient("key", "secret", testnet=True)
+        LiveExecutionClient("key", "secret", testnet=True)
         mock_client_class.assert_called_once_with("key", "secret", testnet=True)
     
     @patch('baet.live.execution.HAS_BINANCE', True)
@@ -45,7 +45,7 @@ class TestLiveExecutionClient:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
         
-        client = LiveExecutionClient("key", "secret", testnet=False)
+        LiveExecutionClient("key", "secret", testnet=False)
         mock_client_class.assert_called_once_with("key", "secret")
     
     @patch('baet.live.execution.HAS_BINANCE', True)
@@ -55,16 +55,16 @@ class TestLiveExecutionClient:
         from baet.live.execution import LiveExecutionClient
         
         client = LiveExecutionClient("key", "secret", simulation=True)
-        assert client.simulation == True
+        assert client.simulation
         
         # Simulate buy
         result = client.place_market_buy("BTCUSDT", 0.001)
-        assert result["simulation"] == True
+        assert result["simulation"]
         assert result["side"] == "BUY"
         
         # Simulate sell
         result = client.place_market_sell("BTCUSDT", 0.001)
-        assert result["simulation"] == True
+        assert result["simulation"]
         assert result["side"] == "SELL"
     
     @patch('baet.live.execution.HAS_BINANCE', True)
@@ -84,8 +84,8 @@ class TestLiveTradingEngine:
     @patch('baet.live.engine.LiveExecutionClient')
     def test_init_with_client(self, mock_client_class):
         """Test initialization with provided client."""
-        from baet.live.engine import LiveTradingEngine
         from baet.config.models import Settings
+        from baet.live.engine import LiveTradingEngine
         
         mock_client = Mock()
         config = Settings()
@@ -94,12 +94,12 @@ class TestLiveTradingEngine:
         
         engine = LiveTradingEngine(config=config, execution_client=mock_client)
         assert engine.client == mock_client
-        assert engine.running == False
+        assert not engine.running
     
     def test_init_no_client(self):
         """Test initialization without client."""
-        from baet.live.engine import LiveTradingEngine
         from baet.config.models import Settings
+        from baet.live.engine import LiveTradingEngine
         
         config = Settings()
         config.live.enabled = True
@@ -108,7 +108,7 @@ class TestLiveTradingEngine:
         # This will fail because no API credentials
         # but tests the initialization path
         try:
-            engine = LiveTradingEngine(config=config)
+            LiveTradingEngine(config=config)
             # If no exception, client should be None or initialized
             assert True
         except Exception:
@@ -117,8 +117,8 @@ class TestLiveTradingEngine:
     
     def test_execute_hold_signal(self):
         """Test that HOLD signals don't execute."""
-        from baet.live.engine import LiveTradingEngine
         from baet.config.models import Settings
+        from baet.live.engine import LiveTradingEngine
         
         config = Settings()
         config.live.enabled = True
@@ -131,13 +131,13 @@ class TestLiveTradingEngine:
         signal = {"signal": "HOLD"}
         result = engine.execute_signal("BTCUSDT", signal)
         
-        assert result["executed"] == False
+        assert not result["executed"]
         assert result["reason"] == "HOLD signal"
     
     def test_execute_buy_signal(self):
         """Test executing a BUY signal."""
-        from baet.live.engine import LiveTradingEngine
         from baet.config.models import Settings
+        from baet.live.engine import LiveTradingEngine
         
         config = Settings()
         config.live.enabled = True
@@ -153,7 +153,7 @@ class TestLiveTradingEngine:
         signal = {"signal": "BUY", "units": 0.001}
         result = engine.execute_signal("BTCUSDT", signal)
         
-        assert result["executed"] == True
+        assert result["executed"]
         assert result["side"] == "BUY"
 
 

@@ -6,11 +6,9 @@ Provides start/stop/emergency stop functionality and configuration management.
 from __future__ import annotations
 
 import os
-import sys
 import subprocess
-import json
+import sys
 from pathlib import Path
-from typing import Optional
 
 try:
     import psutil
@@ -24,9 +22,7 @@ try:
 except ImportError:
     HAS_STREAMLIT = False
 
-from baet.config.loader import load_settings, CONFIG_DIR
-from baet.config.models import Settings
-
+from baet.config.loader import CONFIG_DIR, load_settings
 
 # Process name to look for
 PROCESS_KEYWORDS = ["baet.paper.engine", "start_observation.py", "start_paper_trading"]
