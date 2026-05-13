@@ -63,6 +63,20 @@ class M5Point2RiskLimits(BaseModel):
     emergency_stop_on_breach: bool = True  # Auto-stop on any limit breach
 
 
+class NotificationConfig(BaseModel):
+    """Configuration for notifications (Telegram, Discord, etc.)."""
+
+    enabled: bool = False
+    telegram_bot_token: SecretStr = SecretStr("")
+    telegram_chat_id: str = ""
+    discord_webhook_url: str = ""
+    notify_on_trade: bool = True
+    notify_on_risk_breach: bool = True
+    notify_on_emergency_stop: bool = True
+    notify_on_daily_summary: bool = True
+    notify_on_error: bool = True
+
+
 class LiveConfig(BaseModel):
     """Configuration for live trading."""
 
@@ -179,6 +193,7 @@ class Settings(BaseModel):
     backtest: BacktestConfig = Field(default_factory=BacktestConfig)
     reporting: ReportingConfig = Field(default_factory=ReportingConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
+    notifications: NotificationConfig = Field(default_factory=NotificationConfig)
     secrets: SecretsConfig = Field(default_factory=SecretsConfig)
 
     @model_validator(mode="after")

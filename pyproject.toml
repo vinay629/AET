@@ -5,6 +5,7 @@ description = "Binance Adaptive Ensemble Trader project scaffold"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "click>=8.1.0",
     "pandas>=2.3.0",
     "plotly>=6.7.0",
     "psutil>=7.2.2",
@@ -14,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "pyyaml>=6.0.2",
     "scikit-learn>=1.8.0",
+    "sqlalchemy>=2.0.0",
     "streamlit>=1.57.0",
 ]
 
@@ -30,6 +32,15 @@ monitoring = [
     "psutil>=7.0.0",
     "requests>=2.33.0",
 ]
+websocket = [
+    "websocket-client>=1.6.0",
+]
+notifications = [
+    "apprise>=1.6.0",
+]
+
+[project.scripts]
+baet = "baet.cli:main"
 
 [build-system]
 requires = ["hatchling"]

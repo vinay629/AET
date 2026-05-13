@@ -1,0 +1,67 @@
+# BAET - Binance Adaptive Ensemble Trader
+# Docker Compose configuration
+#
+# Usage:
+#   docker-compose up -d          # Start the bot
+#   docker-compose up -d dashboard # Start the dashboard
+#   docker-compose logs -f bot    # View bot logs
+#   docker-compose down           # Stop all services
+
+version: "3.8"
+
+services:
+  # Main trading bot
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: baet-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - BAET_MODE=paper
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    networks:
+      - baet-network
+
+  # Streamlit dashboard
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: baet-dashboard
+    restart: unless-stopped
+    command: ["uv", "run", "python", "scripts/run_dashboard.py"]
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - baet-network
+    depends_on:
+      - bot
+
+  # SQLite browser (optional, for inspecting the database)
+  sqlitebrowser:
+    image: lscr.io/linuxserver/sqlitebrowser:latest
+    container_name: baet-sqlitebrowser
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    networks:
+      - baet-network
+    profiles:
+      - debug
+
+networks:
+  baet-network:
+    driver: bridge

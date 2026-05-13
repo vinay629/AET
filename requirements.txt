@@ -18,6 +18,15 @@ pyyaml>=6.0.2
 # Machine learning (optional, used in research mode)
 scikit-learn>=1.7.0
 
+# Database
+sqlalchemy>=2.0.0
+
+# WebSocket streaming (optional)
+websocket-client>=1.6.0
+
+# Notifications (optional)
+apprise>=1.6.0
+
 # Development and testing tools
 pytest>=8.4.0
 pytest-cov>=4.1.0
