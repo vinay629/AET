@@ -20,6 +20,20 @@ Stage 1 foundation is also implemented:
 Strategy library and live trading are still intentionally deferred.
 Dashboarding is planned with Streamlit once the project reaches the paper trading stage.
 
+## Repository Layout
+- `config/` — YAML configuration definitions and environment modes
+- `data/` — data storage and processing targets (mostly ignored for raw/processed/outputs)
+- `docs/` — implementation plans and guides
+- `logs/` — runtime logs, paper/logging artifacts
+- `scripts/` — automation, validation, monitoring, and quick helpers
+- `src/` — main Python package code for BAET
+- `tests/` — automated test suite
+- `.env.example` — template for local secret configuration
+- `pyproject.toml` / `requirements.txt` — dependency and packaging metadata
+- `uv.lock` — lockfile for reproducible dependencies
+- `test_*.py` root scripts — manual test/debug entrypoints
+- `test_output.txt` — sample or temporary output file
+
 ## Quick Start
 1. Install dependencies:
 ```bash
@@ -53,6 +67,18 @@ Config precedence is:
 3. environment variables loaded from `.env`
 
 Secrets such as Binance API credentials stay in `.env` and must never be committed.
+
+## Developer Notes
+- Local artifacts are ignored by `.gitignore`, including `.venv/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `logs/`, `data/raw/`, and `data/processed/`.
+- Root-level helper scripts like `test_app.py`, `test_simple.py`, `test_minimal.py`, `test_testnet_simple.py`, and `test_observation_mode.py` are intended for manual debugging and not required for package distribution.
+- Keep `.env` out of version control and use `.env.example` as the shared template.
+
+## CI/CD TODO
+- Add GitHub Actions workflows for branch and pull-request validation.
+- Run `uv run pytest` on every push and PR to keep the test baseline green.
+- Add linting and type checks (`ruff`, `mypy`) for the Python package.
+- Validate configuration files and environment setup before deployment.
+- Optional: add dependency lockfile validation and vulnerability scanning.
 
 ## Repo Tracking
 - durable planning lives in repo markdown files
