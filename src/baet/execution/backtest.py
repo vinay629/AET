@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pandas as pd
 
 from baet.config.models import BacktestConfig
@@ -7,15 +9,19 @@ from baet.core.models import BacktestArtifacts
 from baet.data.interfaces import BacktestEngine
 from baet.strategies.adapters import adapt_order_intent_to_backtest_signals
 
+if TYPE_CHECKING:
+    from baet.risk.engine import RiskEngine
+
 
 # Lazy import to avoid circular imports
 def _get_risk_engine():
     from baet.risk.engine import RiskEngine
+
     return RiskEngine
 
 
 class PortfolioBacktestEngine(BacktestEngine):
-    def __init__(self, config: BacktestConfig, risk_engine: 'RiskEngine | None' = None) -> None:
+    def __init__(self, config: BacktestConfig, risk_engine: RiskEngine | None = None) -> None:
         self.config = config
         self.risk_engine = risk_engine  # NEW: Optional RiskEngine
 
@@ -41,9 +47,7 @@ class PortfolioBacktestEngine(BacktestEngine):
             prepared.append(merged)
 
         combined = (
-            pd.concat(prepared, ignore_index=True)
-            .sort_values("close_time")
-            .reset_index(drop=True)
+            pd.concat(prepared, ignore_index=True).sort_values("close_time").reset_index(drop=True)
         )
 
         cash = self.config.initial_cash
@@ -67,13 +71,15 @@ class PortfolioBacktestEngine(BacktestEngine):
                 m_value += val
                 snapshots[s_key] = val
 
-            equity_rows.append({
-                "timestamp": ts,
-                "cash": cash,
-                "market_value": m_value,
-                "equity": cash + m_value,
-                **snapshots,
-            })
+            equity_rows.append(
+                {
+                    "timestamp": ts,
+                    "cash": cash,
+                    "market_value": m_value,
+                    "equity": cash + m_value,
+                    **snapshots,
+                }
+            )
 
         price_col_name = "open" if self.config.execution_price == "next_open" else "close"
 
@@ -92,18 +98,18 @@ class PortfolioBacktestEngine(BacktestEngine):
             # Risk check
             if self.risk_engine:
                 signal_dict = {
-                    'action': 'BUY' if signal > 0 else ('SELL' if signal < 0 else 'HOLD'),
-                    'target_position': signal,
-                    'confidence': 1.0,
-                    'size_hint': self.config.allocation_per_signal,
-                    'strategy_name': 'backtest',
-                    'symbol': row.symbol,
-                    'timestamp': timestamp,
+                    "action": "BUY" if signal > 0 else ("SELL" if signal < 0 else "HOLD"),
+                    "target_position": signal,
+                    "confidence": 1.0,
+                    "size_hint": self.config.allocation_per_signal,
+                    "strategy_name": "backtest",
+                    "symbol": row.symbol,
+                    "timestamp": timestamp,
                 }
                 # BOLT: Removed redundant _get_risk_engine() call in hot loop
                 result = self.risk_engine.evaluate_signal(signal_dict)
 
-                if not result.approved or result.adjusted_action == 'HOLD':
+                if not result.approved or result.adjusted_action == "HOLD":
                     # Still track for equity snapshot even if trade is rejected
                     current_group_rows.append(row)
                     last_timestamp = timestamp
@@ -121,29 +127,33 @@ class PortfolioBacktestEngine(BacktestEngine):
                     units = net_cash / fill_price
                     cash -= target_cash
                     positions[symbol_key] = units
-                    trade_rows.append({
-                        "timestamp": timestamp,
-                        "symbol": row.symbol,
-                        "timeframe": row.timeframe,
-                        "side": "BUY",
-                        "price": fill_price,
-                        "units": units,
-                        "fee": fee,
-                    })
+                    trade_rows.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": row.symbol,
+                            "timeframe": row.timeframe,
+                            "side": "BUY",
+                            "price": fill_price,
+                            "units": units,
+                            "fee": fee,
+                        }
+                    )
             elif signal <= 0 and current_units > 0.0:
                 gross = current_units * fill_price
                 fee = gross * self.config.fee_rate
                 cash += gross - fee
                 positions[symbol_key] = 0.0
-                trade_rows.append({
-                    "timestamp": timestamp,
-                    "symbol": row.symbol,
-                    "timeframe": row.timeframe,
-                    "side": "SELL",
-                    "price": fill_price,
-                    "units": current_units,
-                    "fee": fee,
-                })
+                trade_rows.append(
+                    {
+                        "timestamp": timestamp,
+                        "symbol": row.symbol,
+                        "timeframe": row.timeframe,
+                        "side": "SELL",
+                        "price": fill_price,
+                        "units": current_units,
+                        "fee": fee,
+                    }
+                )
 
             current_group_rows.append(row)
             last_timestamp = timestamp
@@ -163,9 +173,9 @@ class PortfolioBacktestEngine(BacktestEngine):
                 var_name="symbol_key",
                 value_name="market_value",
             )
-            symbol_returns["return"] = (
-                symbol_returns.groupby("symbol_key")["market_value"].pct_change()
-            )
+            symbol_returns["return"] = symbol_returns.groupby("symbol_key")[
+                "market_value"
+            ].pct_change()
             returns = equity_curve["equity"].pct_change().fillna(0.0)
             final_equity = float(equity_curve["equity"].iloc[-1])
             initial_equity = float(equity_curve["equity"].iloc[0])

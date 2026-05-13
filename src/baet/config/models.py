@@ -30,6 +30,7 @@ class StorageConfig(BaseModel):
 
 class PaperTradingConfig(BaseModel):
     """Configuration for paper trading."""
+
     enabled: bool = True
     initial_balance: float = 10_000.0
     loop_interval_seconds: int = 60
@@ -38,43 +39,52 @@ class PaperTradingConfig(BaseModel):
     stop_on_error: bool = False
     max_consecutive_errors: int = 10
     notification_webhook: str = ""
-    logging: dict = Field(default_factory=lambda: {
-        "enabled": True,
-        "level": "INFO",
-        "directory": "logs/paper",
-        "rotation": "daily",
-        "max_files": 30,
-    })
+    logging: dict = Field(
+        default_factory=lambda: {
+            "enabled": True,
+            "level": "INFO",
+            "directory": "logs/paper",
+            "rotation": "daily",
+            "max_files": 30,
+        }
+    )
 
 
 class LiveConfig(BaseModel):
     """Configuration for live trading."""
+
     enabled: bool = False
     require_explicit_confirmation: bool = True
     simulation_mode: bool = True
     testnet: bool = True
-    
+
     # Order submission
-    order_submission: dict = Field(default_factory=lambda: {
-        "enabled": False,
-        "max_order_size": 10.0,
-        "min_order_size": 1.0,
-        "test_symbols": ["BTCUSDT", "ETHUSDT"],
-    })
-    
+    order_submission: dict = Field(
+        default_factory=lambda: {
+            "enabled": False,
+            "max_order_size": 10.0,
+            "min_order_size": 1.0,
+            "test_symbols": ["BTCUSDT", "ETHUSDT"],
+        }
+    )
+
     # Safety limits
-    safety: dict = Field(default_factory=lambda: {
-        "max_daily_trades": 5,
-        "max_position_value": 100.0,
-        "allowed_deviation_pct": 5.0,
-    })
-    
+    safety: dict = Field(
+        default_factory=lambda: {
+            "max_daily_trades": 5,
+            "max_position_value": 100.0,
+            "allowed_deviation_pct": 5.0,
+        }
+    )
+
     # Account touchpoints
-    account_touchpoints: list[str] = Field(default_factory=lambda: [
-        "account_info",
-        "open_orders",
-        "order_status",
-    ])
+    account_touchpoints: list[str] = Field(
+        default_factory=lambda: [
+            "account_info",
+            "open_orders",
+            "order_status",
+        ]
+    )
 
 
 class BinanceConfig(BaseModel):
@@ -91,11 +101,12 @@ class RiskConfig(BaseModel):
     max_risk_per_trade: float = 0.01
     max_portfolio_exposure: float = 0.20
     policy: dict = Field(default_factory=dict)
-    
+
     def get_policy(self):
         """Lazily load and return the RiskPolicy object."""
-        if not hasattr(self, '_policy_obj'):
+        if not hasattr(self, "_policy_obj"):
             from baet.risk.policy import RiskPolicy
+
             if isinstance(self.policy, dict) and self.policy:
                 self._policy_obj = RiskPolicy(**self.policy)
             else:
@@ -125,6 +136,7 @@ class ReportingConfig(BaseModel):
 
 class DashboardConfig(BaseModel):
     """Configuration for Streamlit dashboard."""
+
     enabled: bool = True
     port: int = 8501
     theme: str = "light"  # Use "light" for better contrast and visibility
