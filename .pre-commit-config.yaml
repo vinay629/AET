@@ -34,6 +34,7 @@ repos:
         name: Bandit Security Scan
         args: [-r, src/, -f, json]
         pass_filenames: false
+        additional_dependencies: [pbr]
 
   # YAML validation
   - repo: https://github.com/pre-commit/pre-commit-hooks

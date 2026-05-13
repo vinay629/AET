@@ -5,6 +5,7 @@ __pycache__/
 .ruff_cache/
 .coverage
 coverage.xml
+htmlcov/
 dist/
 build/
 *.egg-info/
@@ -25,3 +26,16 @@ Thumbs.db
 
 .gemini/
 gha-creds-*.json
+
+# CI/CD artifacts
+bandit-report.json
+test-results/
+*.trx
+requirements-compiled.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

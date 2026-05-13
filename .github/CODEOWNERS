@@ -1,0 +1,41 @@
+# CODEOWNERS file for BAET project
+# This file specifies who should be code reviewers for different parts of the codebase
+# GitHub will request reviews from these users when PRs touch matching files
+
+# Default owners for everything
+*                          @vinay629
+
+# Core trading engine
+src/baet/core/             @vinay629
+src/baet/execution/        @vinay629
+src/baet/risk/             @vinay629
+
+# Strategies
+src/baet/strategies/       @vinay629
+
+# Data pipeline
+src/baet/data/             @vinay629
+
+# Configuration
+src/baet/config/           @vinay629
+config/                    @vinay629
+
+# Testing
+tests/                     @vinay629
+
+# CI/CD and deployment
+.github/                   @vinay629
+.pre-commit-config.yaml    @vinay629
+CI-CD_PLAN.md              @vinay629
+docs/CI_CD_QUICK_START.md  @vinay629
+docs/DEPLOYMENT_RUNBOOK.md @vinay629
+
+# Documentation
+docs/                      @vinay629
+README.md                  @vinay629
+CONTRIBUTING.md            @vinay629
+
+# Dependencies
+pyproject.toml             @vinay629
+requirements.txt           @vinay629
+uv.lock                    @vinay629
