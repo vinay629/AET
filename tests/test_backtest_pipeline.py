@@ -1,8 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
-
 from baet.config.loader import load_settings
 from baet.data.interfaces import HistoricalDataProvider
 from baet.data.pipeline import ResearchPipeline
@@ -123,8 +122,8 @@ def test_end_to_end_pipeline(tmp_path: Path) -> None:
         FixtureHistoricalProvider(),
         ParquetMarketDataStore(settings),
     )
-    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
-    end = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = datetime(2024, 1, 2, tzinfo=UTC)
 
     for symbol in settings.market.symbols:
         for timeframe in settings.market.timeframes:

@@ -1,5 +1,7 @@
 # Binance Testnet Setup Guide for M5.2
 
+**Last Updated: May 2026**
+
 ## 🚨 IMPORTANT: Testnet vs Production
 
 **Testnet uses DIFFERENT API keys than production!**
@@ -52,7 +54,7 @@ BAET_MODE=live
 
 ✅ When you log into testnet, you automatically receive:
 - 1 BTC
-- 1 ETH  
+- 1 ETH
 - 1 BNB
 - 1,000 USDT
 - And other demo assets

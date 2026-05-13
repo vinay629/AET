@@ -1,5 +1,7 @@
 # CI/CD Implementation Quick Start Guide
 
+**Last Updated: May 2026**
+
 This guide helps you set up the CI/CD pipeline for BAET quickly.
 
 ## Prerequisites
@@ -370,5 +372,5 @@ git branch -D feature/name && git push origin --delete feature/name
 
 ---
 
-**Last Updated**: May 13, 2026  
+**Last Updated**: May 13, 2026
 **Version**: 1.0

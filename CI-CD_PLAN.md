@@ -33,9 +33,10 @@ This document outlines the Continuous Integration and Continuous Deployment (CI/
 ## 2. Code Quality & Linting (Pre-Push)
 
 ### 2.1 Tools
-- **Ruff**: Fast Python linter and formatter
+- **Ruff**: Fast Python linter and formatter (replaces Black, isort, flake8)
 - **Type Checking**: MyPy for static type analysis
-- **Code Formatting**: Black (via Ruff) for consistent formatting
+- **Security**: Bandit for security vulnerability scanning
+- **Pre-commit**: Local enforcement of all quality checks before commit
 
 ### 2.2 Workflow
 
@@ -100,6 +101,7 @@ repos:
 
 **Location**: `tests/test_*.py`
 **Command**: `uv run pytest tests/ -v --cov=src/baet`
+**Current**: 203 tests passing (as of May 2026)
 
 #### Integration Tests (Moderate - 5-15 min)
 - Data pipeline integration
@@ -640,7 +642,7 @@ git push origin v0.2.0
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: May 13, 2026  
-**Owner**: BAET Team  
+**Document Version**: 1.0
+**Last Updated**: May 13, 2026
+**Owner**: BAET Team
 **Status**: Draft - Ready for Implementation

@@ -16,7 +16,7 @@ Welcome! This guide helps you contribute to BAET (Binance Adaptive Ensemble Trad
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/vinay629/AET.git
+git clone <repository-url>
 cd AET
 ```
 

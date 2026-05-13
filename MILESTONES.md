@@ -69,6 +69,7 @@ Track delivery by validated checkpoints, not by code volume.
 - `M4.4` implemented
 - `M5.1a` implemented
 - `M5.1b` implemented
+- `M5.2` pending
 
 ## Verification Notes
 - Stage 0 remains green under current checks

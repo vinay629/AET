@@ -1,14 +1,9 @@
 # Dashboard Control Panel Implementation Plan
 
+**Status: ✅ COMPLETED (M5.1a)**
+
 ## Objective
 Add interactive control panel to the Streamlit dashboard for managing paper trading operations.
-
-## Current State
-- ✅ M4.3b Dashboard created (read-only monitoring)
-- ✅ Tabs: Overview, Positions, Trades, Performance, Logs
-- ❌ No way to START/STOP paper trading from dashboard
-- ❌ No way to configure parameters from GUI
-- ❌ No emergency stop button
 
 ## Proposed Control Panel Features
 
@@ -19,32 +14,32 @@ Add to Overview tab or new "Controls" tab:
 def render_control_panel():
     """Render control panel for paper trading."""
     st.sidebar.title("🎮 Control Panel")
-    
+
     # Status indicator
     status = check_paper_trading_status()
     if status["running"]:
         st.sidebar.success("● Running")
     else:
         st.sidebar.error("● Stopped")
-    
+
     # Start/Stop buttons
     col1, col2 = st.sidebar.columns(2)
-    
+
     with col1:
         if st.button("▶️ Start", disabled=status["running"]):
             start_paper_trading()
             st.rerun()
-    
+
     with col2:
         if st.button("⏸️ Stop", disabled=not status["running"]):
             stop_paper_trading()
             st.rerun()
-    
+
     # Emergency stop
     if st.sidebar.button("🚨 EMERGENCY STOP", type="primary"):
         emergency_stop()
         st.rerun()
-    
+
     # Configuration
     with st.sidebar.expander("⚙️ Settings"):
         initial_balance = st.number_input(
@@ -58,7 +53,7 @@ def render_control_panel():
             max_value=300,
             value=60
         )
-        
+
         if st.button("💾 Save Config"):
             update_config({
                 "paper.initial_balance": initial_balance,
@@ -136,7 +131,7 @@ def emergency_stop():
         try:
             proc = psutil.Process(status["pid"])
             proc.kill()  # Force kill
-            
+
             # Log emergency stop
             from baet.paper.logging import PaperTradingLogger
             logger = PaperTradingLogger(log_dir="logs/paper")
@@ -144,7 +139,7 @@ def emergency_stop():
                 "action": "force_kill",
                 "pid": status["pid"],
             })
-            
+
             st.warning("🚨 EMERGENCY STOP ACTIVATED!")
         except Exception as e:
             st.error(f"Emergency stop failed: {e}")
@@ -155,12 +150,12 @@ def update_config(updates: dict):
     try:
         from baet.config.loader import CONFIG_DIR
         import yaml
-        
+
         # Load current config
         config_file = CONFIG_DIR / "paper.yaml"
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f) or {}
-        
+
         # Apply updates
         for key, value in updates.items():
             parts = key.split('.')
@@ -168,11 +163,11 @@ def update_config(updates: dict):
             for part in parts[:-1]:
                 current = current.setdefault(part, {})
             current[parts[-1]] = value
-        
+
         # Save
         with open(config_file, 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
-            
+
     except Exception as e:
         st.error(f"Failed to update config: {e}")
 
@@ -227,11 +222,11 @@ def main():
         stop_paper_trading,
         emergency_stop,
     )
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["start", "stop", "status", "emergency-stop"])
     args = parser.parse_args()
-    
+
     if args.action == "start":
         start_paper_trading()
     elif args.action == "stop":

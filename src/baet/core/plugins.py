@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -12,6 +12,7 @@ import pandas as pd
 @dataclass
 class PluginMetadata:
     """Metadata for a scoring plugin."""
+
     name: str
     version: str
     description: str
@@ -28,7 +29,7 @@ class ScoringPlugin(ABC):
 
     metadata: PluginMetadata
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize the plugin with an optional configuration.
 
@@ -37,7 +38,7 @@ class ScoringPlugin(ABC):
         """
         self.config = config or {}
         self.weight = 1.0  # Initial weight in the ensemble, used for scoring aggregation
-        self.performance_history: list[float] = [] # Stores PnL of trades influenced by this plugin
+        self.performance_history: list[float] = []  # Stores PnL of trades influenced by this plugin
 
     @abstractmethod
     def calculate_score(self, data: pd.DataFrame) -> float:
@@ -53,7 +54,7 @@ class ScoringPlugin(ABC):
         pass
 
     @abstractmethod
-    def learn(self, trade_outcome: Dict[str, Any]) -> None:
+    def learn(self, trade_outcome: dict[str, Any]) -> None:
         """
         Learn from a trade outcome.
 
@@ -62,7 +63,7 @@ class ScoringPlugin(ABC):
         """
         pass
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Return the current status/health of the plugin.
 
@@ -72,5 +73,7 @@ class ScoringPlugin(ABC):
         return {
             "name": self.metadata.name,
             "weight": self.weight,
-            "avg_performance": sum(self.performance_history) / len(self.performance_history) if self.performance_history else 0.0
+            "avg_performance": sum(self.performance_history) / len(self.performance_history)
+            if self.performance_history
+            else 0.0,
         }

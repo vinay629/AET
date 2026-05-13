@@ -3,6 +3,8 @@
 > **Based on official Binance Spot API Documentation**  
 > **Last Updated:** May 7, 2026 (Latest Commit: 18a5f24)  
 > **Source:** https://github.com/binance/binance-spot-api-docs
+>
+> **This is the current/recommended version.** For the older guide, see `BINANCE_API_GUIDE.md`.
 
 ---
 

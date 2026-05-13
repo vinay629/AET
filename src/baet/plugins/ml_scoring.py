@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
-import pandas as pd
+from typing import Any
+
 import numpy as np
-from baet.core.plugins import ScoringPlugin, PluginMetadata
+import pandas as pd
+from baet.core.plugins import PluginMetadata, ScoringPlugin
 
 try:
     from sklearn.ensemble import RandomForestRegressor
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -25,10 +27,10 @@ class MLScoringPlugin(ScoringPlugin):
     metadata = PluginMetadata(
         name="ml_random_forest",
         version="1.0.0",
-        description="Predicts next period return using a Random Forest regressor"
+        description="Predicts next period return using a Random Forest regressor",
     )
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize the ML plugin and the underlying Random Forest model.
         """
@@ -49,9 +51,9 @@ class MLScoringPlugin(ScoringPlugin):
 
         # Placeholder for actual feature extraction and prediction
         # In a real scenario, we'd use the same features as MLRandomForestStrategy
-        return 0.1 # Placeholder
+        return 0.1  # Placeholder
 
-    def learn(self, trade_outcome: Dict[str, Any]) -> None:
+    def learn(self, trade_outcome: dict[str, Any]) -> None:
         """
         Update the plugin's ensemble weight based on prediction accuracy (trade PnL).
 

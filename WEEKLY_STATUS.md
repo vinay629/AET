@@ -1,8 +1,8 @@
 # Weekly Status
 
-## Current Week
-- completed: Stage 0 scaffold, config baseline, setup docs, Stage 1 research foundation, M1.4 comparison reporting, Stage 2.1 strategy foundation, full verification pass
+## Current Week (Week of May 13, 2026)
+- completed: Stages 0-5.1b fully implemented, 203 tests passing
 - in progress: none
-- blockers: none
-- next focus: Stage 2 baseline strategy pack and per-strategy evaluation workflow
-- risks: keep the new strategy contract stable while adding more concrete strategies
+- blockers: 3 failing tests need resolution (config live-mode validation, paper trading `pd` import)
+- next focus: fix failing tests, begin M5.2 tiny-capital live pilot
+- risks: ensure paper trading engine stability before live pilot; fix `pd` NameError in paper trading engine

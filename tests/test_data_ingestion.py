@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
 import pytest
-
 from baet.config.loader import load_settings
 from baet.data.binance import BinanceLiveStream, normalize_klines
 from baet.data.validation import summarize_data_quality, validate_candles
@@ -60,7 +59,7 @@ def test_validate_candles_rejects_duplicates() -> None:
 
 def test_data_quality_summary_detects_gap() -> None:
     frame = normalize_klines(_sample_payload(), "BTCUSDT", "1h", "binance_rest")
-    frame.loc[1, "open_time"] = datetime(2024, 5, 6, 3, tzinfo=timezone.utc)
+    frame.loc[1, "open_time"] = datetime(2024, 5, 6, 3, tzinfo=UTC)
     summary = summarize_data_quality(frame.sort_values("open_time"), "1h")
 
     assert summary["missing_intervals"] == 1

@@ -45,7 +45,7 @@ def config_dir(project_root: Path) -> Path:
 
 
 @pytest.fixture
-def temp_env() -> Generator[dict, None, None]:
+def temp_env() -> Generator[dict]:
     """Temporarily override environment variables for testing.
 
     Usage:
@@ -169,7 +169,5 @@ def pytest_terminal_summary(terminalreporter):
         total_skipped = len(stats.get("skipped", []))
 
         terminalreporter.write_line(
-            f"✓ Passed: {total_passed} | "
-            f"✗ Failed: {total_failed} | "
-            f"⊘ Skipped: {total_skipped}\n"
+            f"✓ Passed: {total_passed} | ✗ Failed: {total_failed} | ⊘ Skipped: {total_skipped}\n"
         )

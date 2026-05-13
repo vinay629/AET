@@ -15,7 +15,9 @@ class VolatilityRegimeDetector:
         description="Classifies periods as high/low volatility based on rolling std of returns.",
     )
 
-    def __init__(self, window: int = 20, high_threshold: float = 1.0, low_threshold: float = 0.3) -> None:
+    def __init__(
+        self, window: int = 20, high_threshold: float = 1.0, low_threshold: float = 0.3
+    ) -> None:
         self.window = window
         self.high_threshold = high_threshold
         self.low_threshold = low_threshold

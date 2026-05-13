@@ -1,8 +1,10 @@
 # Binance API Complete Guide
 
-> **Based on official Binance Spot API Documentation**  
-> **Last Updated:** May 2026 (API Docs v2.0)  
+> **Based on official Binance Spot API Documentation**
+> **Last Updated:** May 2026 (API Docs v2.0)
 > **Source:** https://github.com/binance/binance-spot-api-docs
+>
+> **Note:** For the latest API changes (May 7, 2026), see `BINANCE_API_GUIDE_V2.md`.
 
 ---
 
@@ -100,7 +102,7 @@ WS_API_URL = "wss://ws-api.binance.com:443/ws-api/v3"
 ```
 GET /api/v3/ping
 ```
-**Weight:** 1  
+**Weight:** 1
 **Parameters:** None
 
 **Response:**
@@ -112,7 +114,7 @@ GET /api/v3/ping
 ```
 GET /api/v3/time
 ```
-**Weight:** 1  
+**Weight:** 1
 **Parameters:** None
 
 **Response:**
@@ -386,7 +388,7 @@ GET /api/v3/klines
 ```
 GET /api/v3/uiKlines
 ```
-**Weight:** 2  
+**Weight:** 2
 Same parameters as klines, optimized for UI display.
 
 #### Current Average Price
@@ -498,7 +500,7 @@ GET /api/v3/ticker/bookTicker
 ```
 POST /api/v3/order
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +1
 
 **New Field (May 2026):** `expiryReason` - Returned for expired orders to explain why the order expired (e.g., price range execution rule).
@@ -576,7 +578,7 @@ POST /api/v3/order
 ```
 POST /api/v3/order/test
 ```
-**Weight:** 1-20  
+**Weight:** 1-20
 Validates order but doesn't submit to matching engine.
 
 #### Cancel Order
@@ -600,14 +602,14 @@ DELETE /api/v3/order
 ```
 DELETE /api/v3/openOrders
 ```
-**Weight:** 1  
+**Weight:** 1
 Cancels all open orders on a symbol.
 
 #### Cancel and Replace Order
 ```
 POST /api/v3/order/cancelReplace
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +1
 
 **Parameters:**
@@ -626,7 +628,7 @@ POST /api/v3/order/cancelReplace
 ```
 PUT /api/v3/order/amend/keepPriority
 ```
-**Weight:** 4  
+**Weight:** 4
 **Unfilled Order Count:** 0
 
 Reduces quantity of existing open order.
@@ -649,42 +651,42 @@ Reduces quantity of existing open order.
 ```
 POST /api/v3/order/oco
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +2
 
 #### New OCO Order
 ```
 POST /api/v3/orderList/oco
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +2
 
 #### New OTO Order
 ```
 POST /api/v3/orderList/oto
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +2
 
 #### New OTOCO Order
 ```
 POST /api/v3/orderList/otoco
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +3
 
 #### New OPO Order
 ```
 POST /api/v3/orderList/opo
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +2
 
 #### New OPOCO Order
 ```
 POST /api/v3/orderList/opoco
 ```
-**Weight:** 1  
+**Weight:** 1
 **Unfilled Order Count:** +3
 
 #### Cancel Order List
@@ -701,7 +703,7 @@ DELETE /api/v3/orderList
 ```
 POST /api/v3/sor/order
 ```
-**Weight:** 1  
+**Weight:** 1
 Routes order across multiple liquidity pools.
 
 **Parameters:**
@@ -1001,7 +1003,7 @@ timestamp: Current time in ms or μs
 
 **Server-side validation:**
 ```python
-if (timestamp < (serverTime + 1000) && 
+if (timestamp < (serverTime + 1000) &&
     (serverTime - timestamp) <= recvWindow) {
     // Process request
 }
@@ -1094,25 +1096,25 @@ import requests
 def make_request(url, params, max_retries=3):
     for attempt in range(max_retries):
         response = requests.get(url, params=params)
-        
+
         if response.status_code == 200:
             return response.json()
-        
+
         elif response.status_code == 429:
             retry_after = int(response.headers.get('Retry-After', 60))
             print(f"Rate limited. Waiting {retry_after} seconds...")
             time.sleep(retry_after)
-        
+
         elif response.status_code == 418:
             retry_after = int(response.headers.get('Retry-After', 300))
             print(f"IP banned. Waiting {retry_after} seconds...")
             time.sleep(retry_after)
-        
+
         else:
             error = response.json()
             print(f"Error {error['code']}: {error['msg']}")
             return None
-    
+
     return None
 ```
 
@@ -1285,18 +1287,18 @@ class RateLimiter:
         self.max_requests = max_requests
         self.period = period
         self.requests = deque()
-    
+
     def wait_if_needed(self):
         now = time.time()
         # Remove old requests
         while self.requests and self.requests[0] < now - self.period:
             self.requests.popleft()
-        
+
         if len(self.requests) >= self.max_requests:
             sleep_time = self.requests[0] - (now - self.period)
             if sleep_time > 0:
                 time.sleep(sleep_time)
-        
+
         self.requests.append(now)
 ```
 
@@ -1396,7 +1398,7 @@ class BinanceClient:
         self.session.headers.update({
             'X-MBX-APIKEY': self.api_key
         })
-    
+
     def _sign(self, params):
         query = urlencode(params)
         signature = hmac.new(
@@ -1406,7 +1408,7 @@ class BinanceClient:
         ).hexdigest()
         params['signature'] = signature
         return params
-    
+
     def get_klines(self, symbol, interval, limit=500, startTime=None, endTime=None):
         params = {
             'symbol': symbol,
@@ -1417,13 +1419,13 @@ class BinanceClient:
             params['startTime'] = startTime
         if endTime:
             params['endTime'] = endTime
-        
+
         response = self.session.get(
             f"{self.base_url}/api/v3/klines",
             params=params
         )
         return response.json()
-    
+
     def place_order(self, symbol, side, type, quantity, **kwargs):
         params = {
             'symbol': symbol,
@@ -1434,19 +1436,19 @@ class BinanceClient:
         }
         params.update(kwargs)
         params = self._sign(params)
-        
+
         response = self.session.post(
             f"{self.base_url}/api/v3/order",
             params=params
         )
         return response.json()
-    
+
     def get_account(self):
         params = {
             'timestamp': int(datetime.now().timestamp() * 1000)
         }
         params = self._sign(params)
-        
+
         response = self.session.get(
             f"{self.base_url}/api/v3/account",
             params=params
@@ -1485,33 +1487,33 @@ class BinanceWebSocket:
         self.streams = streams
         self.ws = None
         self.callbacks = {}
-    
+
     def on_message(self, ws, message):
         data = json.loads(message)
-        
+
         if 'stream' in data:
             stream_name = data['stream']
             payload = data['data']
         else:
             stream_name = None
             payload = data
-        
+
         if stream_name in self.callbacks:
             self.callbacks[stream_name](payload)
-    
+
     def subscribe(self, stream_name, callback):
         self.callbacks[stream_name] = callback
-    
+
     def start(self):
         streams_param = '/'.join(self.streams)
         url = f"wss://stream.binance.com:9443/stream?streams={streams_param}"
-        
+
         self.ws = websocket.WebSocketApp(
             url,
             on_message=self.on_message
         )
         self.ws.run_forever()
-    
+
     def run_in_thread(self):
         thread = threading.Thread(target=self.start)
         thread.daemon = True
@@ -1538,7 +1540,7 @@ class EnhancedBinanceProvider(BinanceHistoricalProvider):
     def __init__(self, settings):
         super().__init__(settings)
         self.session = requests.Session()
-    
+
     def get_exchange_info(self, symbol=None):
         """Fetch exchange info for symbol validation."""
         params = {}
@@ -1547,7 +1549,7 @@ class EnhancedBinanceProvider(BinanceHistoricalProvider):
         url = f"{self.settings.binance.rest_base_url}/api/v3/exchangeInfo"
         response = self.session.get(url, params=params)
         return response.json()
-    
+
     def get_account_info(self):
         """Fetch account information (requires API key)."""
         params = {'timestamp': int(time.time() * 1000)}

@@ -3,6 +3,15 @@
 ## TL;DR
 Build BAET in 5 stages: project foundation, research engine, intelligence layer, paper trading readiness, and limited live deployment. Do not move to the next stage until the current one has clear exit criteria and working evidence.
 
+## Current Status (May 2026)
+- **Stage 0** ✅ Complete — Project setup and operating baseline
+- **Stage 1** ✅ Complete — Research foundation
+- **Stage 2** ✅ Complete — Strategy base layer (7 strategies)
+- **Stage 3** ✅ Complete — Intelligence and portfolio decision layer
+- **Stage 4** ✅ Complete — Risk engine and paper trading
+- **Stage 5.1** ✅ Complete — Live readiness and execution validation
+- **Stage 5.2** ⏳ Pending — Tiny-capital live pilot
+
 ## 1. Roadmap Goal
 This roadmap turns the PRD into an execution sequence that reduces risk, avoids premature complexity, and keeps the first production scope realistic.
 

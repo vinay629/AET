@@ -1,5 +1,7 @@
 # Deployment Runbook
 
+**Last Updated: May 2026**
+
 This document provides step-by-step procedures for deploying BAET through different stages.
 
 ## Table of Contents
@@ -14,9 +16,9 @@ This document provides step-by-step procedures for deploying BAET through differ
 
 ## Development Deployment
 
-**Environment**: Local machine  
-**Branch**: `feature/*` or `dev`  
-**Trigger**: Manual  
+**Environment**: Local machine
+**Branch**: `feature/*` or `dev`
+**Trigger**: Manual
 **Risk**: Low (local only)
 
 ### Steps
@@ -30,13 +32,13 @@ This document provides step-by-step procedures for deploying BAET through differ
    ```bash
    # Install dependencies
    uv sync --all-extras
-   
+
    # Run pre-commit checks
    pre-commit run --all-files
-   
+
    # Run tests
    uv run pytest tests/ -v --cov=src/baet
-   
+
    # Test the application
    uv run python -m baet --mode dev --config config/dev.yaml
    ```
@@ -62,9 +64,9 @@ This document provides step-by-step procedures for deploying BAET through differ
 
 ## Test Deployment
 
-**Environment**: GitHub Actions (automated)  
-**Branch**: `dev`  
-**Trigger**: Automatic (push to dev branch)  
+**Environment**: GitHub Actions (automated)
+**Branch**: `dev`
+**Trigger**: Automatic (push to dev branch)
 **Risk**: Low (isolated tests, no real trading)
 
 ### Pre-deployment checklist
@@ -112,10 +114,10 @@ This document provides step-by-step procedures for deploying BAET through differ
 
 ## Paper Trading Deployment
 
-**Environment**: Paper trading server (staging)  
-**Branch**: `staging`  
-**Trigger**: Manual (with approval)  
-**Risk**: Medium (using testnet, not real capital)  
+**Environment**: Paper trading server (staging)
+**Branch**: `staging`
+**Trigger**: Manual (with approval)
+**Risk**: Medium (using testnet, not real capital)
 **Duration**: 5-7 days minimum
 
 ### Pre-deployment checklist
@@ -145,7 +147,7 @@ This document provides step-by-step procedures for deploying BAET through differ
    # On server/CI:
    git checkout staging
    git pull origin staging
-   
+
    # Run paper trading
    BAET_MODE=paper uv run python -m baet --config config/paper.yaml
    ```
@@ -154,10 +156,10 @@ This document provides step-by-step procedures for deploying BAET through differ
    ```bash
    # Check logs
    tail -f logs/paper/baet.log
-   
+
    # Run validation script
    uv run python scripts/validate_paper_trading.py
-   
+
    # Expected output:
    # ✅ Paper trading engine started
    # ✅ Connected to Binance testnet
@@ -170,7 +172,7 @@ This document provides step-by-step procedures for deploying BAET through differ
    - **Daily**: Review P&L
    - **Daily**: Verify orders executed as expected
    - **Weekly**: Run comparison report
-   
+
    ```bash
    # Generate paper trading report
    uv run python scripts/analyze_paper_logs.py --period week
@@ -193,10 +195,10 @@ This document provides step-by-step procedures for deploying BAET through differ
 
 ## Production (Live) Deployment
 
-**Environment**: Production server  
-**Branch**: `main` (tagged release)  
-**Trigger**: Manual (with multiple approvals)  
-**Risk**: High (using real capital)  
+**Environment**: Production server
+**Branch**: `main` (tagged release)
+**Trigger**: Manual (with multiple approvals)
+**Risk**: High (using real capital)
 **Duration**: Phased rollout (start with paper mode)
 
 ### Pre-deployment checklist
@@ -229,11 +231,11 @@ This document provides step-by-step procedures for deploying BAET through differ
    # - pyproject.toml
    # - src/baet/__init__.py
    # - Update CHANGELOG.md
-   
+
    git add .
    git commit -m "Bump version to v0.2.0"
    git push origin main
-   
+
    # Create and push tag
    git tag -a v0.2.0 -m "Release v0.2.0: Add X feature"
    git push origin v0.2.0
@@ -258,7 +260,7 @@ Before trading with real capital, run in paper mode on production:
    git checkout main
    git pull origin main
    git checkout v0.2.0  # Use release tag
-   
+
    # Start in paper mode
    BAET_MODE=paper BAET_INITIAL_CAPITAL=10000 \
      uv run python -m baet --config config/live.yaml
@@ -269,11 +271,11 @@ Before trading with real capital, run in paper mode on production:
    - Verify orders execute properly
    - Monitor for any anomalies
    - Check logs for errors
-   
+
    ```bash
    # Monitor logs
    tail -f logs/paper/baet.log
-   
+
    # Check strategy signals
    uv run python scripts/monitor_paper_trading.py
    ```
@@ -282,7 +284,7 @@ Before trading with real capital, run in paper mode on production:
    ```bash
    # Generate validation report
    uv run python scripts/validate_live_execution.py --mode paper
-   
+
    # Expected:
    # ✅ Orders placed and filled correctly
    # ✅ Risk limits enforced
@@ -311,7 +313,7 @@ Start with minimal capital to test live execution:
    - Review every trade manually
    - Verify P&L calculations
    - Test manual override daily
-   
+
    ```bash
    # Monitor script
    watch -n 300 'uv run python scripts/monitor_paper_trading.py'
@@ -350,10 +352,10 @@ After 2+ weeks of successful live trading:
    # Increase capital in 50% increments
    BAET_MODE=live BAET_INITIAL_CAPITAL=750 uv run python -m baet
    # Monitor for 1 week
-   
+
    BAET_MODE=live BAET_INITIAL_CAPITAL=1000 uv run python -m baet
    # Monitor for 1 week
-   
+
    # Continue until target capital reached
    ```
 
@@ -379,7 +381,7 @@ If critical issues occur:
    ```bash
    # Check logs
    grep ERROR logs/live/baet.log | head -20
-   
+
    # Check recent trades
    uv run python scripts/validate_live_execution.py --mode live
    ```
@@ -535,7 +537,7 @@ After any incident:
    ```
    Title: [INCIDENT] Brief description
    Labels: incident, production
-   
+
    Content:
    - What happened
    - When it happened
@@ -549,10 +551,10 @@ After any incident:
    ```bash
    # Review logs
    grep -i error logs/live/baet.log
-   
+
    # Check if tests would have caught it
    uv run pytest tests/ -v -k "related_test"
-   
+
    # Document findings
    ```
 
@@ -615,6 +617,6 @@ print('System Status:', 'OK' if result else 'FAILED')
 
 ---
 
-**Last Updated**: May 13, 2026  
-**Version**: 1.0  
+**Last Updated**: May 13, 2026
+**Version**: 1.0
 **Owner**: BAET Operations Team

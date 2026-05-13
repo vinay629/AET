@@ -27,19 +27,40 @@ Install and lock environment:
 uv sync --all-extras
 ```
 
+Install pre-commit hooks:
+```bash
+pip install pre-commit
+pre-commit install
+```
+
 Run tests:
 ```bash
 uv run pytest
 ```
 
+Run tests with coverage:
+```bash
+uv run pytest tests/ -v --cov=src/baet --cov-report=term-missing
+```
+
 Run lint:
 ```bash
-uv run ruff check .
+uv run ruff check src/ tests/ --fix
+```
+
+Run format:
+```bash
+uv run ruff format src/ tests/
 ```
 
 Run type checks:
 ```bash
-uv run mypy src
+uv run mypy src/ --strict
+```
+
+Run security scan:
+```bash
+uv run bandit -r src/
 ```
 
 ## Environment Rules

@@ -3,6 +3,22 @@
 ## TL;DR
 BAET is a local-first Python trading platform for Binance that ingests market data, runs multiple strategies, combines signals with risk-aware decision logic, and progresses from backtesting to paper trading to tightly controlled live trading. The first release should stay narrow: spot trading only, BTCUSDT and ETHUSDT only, 1h and 4h timeframes, strong validation, and human-controlled rollout.
 
+## Implementation Status (May 2026)
+All PRD scope items for the initial product are implemented except M5.2 (live pilot):
+- ✅ Binance market data ingestion
+- ✅ Historical and real-time data handling
+- ✅ Feature engineering pipeline
+- ✅ Backtesting engine with realistic assumptions
+- ✅ Paper trading mode
+- ✅ Multiple rule-based and ML-based strategies (7 baseline + 1 ML)
+- ✅ Ensemble decision engine (static + adaptive)
+- ✅ Regime detection
+- ✅ Centralized risk engine
+- ✅ Execution layer for Binance spot (testnet validated)
+- ✅ Monitoring, logging, and performance reporting
+- ✅ Streamlit dashboard
+- ⏳ M5.2 tiny-capital live pilot (pending stability observation sign-off)
+
 ## 1. Product Overview
 
 ### 1.1 Product Name
