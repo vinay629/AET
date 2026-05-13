@@ -108,9 +108,7 @@ if is_live_mode and load_live:
         if account_info and account_info.get("success"):
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric(
-                    "Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}"
-                )
+                st.metric("Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
             with col2:
                 st.metric("Account Type", account_info.get("account_type", "N/A"))
             with col3:

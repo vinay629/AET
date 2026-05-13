@@ -447,6 +447,7 @@ def test_engine_stops_on_max_errors():
             try:
                 engine._iteration()
             except Exception:
+                # Ignore errors in iterations during test setup
                 pass
 
         # After max_consecutive_errors, should stop (if stop_on_error=True)

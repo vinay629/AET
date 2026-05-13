@@ -62,6 +62,10 @@ def parse_log_file(log_file: Path, max_entries: int = 100) -> list[dict]:
     if not log_file.exists():
         return entries
 
+    # Security: Ensure path is not traversal
+    if ".." in str(log_file):
+        return entries
+
     with open(log_file, "r") as f:
         for line in f:
             line = line.strip()

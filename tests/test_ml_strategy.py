@@ -140,7 +140,7 @@ def test_ml_strategy_train_model():
 def test_ml_strategy_generate_signals():
     """Test signal generation with trained model."""
     try:
-        import sklearn
+        pass
     except ImportError:
         pytest.skip("scikit-learn not installed")
 
@@ -167,7 +167,7 @@ def test_ml_strategy_generate_signals():
 def test_ml_strategy_signal_format():
     """Test that generated signals match SIGNAL_COLUMNS format."""
     try:
-        import sklearn
+        pass
     except ImportError:
         pytest.skip("scikit-learn not installed")
 
@@ -202,7 +202,7 @@ def test_ml_strategy_metadata():
 def test_ml_strategy_end_to_end():
     """Test full end-to-end ML strategy workflow."""
     try:
-        import sklearn
+        pass
     except ImportError:
         pytest.skip("scikit-learn not installed")
 
@@ -225,7 +225,8 @@ def test_ml_strategy_end_to_end():
     # If model trained successfully, should have non-HOLD signals
     if strategy.is_trained:
         assert len(signals) > 0
-        # Should have some non-HOLD signals if threshold is reasonable
-        signals[signals["action"] != "HOLD"]
+        # Verify we can filter signals
+        non_hold = signals[signals["action"] != "HOLD"]
+        assert isinstance(non_hold, pd.DataFrame)
         # May or may not have non-HOLD signals depending on predictions
         assert "strategy_name" in signals.columns

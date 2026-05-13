@@ -55,6 +55,7 @@ def check_paper_trading_status() -> dict:
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
         except Exception:
+            # Ignore errors during logging to ensure the process is still killed
             pass
 
     return {"running": False, "pid": None, "uptime_seconds": None, "uptime_str": None}
