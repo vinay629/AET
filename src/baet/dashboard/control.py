@@ -169,6 +169,7 @@ def emergency_stop() -> tuple[bool, str]:
                 },
             )
         except Exception:
+            # Ignore errors during logging to ensure the process is still killed
             pass
 
         # Force kill
