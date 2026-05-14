@@ -19,7 +19,7 @@ class PerformanceTracker:
     """Tracks rolling performance metrics for strategies."""
 
     window: int = 20
-    metrics: dict[str, pd.DataFrame] = field(default_factory=dict)
+    metrics: Dict[str, pd.DataFrame] = field(default_factory=dict)
 
     def update(self, strategy_name: str, signals: pd.DataFrame, returns: pd.DataFrame):
         """Update performance tracking with new signals and realized returns."""
@@ -103,15 +103,15 @@ class AdaptiveEnsemble(StaticEnsemble):
         self,
         config: EnsembleConfig,
         performance_window: int = 20,
-        risk_engine: RiskEngine | None = None,
+        risk_engine: Optional["RiskEngine"] = None,
     ):
         super().__init__(config, risk_engine=risk_engine)  # Pass risk_engine to parent
         self.performance_tracker = PerformanceTracker(window=performance_window)
-        self.historical_weights: list[dict] = []  # Track weight history
+        self.historical_weights: List[Dict] = []  # Track weight history
 
     def update_weights(
-        self, strategy_signals: dict[str, pd.DataFrame], returns: pd.DataFrame
-    ) -> dict[str, float]:
+        self, strategy_signals: Dict[str, pd.DataFrame], returns: pd.DataFrame
+    ) -> Dict[str, float]:
         """
         Update strategy weights based on recent performance.
 
@@ -141,7 +141,7 @@ class AdaptiveEnsemble(StaticEnsemble):
         else:
             # Equal weights if no positive Sharpe
             n = len(strategy_signals)
-            weights = {name: 1.0 / n for name in strategy_signals}
+            weights = {name: 1.0 / n for name in strategy_signals.keys()}
 
         # Apply regime adjustments if applicable
         # (simplified: use the most recent regime from the first strategy's signals)
@@ -168,9 +168,9 @@ class AdaptiveEnsemble(StaticEnsemble):
 
     def combine_signals_adaptive(
         self,
-        strategy_signals: dict[str, pd.DataFrame],
+        strategy_signals: Dict[str, pd.DataFrame],
         returns: pd.DataFrame,
-        regime_data: pd.DataFrame | None = None,
+        regime_data: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
         """
         Combine signals with adaptive weights based on performance.

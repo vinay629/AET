@@ -34,7 +34,7 @@ class RiskEngine:
             "last_trade_time": None,
         }
         self.kill_switch_active = False
-        self.kill_switch_time: datetime | None = None
+        self.kill_switch_time: Optional[datetime] = None
 
     def evaluate_signal(
         self,

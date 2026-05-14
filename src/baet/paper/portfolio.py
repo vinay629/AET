@@ -137,7 +137,7 @@ class PaperPortfolio:
 
         return True
 
-    def get_total_value(self, current_prices: dict[str, float] | None = None) -> float:
+    def get_total_value(self, current_prices: Optional[dict[str, float]] = None) -> float:
         """
         Calculate total portfolio value.
 
@@ -161,7 +161,7 @@ class PaperPortfolio:
         """Get current positions (copy)."""
         return {symbol: pos.copy() for symbol, pos in self.positions.items()}
 
-    def update_equity_curve(self, current_prices: dict[str, float] | None = None) -> None:
+    def update_equity_curve(self, current_prices: Optional[dict[str, float]] = None) -> None:
         """
         Update equity curve with current portfolio state.
 

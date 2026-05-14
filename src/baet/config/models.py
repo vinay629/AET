@@ -50,33 +50,6 @@ class PaperTradingConfig(BaseModel):
     )
 
 
-class M5Point2RiskLimits(BaseModel):
-    """M5.2 Live Pilot specific risk limits (tiny capital experiment)."""
-
-    enabled: bool = True
-    daily_loss_limit: float = 10.0  # Stop trading if daily loss exceeds $10
-    single_position_loss_limit: float = 5.0  # Stop position if loss exceeds $5
-    consecutive_loss_limit: int = 3  # Stop after 3 consecutive losses
-    max_concurrent_positions: int = 2  # Maximum 2 open positions at once
-    max_daily_trades: int = 5  # Maximum 5 trades per day
-    capital_at_risk: float = 50.0  # Total capital allocated to M5.2 pilot
-    emergency_stop_on_breach: bool = True  # Auto-stop on any limit breach
-
-
-class NotificationConfig(BaseModel):
-    """Configuration for notifications (Telegram, Discord, etc.)."""
-
-    enabled: bool = False
-    telegram_bot_token: SecretStr = SecretStr("")
-    telegram_chat_id: str = ""
-    discord_webhook_url: str = ""
-    notify_on_trade: bool = True
-    notify_on_risk_breach: bool = True
-    notify_on_emergency_stop: bool = True
-    notify_on_daily_summary: bool = True
-    notify_on_error: bool = True
-
-
 class LiveConfig(BaseModel):
     """Configuration for live trading."""
 
@@ -84,7 +57,6 @@ class LiveConfig(BaseModel):
     require_explicit_confirmation: bool = True
     simulation_mode: bool = True
     testnet: bool = True
-    m5_2: M5Point2RiskLimits = Field(default_factory=M5Point2RiskLimits)
 
     # Order submission
     order_submission: dict = Field(

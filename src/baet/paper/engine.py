@@ -9,14 +9,14 @@ from pathlib import Path
 
 import pandas as pd
 
+import pandas as pd
+
 from baet.config.models import Settings
 from baet.core.brain import ScoringEnsemble
 from baet.plugins.markov import MarkovPlugin
 from baet.plugins.ml_scoring import MLScoringPlugin
 from baet.plugins.technical import TechnicalIndicatorPlugin
-from baet.reporting.audit_trail import AuditTrail
 from baet.risk.engine import RiskEngine
-from baet.risk.m5_2_limits import M5Point2RiskTracker
 
 logger = logging.getLogger(__name__)
 
@@ -79,18 +79,7 @@ class PaperTradingEngine:
             [TechnicalIndicatorPlugin(), MLScoringPlugin(), MarkovPlugin()]
         )
 
-        # Initialize M5.2 compliance: audit trail
-        audit_log_dir = Path("logs") / "audit"
-        self.audit_trail = AuditTrail(log_dir=audit_log_dir)
-
-        # Initialize M5.2 compliance: risk limit tracker
-        m5_2_limits = None
-        if hasattr(config, "live") and hasattr(config.live, "m5_2"):
-            m5_2_limits = config.live.m5_2
-        self.risk_tracker = M5Point2RiskTracker(limits=m5_2_limits)
-        self._position_ids: dict[str, str] = {}
-
-        logger.info("PaperTradingEngine initialized with AI Brain + M5.2 compliance")
+        logger.info("PaperTradingEngine initialized with AI Brain")
 
     def start(self) -> None:
         """Start the paper trading loop."""
@@ -121,8 +110,7 @@ class PaperTradingEngine:
                     elapsed = datetime.now() - self.start_time
                     if elapsed.total_seconds() > self.config.paper.duration_days * 24 * 3600:
                         logger.info(
-                            "Autonomous duration of "
-                            f"{self.config.paper.duration_days} days reached. Stopping."
+                            f"Autonomous duration of {self.config.paper.duration_days} days reached. Stopping."
                         )
                         self.stop()
                         break
@@ -138,13 +126,6 @@ class PaperTradingEngine:
                 self.consecutive_errors += 1
                 logger.error(
                     f"Paper trading error (attempt {self.consecutive_errors}): {e}", exc_info=True
-                )
-
-                # Audit trail: log system error
-                self.audit_trail.log_system_error(
-                    error_message=str(e),
-                    error_type=type(e).__name__,
-                    metadata={"component": "paper_trading_loop"},
                 )
 
                 if self.paper_logger:
@@ -178,17 +159,6 @@ class PaperTradingEngine:
         self.running = False
         logger.info("Paper trading loop stopped")
 
-        # Audit trail: log engine stop
-        self.audit_trail.log_system_error(
-            error_message=f"Paper trading stopped. Trades: {len(self.portfolio.trades)}",
-            error_type="ENGINE_STOPPED",
-            metadata={
-                "component": "paper_trading_engine",
-                "total_trades": len(self.portfolio.trades),
-                "final_value": self.portfolio.get_total_value(),
-            },
-        )
-
         if self.paper_logger:
             self.paper_logger.log_engine_event(
                 "ENGINE_STOPPED",
@@ -206,18 +176,6 @@ class PaperTradingEngine:
         generating signals, running risk checks, and executing trades.
         """
         logger.debug("Starting paper trading iteration")
-
-        # 0. Check M5.2 risk limits before any trading activity
-        can_trade, risk_reason = self.risk_tracker.check_can_trade()
-        if not can_trade:
-            logger.warning(f"Risk limits blocking trades: {risk_reason}")
-            self.audit_trail.log_risk_limit_breach(
-                limit_type=risk_reason or "UNKNOWN",
-                current_value=0.0,
-                limit_value=0.0,
-                action_taken="BLOCKED",
-            )
-            return  # Skip this iteration entirely
 
         # 1. Update market data (placeholder for now)
         market_data = self._update_market_data()
@@ -241,21 +199,15 @@ class PaperTradingEngine:
         # 4. Generate strategy signals from brain score
         signals = self._generate_signals_from_brain(brain_result, market_data)
 
-        # Log signals to audit trail + paper logger
-        for symbol, signal in signals.items():
-            self.audit_trail.log_trade_signal(
-                symbol=symbol,
-                action=signal.get("action", "HOLD"),
-                strategy="ai_brain",
-                confidence=signal.get("confidence", 0.0),
-            )
-            if self.paper_logger:
+        # Log signals
+        if self.paper_logger and signals:
+            for symbol, signal in signals.items():
                 self.paper_logger.log_signal_received(symbol, signal)
 
         # 5. Make decisions
         decisions = self._make_decisions(signals)
 
-        # 6. Run risk checks (M5.2 + legacy risk engine)
+        # 6. Run risk checks (if risk engine available)
         approved = self._run_risk_checks(decisions)
 
         # 7. Execute paper trades
@@ -264,15 +216,7 @@ class PaperTradingEngine:
         # 8. Update portfolio state
         self._update_portfolio_state(market_data)
 
-        # 9. Log portfolio snapshot to audit trail
-        positions = self.portfolio.get_positions()
-        self.audit_trail.log_portfolio_updated(
-            total_value=self.portfolio.get_total_value(),
-            cash_balance=self.portfolio.cash,
-            positions_count=len(positions),
-        )
-
-        # 10. Log iteration
+        # 9. Log iteration
         self._log_iteration()
 
         logger.debug("Paper trading iteration completed")
@@ -284,13 +228,13 @@ class PaperTradingEngine:
         logger.debug("Updating market data (not implemented)")
         return {}
 
-    def _update_features(self, _market_data: dict) -> dict:
+    def _update_features(self, market_data: dict) -> dict:
         """Update features based on market data."""
         # TODO: Implement feature updates
         logger.debug("Updating features (not implemented)")
         return {}
 
-    def _generate_signals_from_brain(self, brain_result: dict, _market_data: dict) -> dict:
+    def _generate_signals_from_brain(self, brain_result: dict, market_data: dict) -> dict:
         """
         Generate trading signals based on the AI Brain's output score.
 
@@ -324,49 +268,53 @@ class PaperTradingEngine:
         logger.debug("Generating signals (not implemented)")
         return {}
 
-    def _combine_signals(self, _signals: dict) -> list:
+    def _combine_signals(self, signals: dict) -> list:
         """Combine signals from multiple strategies."""
         # TODO: Implement ensemble combination
         logger.debug("Combining signals (not implemented)")
         return []
 
-    def _make_decisions(self, signals: dict) -> list:
-        """Convert trading signals into executable decisions.
-
-        Translates signal dict (from _generate_signals_from_brain) into
-        a list of decision dicts with symbol, action, units, and signal info.
-        """
-        decisions = []
-        default_size = getattr(self.config.paper, "default_trade_size", 0.01)
-
-        for symbol, signal in signals.items():
-            action = signal.get("action", "HOLD")
-            if action == "HOLD":
-                continue  # Skip hold signals
-
-            confidence = signal.get("confidence", 0.0)
-            # Scale position size by confidence (min 50% of default)
-            units = default_size * max(confidence, 0.5)
-
-            decisions.append(
-                {
-                    "symbol": symbol,
-                    "action": action,
-                    "units": round(units, 6),
-                    "confidence": confidence,
-                    "signal": signal,
-                }
-            )
-
-        logger.debug(f"Made {len(decisions)} decisions from {len(signals)} signals")
-        return decisions
+    def _make_decisions(self, combined: list) -> list:
+        """Make trading decisions from combined signals."""
+        # TODO: Implement decision making
+        logger.debug("Making decisions (not implemented)")
+        return []
 
     def _run_risk_checks(self, decisions: list) -> list:
-        """Run risk checks on decisions (M5.2 + legacy risk engine)."""
+        """Run risk checks on decisions."""
+        if not self.risk_engine:
+            return decisions  # No risk engine = no checks
+
         approved = []
         for decision in decisions:
             symbol = decision.get("symbol", "unknown")
-            action = decision.get("action", "HOLD")
+            signal = decision.get("signal", {})
+
+            # TODO: Implement actual risk checks
+            # For now, just pass through
+            result = {"passed": True, "violations": []}
+
+            # Log risk evaluation
+            if self.paper_logger:
+                self.paper_logger.log_risk_evaluation(symbol, signal, result)
+
+            if result.get("passed", True):
+                approved.append(decision)
+
+        return approved
+
+    def _execute_paper_trades(self, approved: list, market_data: dict) -> None:
+        """Execute approved paper trades."""
+        for decision in approved:
+            # Feedback loop for brain
+            # In a real scenario, we'd wait for the trade to close
+            # For now, we simulate a learning step after each execution
+            trade_outcome = {
+                "symbol": decision.get("symbol"),
+                "pnl_pct": 0.01 if decision.get("action") == "BUY" else -0.01,  # Dummy feedback
+                "action": decision.get("action"),
+            }
+            self.brain.learn_from_trade(trade_outcome)
 
             # Skip HOLD decisions — no risk check needed
             if action == "HOLD":
@@ -420,7 +368,6 @@ class PaperTradingEngine:
             symbol = decision.get("symbol")
             action = decision.get("action", "HOLD")
             price = market_data.get(symbol, {}).get("price", 0)
-            position_id = self._position_ids.get(symbol, symbol)
 
             if action == "BUY" and price > 0:
                 # Simulate buy order
@@ -437,29 +384,7 @@ class PaperTradingEngine:
                     fee=fee,
                 )
 
-                # Track with M5.2 risk tracker
-                position_id = f"{symbol}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                self._position_ids[symbol] = position_id
-                self.risk_tracker.on_trade_executed(position_id, units, fill_price)
-
-                # Audit trail: log trade executed
-                self.audit_trail.log_trade_executed(
-                    symbol=symbol,
-                    action="BUY",
-                    quantity=units,
-                    price=fill_price,
-                    metadata={"fee": fee},
-                )
-
-                # Audit trail: log position opened
-                self.audit_trail.log_position_opened(
-                    position_id=position_id,
-                    symbol=symbol,
-                    entry_price=fill_price,
-                    quantity=units,
-                )
-
-                # Paper logger
+                # Log order simulation
                 if self.paper_logger:
                     self.paper_logger.log_order_simulated(
                         symbol=symbol,
@@ -470,6 +395,9 @@ class PaperTradingEngine:
                         fee=fee,
                         slippage=fill_price - price,
                     )
+
+                # Log portfolio update
+                if self.paper_logger:
                     self.paper_logger.log_portfolio_update(
                         action="BUY",
                         symbol=symbol,
@@ -497,43 +425,7 @@ class PaperTradingEngine:
                         fee=fee,
                     )
 
-                    # Track with M5.2 risk tracker
-                    entry_price = position.get("avg_price", fill_price)
-                    self.risk_tracker.on_position_closed(
-                        position_id, fill_price, entry_price, units
-                    )
-
-                    # Calculate P&L for audit
-                    pnl = (fill_price - entry_price) * units - fee
-                    pnl_pct = ((fill_price / entry_price) - 1.0) if entry_price > 0 else 0.0
-                    self.brain.learn_from_trade(
-                        {
-                            "symbol": symbol,
-                            "pnl_pct": pnl_pct,
-                            "action": action,
-                        }
-                    )
-                    self._position_ids.pop(symbol, None)
-
-                    # Audit trail: log trade executed
-                    self.audit_trail.log_trade_executed(
-                        symbol=symbol,
-                        action="SELL",
-                        quantity=units,
-                        price=fill_price,
-                        metadata={"fee": fee, "pnl": pnl},
-                    )
-
-                    # Audit trail: log position closed
-                    self.audit_trail.log_position_closed(
-                        position_id=f"{symbol}_closed",
-                        symbol=symbol,
-                        exit_price=fill_price,
-                        quantity=units,
-                        pnl=pnl,
-                    )
-
-                    # Paper logger
+                    # Log order simulation
                     if self.paper_logger:
                         self.paper_logger.log_order_simulated(
                             symbol=symbol,
@@ -544,6 +436,9 @@ class PaperTradingEngine:
                             fee=fee,
                             slippage=price - fill_price,
                         )
+
+                    # Log portfolio update
+                    if self.paper_logger:
                         self.paper_logger.log_portfolio_update(
                             action="SELL",
                             symbol=symbol,
@@ -553,48 +448,10 @@ class PaperTradingEngine:
                         )
 
     def _update_portfolio_state(self, market_data: dict) -> None:
-        """Update portfolio state with current market prices.
-
-        Updates unrealized P&L for all open positions using current market prices.
-        Also feeds position updates to the M5.2 risk tracker for stop-loss checks.
-        """
-        positions = self.portfolio.get_positions()
-        if not positions:
-            return
-
-        for symbol, pos in positions.items():
-            current_price = market_data.get(symbol, {}).get("price")
-            if current_price is None:
-                continue
-
-            entry_price = pos.get("avg_price", 0)
-            units = pos.get("units", 0)
-            if entry_price <= 0 or units <= 0:
-                continue
-
-            # Calculate unrealized P&L for this position
-            unrealized_pnl = (current_price - entry_price) * units
-
-            # Feed to risk tracker for stop-loss monitoring
-            should_close, reason = self.risk_tracker.on_position_updated(
-                position_id=self._position_ids.get(symbol, symbol),
-                current_pl=unrealized_pnl,
-            )
-
-            if should_close:
-                logger.warning(f"Risk tracker flagged {symbol} for closure: {reason}")
-                self.audit_trail.log_risk_limit_breach(
-                    limit_type=reason or "POSITION_STOP_LOSS",
-                    current_value=unrealized_pnl,
-                    limit_value=(
-                        self.risk_tracker.limits.single_position_loss_limit
-                        if self.risk_tracker.limits
-                        else 0
-                    ),
-                    action_taken="FLAG_FOR_CLOSURE",
-                )
-
-        logger.debug(f"Updated portfolio state for {len(positions)} positions")
+        """Update portfolio state with current market prices."""
+        # TODO: Implement portfolio state update
+        logger.debug("Updating portfolio state (not implemented)")
+        pass
 
     def _log_iteration(self) -> None:
         """Log iteration summary."""

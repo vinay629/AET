@@ -55,89 +55,111 @@ class PortfolioBacktestEngine(BacktestEngine):
         equity_rows: list[dict[str, object]] = []
         trade_rows: list[dict[str, object]] = []
 
-        for timestamp, group in combined.groupby("close_time", sort=True):
-            for _, row in group.iterrows():
-                symbol_key = str(row["symbol_key"])
-                current_units = positions.get(symbol_key, 0.0)
-                signal = int(row["signal"])
-                price_col = "open" if self.config.execution_price == "next_open" else "close"
-                fill_price = float(row[price_col]) * (1.0 + self.config.slippage_rate)
+        # BOLT: Using itertuples and manual grouping for massive speedup over groupby().iterrows()
+        # Conversion to itertuples avoids the heavy overhead of creating Pandas Series for each row.
+        last_timestamp = None
+        current_group_rows = []
 
-                # NEW: Run risk checks if risk engine is available
-                if self.risk_engine:
-                    signal_dict = {
-                        "action": "BUY" if signal > 0 else ("SELL" if signal < 0 else "HOLD"),
-                        "target_position": signal,
-                        "confidence": 1.0,
-                        "size_hint": self.config.allocation_per_signal,
-                        "strategy_name": "backtest",
-                        "symbol": row["symbol"],
-                        "timestamp": timestamp,
-                    }
-                    _get_risk_engine()
-                    result = self.risk_engine.evaluate_signal(signal_dict)
-
-                    if not result.approved or result.adjusted_action == "HOLD":
-                        continue  # Skip this trade - risk rejected
-
-                    # Use adjusted values if provided
-                    if result.adjusted_size is not None:
-                        self.config.allocation_per_signal = result.adjusted_size
-
-                if signal > 0 and current_units == 0.0:
-                    target_cash = cash * self.config.allocation_per_signal
-                    if target_cash > 0.0:
-                        fee = target_cash * self.config.fee_rate
-                        net_cash = target_cash - fee
-                        units = net_cash / fill_price
-                        cash -= target_cash
-                        positions[symbol_key] = units
-                        trade_rows.append(
-                            {
-                                "timestamp": timestamp,
-                                "symbol": row["symbol"],
-                                "timeframe": row["timeframe"],
-                                "side": "BUY",
-                                "price": fill_price,
-                                "units": units,
-                                "fee": fee,
-                            }
-                        )
-                elif signal <= 0 and current_units > 0.0:
-                    gross = current_units * fill_price
-                    fee = gross * self.config.fee_rate
-                    cash += gross - fee
-                    positions[symbol_key] = 0.0
-                    trade_rows.append(
-                        {
-                            "timestamp": timestamp,
-                            "symbol": row["symbol"],
-                            "timeframe": row["timeframe"],
-                            "side": "SELL",
-                            "price": fill_price,
-                            "units": current_units,
-                            "fee": fee,
-                        }
-                    )
-
-            marked_value = 0.0
-            symbol_snapshots: dict[str, float] = {}
-            for _, row in group.iterrows():
-                symbol_key = str(row["symbol_key"])
-                units = positions.get(symbol_key, 0.0)
-                market_value = units * float(row["close"])
-                marked_value += market_value
-                symbol_snapshots[symbol_key] = market_value
+        # Helper to process equity snapshot at the end of a timestamp
+        def record_equity(ts, group_items):
+            m_value = 0.0
+            snapshots = {}
+            for item in group_items:
+                s_key = str(item.symbol_key)
+                u = positions.get(s_key, 0.0)
+                val = u * float(item.close)
+                m_value += val
+                snapshots[s_key] = val
 
             equity_rows.append(
                 {
-                    "timestamp": timestamp,
+                    "timestamp": ts,
                     "cash": cash,
-                    "market_value": marked_value,
-                    "equity": cash + marked_value,
-                    **symbol_snapshots,
+                    "market_value": m_value,
+                    "equity": cash + m_value,
+                    **snapshots,
                 }
             )
+
+        price_col_name = "open" if self.config.execution_price == "next_open" else "close"
+
+        for row in combined.itertuples(index=False):
+            timestamp = row.close_time
+
+            if last_timestamp is not None and timestamp != last_timestamp:
+                record_equity(last_timestamp, current_group_rows)
+                current_group_rows = []
+
+            symbol_key = str(row.symbol_key)
+            current_units = positions.get(symbol_key, 0.0)
+            signal = int(row.signal)
+            fill_price = float(getattr(row, price_col_name)) * (1.0 + self.config.slippage_rate)
+
+            # Risk check
+            if self.risk_engine:
+                signal_dict = {
+                    "action": "BUY" if signal > 0 else ("SELL" if signal < 0 else "HOLD"),
+                    "target_position": signal,
+                    "confidence": 1.0,
+                    "size_hint": self.config.allocation_per_signal,
+                    "strategy_name": "backtest",
+                    "symbol": row.symbol,
+                    "timestamp": timestamp,
+                }
+                # BOLT: Removed redundant _get_risk_engine() call in hot loop
+                result = self.risk_engine.evaluate_signal(signal_dict)
+
+                if not result.approved or result.adjusted_action == "HOLD":
+                    # Still track for equity snapshot even if trade is rejected
+                    current_group_rows.append(row)
+                    last_timestamp = timestamp
+                    continue
+
+                if result.adjusted_size is not None:
+                    self.config.allocation_per_signal = result.adjusted_size
+
+            # Execution logic
+            if signal > 0 and current_units == 0.0:
+                target_cash = cash * self.config.allocation_per_signal
+                if target_cash > 0.0:
+                    fee = target_cash * self.config.fee_rate
+                    net_cash = target_cash - fee
+                    units = net_cash / fill_price
+                    cash -= target_cash
+                    positions[symbol_key] = units
+                    trade_rows.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": row.symbol,
+                            "timeframe": row.timeframe,
+                            "side": "BUY",
+                            "price": fill_price,
+                            "units": units,
+                            "fee": fee,
+                        }
+                    )
+            elif signal <= 0 and current_units > 0.0:
+                gross = current_units * fill_price
+                fee = gross * self.config.fee_rate
+                cash += gross - fee
+                positions[symbol_key] = 0.0
+                trade_rows.append(
+                    {
+                        "timestamp": timestamp,
+                        "symbol": row.symbol,
+                        "timeframe": row.timeframe,
+                        "side": "SELL",
+                        "price": fill_price,
+                        "units": current_units,
+                        "fee": fee,
+                    }
+                )
+
+            current_group_rows.append(row)
+            last_timestamp = timestamp
+
+        if last_timestamp is not None:
+            record_equity(last_timestamp, current_group_rows)
 
         equity_curve = pd.DataFrame(equity_rows)
         trades = pd.DataFrame(trade_rows)

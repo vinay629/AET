@@ -55,6 +55,7 @@ def check_paper_trading_status() -> dict:
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
         except Exception:
+            # Ignore errors during logging to ensure the process is still killed
             pass
 
     return {"running": False, "pid": None, "uptime_seconds": None, "uptime_str": None}
@@ -78,7 +79,7 @@ def start_paper_trading(config_mode: str = "paper") -> tuple[bool, str]:
                 python_executable = str(pythonw_candidate)
 
         cmd = [
-            python_executable,
+            sys.executable if "sys" in globals() else "python",
             "-m",
             "baet.paper.engine",
             "--config",
@@ -87,9 +88,7 @@ def start_paper_trading(config_mode: str = "paper") -> tuple[bool, str]:
 
         # Start process
         if os.name == "nt":  # Windows
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            creationflags = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+            # Use CREATE_NEW_CONSOLE to run independently
             proc = subprocess.Popen(
                 cmd,
                 cwd=Path.cwd(),
@@ -178,7 +177,8 @@ def emergency_stop() -> tuple[bool, str]:
                     "source": "dashboard_control_panel",
                 },
             )
-        except:
+        except Exception:
+            # Ignore errors during logging to ensure the process is still killed
             pass
 
         # Force kill
@@ -231,7 +231,7 @@ def update_config(updates: dict) -> tuple[bool, str]:
         if not config_file.exists():
             return False, f"Config file not found: {config_file}"
 
-        with open(config_file) as f:
+        with open(config_file, "r") as f:
             config = yaml.safe_load(f) or {}
 
         # Apply updates (handle nested keys like "paper.initial_balance")

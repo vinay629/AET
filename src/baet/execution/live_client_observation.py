@@ -9,6 +9,9 @@ from typing import Any
 from binance.client import Client as BinanceClient
 from pydantic import SecretStr
 
+from binance.client import Client as BinanceClient
+from pydantic import SecretStr
+
 from baet.config.loader import load_settings
 from baet.config.models import Settings
 
@@ -96,7 +99,7 @@ class LiveClientObservation:
         except Exception as e:
             return {"success": False, "error": str(e), "timestamp": datetime.now().isoformat()}
 
-    def get_open_orders(self, symbol: str | None = None) -> dict[str, Any]:
+    def get_open_orders(self, symbol: Optional[str] = None) -> dict[str, Any]:
         """Get open orders.
 
         Args:
@@ -155,7 +158,6 @@ class LiveClientObservation:
             Validation result with account impact analysis
         """
         symbol = signal.get("symbol", "")
-        side = signal.get("side", "")
         quantity = signal.get("quantity", 0)
 
         # Get current price
@@ -175,7 +177,6 @@ class LiveClientObservation:
             }
 
         # Check if we have enough balance
-        quote_asset = symbol.replace("USDT", "")
         balance = account_info["balances"].get("USDT", {}).get("free", 0)
 
         validation = {
@@ -211,7 +212,7 @@ class LiveClientObservation:
                 ticker = self.client.get_symbol_ticker(symbol=f"{asset}USDT")
                 price = float(ticker["price"])
                 total += data["total"] * price
-            except:
+            except Exception:
                 # If can't get price, skip
                 pass
 

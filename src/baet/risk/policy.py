@@ -128,7 +128,9 @@ class RiskPolicy(BaseModel):
         """Check if a strategy is enabled (not blacklisted, in enabled list if set)."""
         if strategy_name in self.strategy.blacklisted_strategies:
             return False
-        return not (
+        if (
             self.strategy.enabled_strategies
             and strategy_name not in self.strategy.enabled_strategies
-        )
+        ):
+            return False
+        return True

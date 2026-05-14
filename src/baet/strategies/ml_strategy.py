@@ -44,7 +44,7 @@ class MLRandomForestStrategy(StrategyContract):
         lookback_window: int = 20,
         prediction_threshold: float = 0.6,
         n_estimators: int = 100,
-        max_depth: int | None = 5,
+        max_depth: Optional[int] = 5,
     ):
         """
         Initialize ML strategy.

@@ -91,10 +91,7 @@ def render_portfolio_allocation(state: dict[str, Any]) -> None:
     fig.update_traces(
         textposition="inside",
         textinfo="percent+label",
-        hovertemplate=(
-            "<b>%{label}</b><br>Value: $%{value:,.2f}<br>"
-            "Percentage: %{percent:.1%}<extra></extra>"
-        ),
+        hovertemplate="<b>%{label}</b><br>Value: $%{value:,.2f}<br>Percentage: %{percent:.1%}<extra></extra>",
     )
 
     fig.update_layout(
@@ -291,7 +288,7 @@ def render_performance_metrics(metrics: dict[str, Any]) -> None:
         st.metric(label="📊 Total Trades", value=f"{metrics.get('trade_count', 0)}")
 
 
-def render_equity_chart(df: pd.DataFrame, key: str | None = None) -> None:
+def render_equity_chart(df: pd.DataFrame, key: Optional[str] = None):
     """Render equity curve chart with enhanced styling.
 
     Args:
@@ -383,7 +380,7 @@ def render_drawdown_chart(df: pd.DataFrame, key: str | None = None) -> None:
         yaxis=dict(showgrid=True, gridwidth=1, gridcolor="#f0f0f0", tickformat=".1%"),
     )
 
-    st.plotly_chart(fig, use_container_width=True, key=key)
+    st.plotly_chart(fig, use_container_width=True, key="drawdown_chart")
 
 
 def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000) -> None:

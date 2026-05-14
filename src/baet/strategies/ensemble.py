@@ -32,7 +32,7 @@ class EnsembleConfig:
     regime_weights: dict[RegimeLabel, dict[str, float]] = field(default_factory=dict)
     default_weight: float = 1.0
 
-    def get_weight(self, strategy_name: str, regime: RegimeLabel | None = None) -> float:
+    def get_weight(self, strategy_name: str, regime: Optional[RegimeLabel] = None) -> float:
         """Get weight for a strategy, optionally adjusted by regime."""
         # Start with default or specific strategy weight
         base_weight = self.default_weight
@@ -53,12 +53,12 @@ class EnsembleConfig:
 class StaticEnsemble:
     """Static ensemble that combines multiple strategy signals into one decision stream."""
 
-    def __init__(self, config: EnsembleConfig, risk_engine: RiskEngine | None = None):
+    def __init__(self, config: EnsembleConfig, risk_engine: Optional["RiskEngine"] = None):
         self.config = config
         self.risk_engine = risk_engine  # NEW: Optional RiskEngine
 
     def combine_signals(
-        self, strategy_signals: dict[str, pd.DataFrame], regime_data: pd.DataFrame | None = None
+        self, strategy_signals: Dict[str, pd.DataFrame], regime_data: Optional[pd.DataFrame] = None
     ) -> pd.DataFrame:
         """
         Combine signals from multiple strategies into a single decision stream.

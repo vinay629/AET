@@ -155,9 +155,10 @@ class BinanceLiveStream:
         data = json.loads(message)
 
         # Handle serverShutdown event (New - May 2026)
-        if isinstance(data, dict) and data.get("e") == "serverShutdown":
-            if self._on_shutdown_callback:
-                self._on_shutdown_callback(data)
-            return {"event": "shutdown", "data": data}
+        if isinstance(data, dict):
+            if data.get("e") == "serverShutdown":
+                if self._on_shutdown_callback:
+                    self._on_shutdown_callback(data)
+                return {"event": "shutdown", "data": data}
 
         return data
