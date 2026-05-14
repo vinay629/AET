@@ -71,8 +71,14 @@ def start_paper_trading(config_mode: str = "paper") -> tuple[bool, str]:
     """
     try:
         # Build command
+        python_executable = sys.executable if "sys" in globals() else "python"
+        if os.name == "nt" and python_executable.lower().endswith("python.exe"):
+            pythonw_candidate = Path(python_executable).with_name("pythonw.exe")
+            if pythonw_candidate.exists():
+                python_executable = str(pythonw_candidate)
+
         cmd = [
-            sys.executable if "sys" in globals() else "python",
+            python_executable,
             "-m",
             "baet.paper.engine",
             "--config",
@@ -81,20 +87,25 @@ def start_paper_trading(config_mode: str = "paper") -> tuple[bool, str]:
 
         # Start process
         if os.name == "nt":  # Windows
-            # Use CREATE_NEW_CONSOLE to run independently
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            creationflags = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
             proc = subprocess.Popen(
                 cmd,
                 cwd=Path.cwd(),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                creationflags=subprocess.CREATE_NEW_CONSOLE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                creationflags=creationflags,
+                startupinfo=startupinfo,
             )
         else:  # Linux/Mac
             proc = subprocess.Popen(
                 cmd,
                 cwd=Path.cwd(),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
                 start_new_session=True,
             )
 
