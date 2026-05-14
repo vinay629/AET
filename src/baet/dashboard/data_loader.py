@@ -1,15 +1,13 @@
 """Data loading utilities for the BAET dashboard."""
 
 import json
-import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
-import streamlit as st
 
 # Thread pool for timeout support
 _executor = ThreadPoolExecutor(max_workers=1)
@@ -59,14 +57,9 @@ def parse_log_file(log_file: Path, max_entries: int = 100) -> list[dict[str, Any
     Returns:
         List of log entries as dictionaries
     """
-    entries: list[dict[str, Any]] = []
-    
-    if not log_file.exists():
-        return entries
+    entries = []
 
-    # Basic path sanitization for CodeQL: ensure we're only reading log files
-    # and not arbitrary system files via path injection.
-    if not str(log_file).endswith(".log"):
+    if not log_file.exists():
         return entries
 
     with open(log_file, "r") as f:
@@ -191,6 +184,11 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     return df
 
 
+from datetime import timedelta
+
+import streamlit as st
+
+
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
     """Load OHLCV data prioritizing local Parquet data, then Binance API.
@@ -229,27 +227,21 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
         limit = settings.binance.historical_limit
         end_time = datetime.now()
 
-        # Approximate start time to get enough candles for the limit
-        # Binance API uses the limit parameter, but we still need a start_time range
-        # that covers at least 'limit' candles.
-        minutes_per_tf = {
-            "1m": 1,
-            "3m": 3,
-            "5m": 5,
-            "15m": 15,
-            "30m": 30,
-            "1h": 60,
-            "2h": 120,
-            "4h": 240,
-            "6h": 360,
-            "8h": 480,
-            "12h": 720,
-            "1d": 1440,
-            "3d": 4320,
-            "1w": 10080,
-        }
-        m_tf = minutes_per_tf.get(timeframe, 60)
-        start_time = end_time - timedelta(minutes=m_tf * limit * 1.1)  # 10% buffer
+        # Approximate start time based on timeframe
+        if timeframe == "1h":
+            start_time = end_time - timedelta(hours=100)
+        elif timeframe == "4h":
+            start_time = end_time - timedelta(hours=400)
+        elif timeframe == "1m":
+            start_time = end_time - timedelta(minutes=100)
+        elif timeframe == "5m":
+            start_time = end_time - timedelta(minutes=500)
+        elif timeframe == "15m":
+            start_time = end_time - timedelta(minutes=1500)
+        elif timeframe == "1d":
+            start_time = end_time - timedelta(days=100)
+        else:
+            start_time = end_time - timedelta(hours=100)
 
         df = provider.fetch_klines(symbol, timeframe, start_time, end_time)
 
@@ -260,8 +252,19 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
             return df.sort_values("timestamp")
 
     except Exception as e:
-        print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance API: {e}")
-        return pd.DataFrame()
+        print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance: {e}")
+        # Fallback to local data if API fails
+        try:
+            from baet.data.storage import ParquetMarketDataStore
+
+            store = ParquetMarketDataStore(load_settings())
+            df = store.read_raw_candles(symbol, timeframe)
+            if not df.empty:
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                df = df.sort_values("timestamp")
+            return df
+        except:
+            return pd.DataFrame()
 
 
 def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
@@ -463,32 +466,34 @@ def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
     """
     # Try to use streamlit session state for simple caching
     try:
+        import streamlit as st
+
         # Check if we have a cached result in session state
         cache_key = "_live_account_cache"
         cache_time_key = "_live_account_cache_time"
 
         if cache_key in st.session_state:
+            import time
+
             current_time = time.time()
             cache_time = st.session_state.get(cache_time_key, 0)
 
             # Use cached result if less than 30 seconds old
             if current_time - cache_time < 30:
-                result = st.session_state[cache_key]
-                if isinstance(result, dict):
-                    return result
-        
+                return st.session_state[cache_key]
+
         # Fetch with timeout
         future = _executor.submit(load_live_account_info)
         try:
-            fetch_result = future.result(timeout=timeout_seconds)
-            
+            result = future.result(timeout=timeout_seconds)
+
             # Cache result
-            st.session_state[cache_key] = fetch_result
+            import time
+
+            st.session_state[cache_key] = result
             st.session_state[cache_time_key] = time.time()
-            
-            if isinstance(fetch_result, dict):
-                return fetch_result
-            return {"success": False, "error": "Invalid result type"}
+
+            return result
         except FuturesTimeoutError:
             return {
                 "success": False,
@@ -496,7 +501,7 @@ def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
                 "timestamp": datetime.now().isoformat(),
             }
     except Exception:
-        # Fallback: no session state available or error, just fetch with timeout
+        # Fallback: no session state available, just fetch with timeout
         future = _executor.submit(load_live_account_info)
         try:
             fallback_result = future.result(timeout=timeout_seconds)

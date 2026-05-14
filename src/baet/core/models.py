@@ -33,6 +33,13 @@ class StrategyMetadata:
     description: str
 
 
+class RegimeLabel(str, Enum):
+    """Market regime classification labels."""
+
+    TRENDING = "trending"
+    RANGING = "ranging"
+    HIGH_VOLATILITY = "high_volatility"
+    LOW_VOLATILITY = "low_volatility"
 
 
 @dataclass(frozen=True)

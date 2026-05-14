@@ -6,10 +6,6 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
-
-if TYPE_CHECKING:
-    from baet.config.models import Settings
 
 # Add src to path so we can import baet
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -145,7 +141,6 @@ st.markdown(
 )
 
 # Load data
-from baet.config.loader import load_settings
 from baet.dashboard.components import (
     render_brain_transparency,
     render_daily_summary,
@@ -159,7 +154,6 @@ from baet.dashboard.components import (
 )
 from baet.dashboard.data_loader import (
     calculate_daily_summary,
-    find_latest_log_file,
     load_equity_curve,
     load_latest_brain_scoring,
     load_latest_state,
@@ -167,24 +161,6 @@ from baet.dashboard.data_loader import (
     load_recent_signals,
     load_recent_trades,
 )
-
-# Load settings
-settings: Optional["Settings"] = None
-try:
-    settings = load_settings()
-except Exception:
-    settings = None
-
-# Symbols and Timeframes from config
-if settings is not None:
-    AVAILABLE_SYMBOLS = settings.market.symbols or ["BTCUSDT", "ETHUSDT"]
-    AVAILABLE_TIMEFRAMES = settings.market.timeframes or ["1h", "4h"]
-    if not settings.market.symbols or not settings.market.timeframes:
-        st.warning("Market symbols or timeframes missing from config. Using defaults.")
-else:
-    AVAILABLE_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
-    AVAILABLE_TIMEFRAMES = ["1h", "4h"]
-    st.error("Could not load settings. Using default symbols and timeframes.")
 
 # Initialize Session State
 if "last_refresh" not in st.session_state:
@@ -200,13 +176,11 @@ portfolio_state = load_latest_state(log_dir)
 daily_summary = calculate_daily_summary(log_dir)
 brain_scoring = load_latest_brain_scoring(log_dir)
 
-def render_top_strip() -> None:
-    equity = portfolio_state.get('total_value', 0)
-    pnl = daily_summary.get('daily_pnl', 0)
-    pnl_color = "bullish" if pnl >= 0 else "bearish"
 
-    # Mode from config
-    mode_str = str(settings.app.mode).upper()
+def render_top_strip():
+    equity = portfolio_state.get("total_value", 0)
+    pnl = daily_summary.get("daily_pnl", 0)
+    pnl_color = "bullish" if pnl >= 0 else "bearish"
 
     signal = "NEUTRAL"
     score = brain_scoring.get("score", 0)
@@ -218,38 +192,8 @@ def render_top_strip() -> None:
         "bullish" if signal == "BULLISH" else "bearish" if signal == "BEARISH" else "warning"
     )
 
-    # Derive Status and check for BLOCKED state (Emergency Stop)
-    latest_log = find_latest_log_file(log_dir)
-    status = "IDLE"
-    status_color = "muted"
-    last_update_str = "N/A"
-
-    risk_status = "STABLE"
-    risk_color = "bullish"
-    if daily_summary.get('failed_risk', 0) > 0:
-        risk_status = "WARNING"
-        risk_color = "bearish"
-
-    if latest_log:
-        mtime = latest_log.stat().st_mtime
-        last_update = datetime.fromtimestamp(mtime)
-        last_update_str = last_update.strftime('%H:%M:%S')
-        if (time.time() - mtime) < 300: # 5 minutes
-            status = "ACTIVE"
-            status_color = "bullish"
-        else:
-            status = "STALE"
-            status_color = "warning"
-
-        from baet.dashboard.data_loader import parse_log_file
-        entries = parse_log_file(latest_log, max_entries=20)
-        for entry in reversed(entries):
-            if entry.get("type") == "ENGINE_STOPPED":
-                risk_status = "BLOCKED"
-                risk_color = "bearish"
-                break
-
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div class="top-strip">
         <div style="display: flex;">
             <div class="status-item"><span class="status-label">MODE:</span><span class="status-value info">PAPER</span></div>
@@ -260,8 +204,8 @@ def render_top_strip() -> None:
         </div>
         <div style="display: flex;">
             <div class="status-item"><span class="status-label">AI SIGNAL:</span><span class="status-value {signal_color}">{signal}</span></div>
-            <div class="status-item"><span class="status-label">RISK:</span><span class="status-value {risk_color}">{risk_status}</span></div>
-            <div class="status-item"><span class="status-label">LAST UPDATE:</span><span class="status-value">{last_update_str}</span></div>
+            <div class="status-item"><span class="status-label">RISK:</span><span class="status-value bullish">STABLE</span></div>
+            <div class="status-item"><span class="status-label">LAST UPDATE:</span><span class="status-value">{datetime.now().strftime("%H:%M:%S")}</span></div>
         </div>
     </div>
     """,
@@ -279,10 +223,12 @@ with col_main:
     st.markdown('<div class="terminal-panel">', unsafe_allow_html=True)
     c1, c2, c3 = st.columns([2, 1, 4])
     with c1:
-        st.session_state.symbol = st.selectbox("Symbol", AVAILABLE_SYMBOLS, label_visibility="collapsed")
+        st.session_state.symbol = st.selectbox(
+            "Symbol", ["BTCUSDT", "ETHUSDT"], label_visibility="collapsed"
+        )
     with c2:
-        st.session_state.timeframe = st.selectbox("TF", AVAILABLE_TIMEFRAMES, label_visibility="collapsed")
-    
+        st.session_state.timeframe = st.selectbox("TF", ["1h", "4h"], label_visibility="collapsed")
+
     ohlcv_df = load_ohlcv_data(st.session_state.symbol, st.session_state.timeframe)
     if not ohlcv_df.empty:
         import plotly.graph_objects as go
