@@ -32,5 +32,4 @@ class RegimeDetectorABC(ABC):
     """Abstract base class for regime detectors."""
 
     @abstractmethod
-    def detect(self, frame: pd.DataFrame) -> pd.DataFrame:
-        ...
+    def detect(self, frame: pd.DataFrame) -> pd.DataFrame: ...

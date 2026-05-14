@@ -1,8 +1,9 @@
 """Minimal Streamlit app for BAET dashboard - for testing."""
 
-import streamlit as st
 import time
 from datetime import datetime
+
+import streamlit as st
 
 # Page config
 st.set_page_config(
@@ -18,26 +19,26 @@ st.caption("Testing data streaming fix")
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Configuration")
-    
+
     # Auto-refresh settings
     auto_refresh = st.checkbox("Auto Refresh", value=True)
     refresh_interval = st.slider("Refresh (seconds)", 10, 300, 30, disabled=not auto_refresh)
-    
+
     if st.button("🔄 Refresh Now", use_container_width=True):
         st.session_state.last_refresh = 0
         st.rerun()
-    
+
     # Non-blocking auto-refresh
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
-    
+
     current_time = time.time()
     time_since_refresh = current_time - st.session_state.last_refresh
-    
+
     if auto_refresh and time_since_refresh > refresh_interval:
         st.session_state.last_refresh = current_time
         st.rerun()
-    
+
     st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
 
 # Main content

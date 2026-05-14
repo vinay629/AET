@@ -28,8 +28,7 @@ def discover_strategies() -> list[StrategyContract]:
             strategy = strategy_class()
             if not isinstance(strategy, StrategyContract):
                 raise TypeError(
-                    f"Discovered strategy {module_info.name} "
-                    "does not implement StrategyContract"
+                    f"Discovered strategy {module_info.name} does not implement StrategyContract"
                 )
             if strategy.metadata.name in seen_names:
                 raise ValueError(f"Duplicate strategy name discovered: {strategy.metadata.name}")

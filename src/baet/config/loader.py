@@ -34,15 +34,20 @@ def _read_yaml(path: Path) -> dict[str, Any]:
 
 def _load_secret_settings() -> SecretsConfig:
     """Load secrets from environment variables."""
+
     def _get_secret(env_var: str) -> SecretStr:
         value = os.getenv(env_var, "")
         return SecretStr(value) if value else SecretStr("")
-    
+
     return SecretsConfig(
         binance_api_key=_get_secret("BAET_BINANCE_API_KEY"),
         binance_api_secret=_get_secret("BAET_BINANCE_API_SECRET"),
-        live_binance_api_key=_get_secret("BAET_LIVE_BINANCE_API_KEY") if os.getenv("BAET_LIVE_BINANCE_API_KEY") else _get_secret("BAET_BINANCE_API_KEY"),
-        live_binance_api_secret=_get_secret("BAET_LIVE_BINANCE_API_SECRET") if os.getenv("BAET_LIVE_BINANCE_API_SECRET") else _get_secret("BAET_BINANCE_API_SECRET"),
+        live_binance_api_key=_get_secret("BAET_LIVE_BINANCE_API_KEY")
+        if os.getenv("BAET_LIVE_BINANCE_API_KEY")
+        else _get_secret("BAET_BINANCE_API_KEY"),
+        live_binance_api_secret=_get_secret("BAET_LIVE_BINANCE_API_SECRET")
+        if os.getenv("BAET_LIVE_BINANCE_API_SECRET")
+        else _get_secret("BAET_BINANCE_API_SECRET"),
     )
 
 
@@ -50,22 +55,23 @@ def load_settings(mode: str | None = None, env_file: Path | None = None) -> Sett
     """Load and validate configuration for the specified mode."""
     # Determine which env file to load
     env_file_to_load = env_file or ROOT_DIR / ".env"
-    
+
     # Only capture live credentials from environment if we're loading the default .env file
     # This prevents environment variables from interfering with tests that use .env.example
     import os
-    capture_env_vars = (env_file is None)  # Only capture if no specific env_file is provided
-    
+
+    capture_env_vars = env_file is None  # Only capture if no specific env_file is provided
+
     if capture_env_vars:
         env_live_key = os.getenv("BAET_LIVE_BINANCE_API_KEY", "")
         env_live_secret = os.getenv("BAET_LIVE_BINANCE_SECRET", "")
     else:
         env_live_key = ""
         env_live_secret = ""
-    
+
     # Load .env file (with override=False so existing env vars are not overwritten)
-    load_dotenv(dotenv_path=env_file_to_load, override=False)    
-    
+    load_dotenv(dotenv_path=env_file_to_load, override=False)
+
     base_config = _read_yaml(CONFIG_DIR / "base.yaml")
     selected_mode = mode or os.getenv("BAET_MODE") or base_config.get("app", {}).get("mode", "dev")
     mode_config = _read_yaml(CONFIG_DIR / f"{selected_mode}.yaml")
@@ -77,7 +83,7 @@ def load_settings(mode: str | None = None, env_file: Path | None = None) -> Sett
 
     merged_config.setdefault("app", {})
     merged_config["app"]["mode"] = selected_mode
-    
+
     # Load secrets - use captured env vars if available
     secrets = _load_secret_settings()
     # Override with captured environment variables if they exist
@@ -85,7 +91,7 @@ def load_settings(mode: str | None = None, env_file: Path | None = None) -> Sett
         secrets.live_binance_api_key = env_live_key
     if env_live_secret:
         secrets.live_binance_api_secret = env_live_secret
-    
+
     merged_config["secrets"] = secrets.model_dump()
-    
+
     return Settings.model_validate(merged_config)

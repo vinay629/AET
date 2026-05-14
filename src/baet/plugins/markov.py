@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
-import pandas as pd
+
 import numpy as np
-from baet.core.plugins import ScoringPlugin, PluginMetadata
+import pandas as pd
+
+from baet.core.plugins import PluginMetadata, ScoringPlugin
 
 
 class MarkovPlugin(ScoringPlugin):
@@ -20,7 +22,7 @@ class MarkovPlugin(ScoringPlugin):
     metadata = PluginMetadata(
         name="markov_chain",
         version="1.0.0",
-        description="Predicts market regime transitions using a Markov model"
+        description="Predicts market regime transitions using a Markov model",
     )
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -29,11 +31,7 @@ class MarkovPlugin(ScoringPlugin):
         """
         super().__init__(config)
         # 3 states: Down, Flat, Up
-        self.transition_matrix = np.array([
-            [0.4, 0.4, 0.2],
-            [0.3, 0.4, 0.3],
-            [0.2, 0.4, 0.4]
-        ])
+        self.transition_matrix = np.array([[0.4, 0.4, 0.2], [0.3, 0.4, 0.3], [0.2, 0.4, 0.4]])
 
     def calculate_score(self, data: pd.DataFrame) -> float:
         """
@@ -45,14 +43,14 @@ class MarkovPlugin(ScoringPlugin):
             return 0.0
 
         # Determine current state based on last return
-        last_return = data['close'].pct_change().iloc[-1]
+        last_return = data["close"].pct_change().iloc[-1]
 
         if last_return < -0.001:
-            state = 0 # Down
+            state = 0  # Down
         elif last_return > 0.001:
-            state = 2 # Up
+            state = 2  # Up
         else:
-            state = 1 # Flat
+            state = 1  # Flat
 
         # Predict next state probabilities
         probs = self.transition_matrix[state]
