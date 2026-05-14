@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Mapping
 
 import pandas as pd
 
@@ -32,8 +32,9 @@ class StrategyMetadata:
     description: str
 
 
-class RegimeLabel(str, Enum):
+class RegimeLabel(StrEnum):
     """Market regime classification labels."""
+
     TRENDING = "trending"
     RANGING = "ranging"
     HIGH_VOLATILITY = "high_volatility"
@@ -43,6 +44,7 @@ class RegimeLabel(str, Enum):
 @dataclass(frozen=True)
 class RegimeMetadata:
     """Metadata for a regime detector."""
+
     name: str
     category: str
     version: str

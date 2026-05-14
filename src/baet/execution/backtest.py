@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pandas as pd
 
 from baet.config.models import BacktestConfig
@@ -7,15 +9,19 @@ from baet.core.models import BacktestArtifacts
 from baet.data.interfaces import BacktestEngine
 from baet.strategies.adapters import adapt_order_intent_to_backtest_signals
 
+if TYPE_CHECKING:
+    from baet.risk.engine import RiskEngine
+
 
 # Lazy import to avoid circular imports
-def _get_risk_engine():
+def _get_risk_engine() -> type[RiskEngine]:
     from baet.risk.engine import RiskEngine
+
     return RiskEngine
 
 
 class PortfolioBacktestEngine(BacktestEngine):
-    def __init__(self, config: BacktestConfig, risk_engine: 'RiskEngine | None' = None) -> None:
+    def __init__(self, config: BacktestConfig, risk_engine: RiskEngine | None = None) -> None:
         self.config = config
         self.risk_engine = risk_engine  # NEW: Optional RiskEngine
 
@@ -41,9 +47,7 @@ class PortfolioBacktestEngine(BacktestEngine):
             prepared.append(merged)
 
         combined = (
-            pd.concat(prepared, ignore_index=True)
-            .sort_values("close_time")
-            .reset_index(drop=True)
+            pd.concat(prepared, ignore_index=True).sort_values("close_time").reset_index(drop=True)
         )
 
         cash = self.config.initial_cash
@@ -62,20 +66,20 @@ class PortfolioBacktestEngine(BacktestEngine):
                 # NEW: Run risk checks if risk engine is available
                 if self.risk_engine:
                     signal_dict = {
-                        'action': 'BUY' if signal > 0 else ('SELL' if signal < 0 else 'HOLD'),
-                        'target_position': signal,
-                        'confidence': 1.0,
-                        'size_hint': self.config.allocation_per_signal,
-                        'strategy_name': 'backtest',
-                        'symbol': row["symbol"],
-                        'timestamp': timestamp,
+                        "action": "BUY" if signal > 0 else ("SELL" if signal < 0 else "HOLD"),
+                        "target_position": signal,
+                        "confidence": 1.0,
+                        "size_hint": self.config.allocation_per_signal,
+                        "strategy_name": "backtest",
+                        "symbol": row["symbol"],
+                        "timestamp": timestamp,
                     }
                     _get_risk_engine()
                     result = self.risk_engine.evaluate_signal(signal_dict)
-                    
-                    if not result.approved or result.adjusted_action == 'HOLD':
+
+                    if not result.approved or result.adjusted_action == "HOLD":
                         continue  # Skip this trade - risk rejected
-                    
+
                     # Use adjusted values if provided
                     if result.adjusted_size is not None:
                         self.config.allocation_per_signal = result.adjusted_size
@@ -147,9 +151,9 @@ class PortfolioBacktestEngine(BacktestEngine):
                 var_name="symbol_key",
                 value_name="market_value",
             )
-            symbol_returns["return"] = (
-                symbol_returns.groupby("symbol_key")["market_value"].pct_change()
-            )
+            symbol_returns["return"] = symbol_returns.groupby("symbol_key")[
+                "market_value"
+            ].pct_change()
             returns = equity_curve["equity"].pct_change().fillna(0.0)
             final_equity = float(equity_curve["equity"].iloc[-1])
             initial_equity = float(equity_curve["equity"].iloc[0])

@@ -1,96 +1,121 @@
 # BAET
 
+> Binance Adaptive Ensemble Trader
+
 ## TL;DR
-BAET is a local-first Python trading platform scaffold for Binance research, paper trading, and tightly controlled live trading.
 
-## Current Status
-Stage 0 is implemented:
-- project structure is defined
-- config system is in place
-- setup docs exist
-- testing baseline exists
+BAET is a local-first Python trading research project for Binance. The current branch is in a **stabilization phase**. The verified core is:
 
-Stage 1 foundation is also implemented:
-- Binance market-data ingestion interfaces exist
-- Parquet storage is configured
-- feature generation pipeline exists
-- portfolio-aware backtester exists
-- baseline reporting helpers exist
+- config loading with `YAML + .env`
+- Binance market-data normalization and storage
+- feature pipeline foundations
+- strategy contract and discovery
+- portfolio backtesting
+- strategy comparison reporting
+- one authoritative Streamlit dashboard entrypoint for paper-mode logs
 
-Strategy library and live trading are still intentionally deferred.
-Dashboarding is planned with Streamlit once the project reaches the paper trading stage.
+The repo also contains broader experimental modules for live trading, streaming, scout logic, database persistence, and extra dashboard variants, but those are **not part of the current stabilized core baseline**.
 
-## Repository Layout
-- `config/` — YAML configuration definitions and environment modes
-- `data/` — data storage and processing targets (mostly ignored for raw/processed/outputs)
-- `docs/` — implementation plans and guides
-- `logs/` — runtime logs, paper/logging artifacts
-- `scripts/` — automation, validation, monitoring, and quick helpers
-- `src/` — main Python package code for BAET
-- `tests/` — automated test suite
-- `.env.example` — template for local secret configuration
-- `pyproject.toml` / `requirements.txt` — dependency and packaging metadata
-- `uv.lock` — lockfile for reproducible dependencies
-- `test_*.py` root scripts — manual test/debug entrypoints
-- `test_output.txt` — sample or temporary output file
+## Current Verified Status
+
+The following checks are currently green for the stabilized core slice:
+
+```bash
+uv run pytest tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py
+uv run ruff check src/baet/dashboard/app.py src/baet/dashboard/components.py src/baet/execution/backtest.py src/baet/strategies/baselines.py tests
+uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py src/baet/dashboard/app.py
+```
+
+Current restored test baseline:
+
+- config core tests
+- data normalization tests
+- strategy contract/discovery tests
+- backtester smoke tests
+- dashboard smoke tests
+
+## What Is Stable Right Now
+
+| Area | Status |
+|---|---|
+| Config loader | Verified |
+| Data normalization | Verified |
+| Candle validation | Verified |
+| Strategy discovery | Verified |
+| Order-intent backtest path | Verified |
+| Dashboard entrypoint | Verified |
+| Comparison/reporting foundations | Implemented, not fully revalidated in this sprint |
+
+## What Is Not Yet Stable
+
+These areas exist in the repo but are still outside the current stabilized quality baseline:
+
+- live trading execution
+- bridge trading
+- streaming manager
+- scout engine
+- database persistence integration
+- notification system
+- legacy dashboard variants
+- repo-wide strict typing across all modules
+
+## Dashboard
+
+The supported dashboard entrypoint for the stabilization branch is:
+
+```bash
+uv run python scripts/run_dashboard.py
+```
+
+The dashboard is paper-first and reads local log/output artifacts. It does not require live credentials to start.
+
+Supported dashboard views:
+
+- Overview
+- Positions
+- Trades
+- Performance
+- Logs
+
+## Project Layout
+
+```text
+AET/
+├── config/
+├── src/baet/
+│   ├── config/
+│   ├── core/
+│   ├── dashboard/
+│   ├── data/
+│   ├── execution/
+│   ├── reporting/
+│   ├── risk/
+│   └── strategies/
+├── tests/
+├── scripts/
+├── README.md
+├── TODO.md
+├── pyproject.toml
+└── uv.lock
+```
 
 ## Quick Start
-1. Install dependencies:
+
 ```bash
 uv sync --all-extras
-```
-2. Copy the example secrets file:
-```bash
-copy .env.example .env
-```
-3. Run the test baseline:
-```bash
-uv run pytest
+uv run pytest tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py
+uv run python scripts/run_dashboard.py
 ```
 
-## Stage 1 Capabilities
-- normalized Binance kline ingestion
-- Parquet-based raw and processed data storage
-- deterministic feature generation
-- portfolio-aware baseline backtesting
-- baseline summaries for ingestion, data quality, features, and backtests
+## Current Priority
 
-## Modes
-- `dev`: local development defaults
-- `paper`: simulated trading configuration
-- `live`: live trading configuration, disabled by default
+The next priority is stabilization, not new features:
 
-## Config Model
-Config precedence is:
-1. `config/base.yaml`
-2. `config/<mode>.yaml`
-3. environment variables loaded from `.env`
+1. keep the restored core tests green
+2. finish docs/status reconciliation
+3. reduce typing debt in kept core modules
+4. only then expand back into deferred modules
 
-Secrets such as Binance API credentials stay in `.env` and must never be committed.
+## Safety Note
 
-## Developer Notes
-- Local artifacts are ignored by `.gitignore`, including `.venv/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `logs/`, `data/raw/`, and `data/processed/`.
-- Root-level helper scripts like `test_app.py`, `test_simple.py`, `test_minimal.py`, `test_testnet_simple.py`, and `test_observation_mode.py` are intended for manual debugging and not required for package distribution.
-- Keep `.env` out of version control and use `.env.example` as the shared template.
-
-## CI/CD TODO
-- Add GitHub Actions workflows for branch and pull-request validation.
-- Run `uv run pytest` on every push and PR to keep the test baseline green.
-- Add linting and type checks (`ruff`, `mypy`) for the Python package.
-- Validate configuration files and environment setup before deployment.
-- Optional: add dependency lockfile validation and vulnerability scanning.
-
-## Repo Tracking
-- durable planning lives in repo markdown files
-- active execution tracking should use GitHub issues
-
-Suggested labels:
-- `stage-0`
-- `stage-1`
-- `infra`
-- `data`
-- `strategy`
-- `risk`
-- `paper`
-- `live`
-- `blocked`
+Treat this branch as research and stabilization work. Do not assume live trading paths are production ready just because the code exists in the repo.

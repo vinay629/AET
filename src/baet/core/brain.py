@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
-import numpy as np
 
 from baet.core.plugins import ScoringPlugin
 
@@ -23,7 +22,7 @@ class ScoringEnsemble:
     by learning from 'wrong' trades.
     """
 
-    def __init__(self, plugins: List[ScoringPlugin]):
+    def __init__(self, plugins: list[ScoringPlugin]):
         """
         Initialize the ScoringEnsemble with a list of plugins.
 
@@ -32,9 +31,9 @@ class ScoringEnsemble:
         """
         self.plugins = plugins
         # Stores the last calculated scores per plugin for the learning feedback loop
-        self.last_scores: Dict[str, float] = {}
+        self.last_scores: dict[str, float] = {}
 
-    def calculate_combined_score(self, data: pd.DataFrame) -> Dict[str, Any]:
+    def calculate_combined_score(self, data: pd.DataFrame) -> dict[str, Any]:
         """
         Calculate weighted average score from all plugins.
 
@@ -58,27 +57,25 @@ class ScoringEnsemble:
             components[plugin.metadata.name] = {
                 "score": score,
                 "weight": weight,
-                "contribution": score * weight
+                "contribution": score * weight,
             }
 
         final_score = total_score / total_weight if total_weight > 0 else 0.0
         self.last_scores = {name: info["score"] for name, info in components.items()}
 
-        return {
-            "score": final_score,
-            "components": components,
-            "total_weight": total_weight
-        }
+        return {"score": final_score, "components": components, "total_weight": total_weight}
 
-    def learn_from_trade(self, trade_outcome: Dict[str, Any]) -> None:
+    def learn_from_trade(self, trade_outcome: dict[str, Any]) -> None:
         """
         Pass trade feedback to all plugins so they can evolve.
         """
-        logger.info(f"AI Brain learning from trade outcome: PnL {trade_outcome.get('pnl_pct', 0):.2%}")
+        logger.info(
+            f"AI Brain learning from trade outcome: PnL {trade_outcome.get('pnl_pct', 0):.2%}"
+        )
 
         for plugin in self.plugins:
             # We can also pass how much this specific plugin contributed to the decision
-            plugin_score = self.last_scores.get(plugin.metadata.name, 0.0)
+            self.last_scores.get(plugin.metadata.name, 0.0)
 
             # If plugin score matched trade direction, it was 'right'
             # (Simplified logic)
@@ -86,6 +83,6 @@ class ScoringEnsemble:
 
         # Optional: Global ensemble weight adjustment logic here
 
-    def get_brain_state(self) -> List[Dict[str, Any]]:
+    def get_brain_state(self) -> list[dict[str, Any]]:
         """Return the current state of all plugins in the brain."""
         return [plugin.get_status() for plugin in self.plugins]

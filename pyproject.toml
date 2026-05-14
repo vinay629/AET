@@ -5,6 +5,7 @@ description = "Binance Adaptive Ensemble Trader project scaffold"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "click>=8.1.0",
     "pandas>=2.3.0",
     "plotly>=6.7.0",
     "psutil>=7.2.2",
@@ -15,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "pyyaml>=6.0.2",
     "scikit-learn>=1.8.0",
+    "sqlalchemy>=2.0.0",
     "streamlit>=1.57.0",
 ]
 
@@ -31,6 +33,15 @@ monitoring = [
     "psutil>=7.0.0",
     "requests>=2.33.0",
 ]
+websocket = [
+    "websocket-client>=1.6.0",
+]
+notifications = [
+    "apprise>=1.6.0",
+]
+
+[project.scripts]
+baet = "baet.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -42,25 +53,83 @@ packages = ["src/baet"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+exclude = [
+    "src/baet/dashboard/app_old*.py",
+    "src/baet/dashboard/control.py",
+    "src/baet/execution/bridge_trader.py",
+    "src/baet/execution/live_client_observation.py",
+    "src/baet/reporting/audit_trail.py",
+    "src/baet/reporting/notifier.py",
+    "src/baet/strategies/adaptive_ensemble.py",
+    "src/baet/strategies/ensemble.py",
+    "src/baet/strategies/ml_strategy.py",
+]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B"]
+select = ["E", "F", "I", "B", "UP", "ARG", "SIM"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "-v --tb=short --timeout=60"
+markers = [
+    "unit: Unit tests (fast)",
+    "integration: Integration tests (moderate speed)",
+    "e2e: End-to-end tests (slow)",
+    "skip_ci: Skip in CI environment",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
 
 [tool.mypy]
 python_version = "3.13"
 strict = true
 packages = ["baet"]
+exclude = '''(?x)(
+    ^src/baet/dashboard/app_old.*\.py$|
+    ^src/baet/dashboard/control\.py$|
+    ^src/baet/execution/bridge_trader\.py$|
+    ^src/baet/execution/live_client_observation\.py$|
+    ^src/baet/reporting/audit_trail\.py$|
+    ^src/baet/reporting/notifier\.py$|
+    ^src/baet/strategies/adaptive_ensemble\.py$|
+    ^src/baet/strategies/ensemble\.py$|
+    ^src/baet/strategies/ml_strategy\.py$
+)'''
+
+[[tool.mypy.overrides]]
+module = [
+    "plotly",
+    "plotly.express",
+    "plotly.graph_objects",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "baet.dashboard.components",
+    "baet.dashboard.data_loader",
+]
+disallow_untyped_defs = false
 
 [dependency-groups]
 dev = [
+    "bandit>=1.7.5",
     "mypy>=1.18.0",
     "pandas-stubs>=2.3.2.250926",
+    "pre-commit>=3.0.0",
     "pytest>=8.4.0",
-    "pytest-cov>=7.1.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.14.0",
+    "pytest-timeout>=2.2.0",
+    "pytest-xdist>=3.5.0",
     "ruff>=0.12.0",
     "types-PyYAML>=6.0.12.20250915",
+    "pip-audit>=2.6.1",
 ]
