@@ -180,8 +180,12 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     return df
 
 
+import streamlit as st
+from datetime import datetime, timedelta
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
-    """Load OHLCV data from local Parquet files.
+    """Load OHLCV data from Binance API.
 
     Args:
         symbol: Trading symbol (e.g., BTCUSDT)
@@ -192,20 +196,55 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
     """
     try:
         from baet.config.loader import load_settings
-        from baet.data.storage import ParquetMarketDataStore
+        from baet.data.binance import BinanceHistoricalProvider
 
         settings = load_settings()
-        store = ParquetMarketDataStore(settings)
-        df = store.read_raw_candles(symbol, timeframe)
+        provider = BinanceHistoricalProvider(settings)
+
+        # Fetch last 100 candles
+        end_time = datetime.now()
+
+        # Approximate start time based on timeframe
+        if timeframe == '1h':
+            start_time = end_time - timedelta(hours=100)
+        elif timeframe == '4h':
+            start_time = end_time - timedelta(hours=400)
+        elif timeframe == '1m':
+            start_time = end_time - timedelta(minutes=100)
+        elif timeframe == '5m':
+            start_time = end_time - timedelta(minutes=500)
+        elif timeframe == '15m':
+            start_time = end_time - timedelta(minutes=1500)
+        elif timeframe == '1d':
+            start_time = end_time - timedelta(days=100)
+        else:
+            start_time = end_time - timedelta(hours=100)
+
+        df = provider.fetch_klines(symbol, timeframe, start_time, end_time)
 
         if not df.empty:
+            # Rename columns to match what the chart expects if needed
+            # Binance provider returns: open_time, open, high, low, close, volume
+            if "open_time" in df.columns and "timestamp" not in df.columns:
+                df = df.rename(columns={"open_time": "timestamp"})
+
             df["timestamp"] = pd.to_datetime(df["timestamp"])
             df = df.sort_values("timestamp")
 
         return df
     except Exception as e:
-        print(f"Error loading OHLCV data for {symbol} {timeframe}: {e}")
-        return pd.DataFrame()
+        print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance: {e}")
+        # Fallback to local data if API fails
+        try:
+            from baet.data.storage import ParquetMarketDataStore
+            store = ParquetMarketDataStore(load_settings())
+            df = store.read_raw_candles(symbol, timeframe)
+            if not df.empty:
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                df = df.sort_values("timestamp")
+            return df
+        except:
+            return pd.DataFrame()
 
 
 def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
