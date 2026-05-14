@@ -18,8 +18,7 @@ This guide walks you through installing, configuring, and using BAET for data in
 8. [Paper Trading](#paper-trading)
 9. [Live Trading](#live-trading)
 10. [Running Tests](#running-tests)
-11. [Docker Deployment](#docker-deployment)
-12. [Project Architecture](#project-architecture)
+11. [Project Architecture](#project-architecture)
 13. [Troubleshooting](#troubleshooting)
 
 ---
@@ -561,48 +560,6 @@ uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strateg
 
 ---
 
-## Docker Deployment
-
-BAET includes a `Dockerfile` and `docker-compose.yml` for containerized deployment.
-
-### Services
-
-| Service | Description | Port |
-|---|---|---|
-| `bot` | Main trading engine | — |
-| `dashboard` | Streamlit dashboard | 8501 |
-| `sqlitebrowser` | SQLite browser (debug profile) | 3000 |
-
-### Quick Start with Docker
-
-```bash
-# Build and start all services
-docker-compose up -d
-
-# Start only the dashboard
-docker-compose up -d dashboard
-
-# View bot logs
-docker-compose logs -f bot
-
-# Stop all services
-docker-compose down
-```
-
-### Volumes
-
-| Volume | Purpose |
-|---|---|
-| `./data` | Market data, results, and database |
-| `./logs` | Trading and audit logs |
-| `./config` | Configuration files |
-
-### Environment
-
-The Docker setup reads from `.env` for API keys and mode settings. The bot defaults to `BAET_MODE=paper`.
-
----
-
 ## Project Architecture
 
 ```
@@ -676,8 +633,6 @@ AET/
 │   ├── audit/               # Audit trail logs
 │   └── paper/               # Paper trading logs
 ├── pyproject.toml           # Project config and dependencies
-├── docker-compose.yml       # Docker orchestration
-├── Dockerfile               # Docker build
 ├── .env                     # Environment variables (not in git)
 └── .env.example             # Example environment file
 ```
