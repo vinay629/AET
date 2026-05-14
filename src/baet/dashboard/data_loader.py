@@ -15,21 +15,21 @@ _executor = ThreadPoolExecutor(max_workers=1)
 
 def find_latest_log_file(log_dir: str = "logs/paper") -> Optional[Path]:
     """Find the most recent paper trading log file.
-    
+
     Args:
         log_dir: Directory containing log files
-        
+
     Returns:
         Path to the most recent log file, or None if not found
     """
     log_path = Path(log_dir)
     if not log_path.exists():
         return None
-    
+
     log_files = list(log_path.glob("paper_trading_*.log"))
     if not log_files:
         return None
-    
+
     # Sort by date in filename (paper_trading_YYYY-MM-DD.log)
     # Extract date from filename and sort by it
     def extract_date(filepath: Path) -> str:
@@ -37,62 +37,62 @@ def find_latest_log_file(log_dir: str = "logs/paper") -> Optional[Path]:
         name = filepath.stem  # Get filename without extension
         date_part = name.replace("paper_trading_", "")
         return date_part
-    
+
     try:
         log_files.sort(key=extract_date, reverse=True)
     except Exception:
         # Fall back to modification time if date parsing fails
         log_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-    
+
     return log_files[0]
 
 
 def parse_log_file(log_file: Path, max_entries: int = 100) -> list[dict]:
     """Parse a JSON-formatted log file.
-    
+
     Args:
         log_file: Path to the log file
         max_entries: Maximum number of entries to return (most recent)
-        
+
     Returns:
         List of log entries as dictionaries
     """
     entries = []
-    
+
     if not log_file.exists():
         return entries
-    
-    with open(log_file, 'r') as f:
+
+    with open(log_file, "r") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            
+
             try:
                 entry = json.loads(line)
                 entries.append(entry)
             except json.JSONDecodeError:
                 continue
-    
+
     # Return most recent entries
     return entries[-max_entries:] if max_entries else entries
 
 
 def load_latest_state(log_dir: str = "logs/paper") -> dict[str, Any]:
     """Load the most recent portfolio state from logs.
-    
+
     Args:
         log_dir: Directory containing log files
-        
+
     Returns:
         Dictionary with current portfolio state
     """
     log_file = find_latest_log_file(log_dir)
     if not log_file:
         return {}
-    
+
     entries = parse_log_file(log_file, max_entries=1000)
-    
+
     # Find the most recent PORTFOLIO_UPDATE entry
     for entry in reversed(entries):
         if entry.get("type") == "PORTFOLIO_UPDATE":
@@ -104,76 +104,80 @@ def load_latest_state(log_dir: str = "logs/paper") -> dict[str, Any]:
                 "symbol": entry.get("symbol"),
                 "timestamp": entry.get("timestamp"),
             }
-    
+
     return {}
 
 
 def load_recent_trades(log_dir: str = "logs/paper", limit: int = 50) -> list[dict]:
     """Load recent trades from logs.
-    
+
     Args:
         log_dir: Directory containing log files
         limit: Maximum number of trades to return
-        
+
     Returns:
         List of recent trades
     """
     log_file = find_latest_log_file(log_dir)
     if not log_file:
         return []
-    
+
     entries = parse_log_file(log_file, max_entries=10000)
-    
+
     # Filter for portfolio updates (which include trades)
     trades = []
     for entry in entries:
         if entry.get("type") == "PORTFOLIO_UPDATE" and entry.get("action") in ["BUY", "SELL"]:
-            trades.append({
-                "timestamp": entry.get("timestamp"),
-                "action": entry.get("action"),
-                "symbol": entry.get("symbol"),
-                "cash_after": entry.get("cash"),
-                "total_value_after": entry.get("total_value"),
-            })
-    
+            trades.append(
+                {
+                    "timestamp": entry.get("timestamp"),
+                    "action": entry.get("action"),
+                    "symbol": entry.get("symbol"),
+                    "cash_after": entry.get("cash"),
+                    "total_value_after": entry.get("total_value"),
+                }
+            )
+
     # Return most recent trades
     return trades[-limit:] if limit else trades
 
 
 def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     """Load equity curve data from logs.
-    
+
     Args:
         log_dir: Directory containing log files
-        
+
     Returns:
         DataFrame with equity curve data
     """
     log_file = find_latest_log_file(log_dir)
     if not log_file:
         return pd.DataFrame()
-    
+
     entries = parse_log_file(log_file, max_entries=10000)
-    
+
     # Filter for portfolio updates
     equity_data = []
     for entry in entries:
         if entry.get("type") == "PORTFOLIO_UPDATE":
-            equity_data.append({
-                "timestamp": entry.get("timestamp"),
-                "cash": entry.get("cash", 0.0),
-                "total_value": entry.get("total_value", 0.0),
-                "action": entry.get("action", ""),
-                "symbol": entry.get("symbol"),
-            })
-    
+            equity_data.append(
+                {
+                    "timestamp": entry.get("timestamp"),
+                    "cash": entry.get("cash", 0.0),
+                    "total_value": entry.get("total_value", 0.0),
+                    "action": entry.get("action", ""),
+                    "symbol": entry.get("symbol"),
+                }
+            )
+
     if not equity_data:
         return pd.DataFrame()
-    
+
     df = pd.DataFrame(equity_data)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.sort_values("timestamp")
-    
+
     # Add returns for win rate calculation
     df["returns"] = df["total_value"].pct_change()
 
@@ -197,11 +201,13 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
         DataFrame with OHLCV data
     """
     from baet.config.loader import load_settings
+
     settings = load_settings()
 
     # 1. Try local storage first
     try:
         from baet.data.storage import ParquetMarketDataStore
+
         store = ParquetMarketDataStore(settings)
         df = store.read_raw_candles(symbol, timeframe)
         if not df.empty:
@@ -216,6 +222,7 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
     # 2. Fallback to Binance API
     try:
         from baet.data.binance import BinanceHistoricalProvider
+
         provider = BinanceHistoricalProvider(settings)
 
         # Fetch candles based on historical_limit
@@ -226,12 +233,23 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
         # Binance API uses the limit parameter, but we still need a start_time range
         # that covers at least 'limit' candles.
         minutes_per_tf = {
-            '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30,
-            '1h': 60, '2h': 120, '4h': 240, '6h': 360, '8h': 480, '12h': 720,
-            '1d': 1440, '3d': 4320, '1w': 10080
+            "1m": 1,
+            "3m": 3,
+            "5m": 5,
+            "15m": 15,
+            "30m": 30,
+            "1h": 60,
+            "2h": 120,
+            "4h": 240,
+            "6h": 360,
+            "8h": 480,
+            "12h": 720,
+            "1d": 1440,
+            "3d": 4320,
+            "1w": 10080,
         }
         m_tf = minutes_per_tf.get(timeframe, 60)
-        start_time = end_time - timedelta(minutes=m_tf * limit * 1.1) # 10% buffer
+        start_time = end_time - timedelta(minutes=m_tf * limit * 1.1)  # 10% buffer
 
         df = provider.fetch_klines(symbol, timeframe, start_time, end_time)
 
@@ -293,39 +311,45 @@ def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[di
     return signals[-limit:] if limit else signals
 
 
-def calculate_daily_summary(log_dir: str = "logs/paper", date: Optional[str] = None) -> dict[str, Any]:
+def calculate_daily_summary(
+    log_dir: str = "logs/paper", date: Optional[str] = None
+) -> dict[str, Any]:
     """Calculate daily summary from logs.
-    
+
     Args:
         log_dir: Directory containing log files
         date: Date string (YYYY-MM-DD), or None for today
-        
+
     Returns:
         Dictionary with daily summary
     """
     if date is None:
         date = datetime.now().strftime("%Y-%m-%d")
-    
+
     log_file = Path(log_dir) / f"paper_trading_{date}.log"
     if not log_file.exists():
         return {}
-    
+
     entries = parse_log_file(log_file, max_entries=100000)
-    
+
     # Calculate summary
-    trades = [e for e in entries if e.get("type") == "PORTFOLIO_UPDATE" and e.get("action") in ["BUY", "SELL"]]
+    trades = [
+        e
+        for e in entries
+        if e.get("type") == "PORTFOLIO_UPDATE" and e.get("action") in ["BUY", "SELL"]
+    ]
     signals = [e for e in entries if e.get("type") == "SIGNAL_RECEIVED"]
     risk_evals = [e for e in entries if e.get("type") == "RISK_EVALUATION"]
-    
+
     # Get start and end portfolio values
     portfolio_updates = [e for e in entries if e.get("type") == "PORTFOLIO_UPDATE"]
-    
+
     start_value = portfolio_updates[0].get("total_value", 0.0) if portfolio_updates else 0.0
     end_value = portfolio_updates[-1].get("total_value", 0.0) if portfolio_updates else 0.0
-    
+
     daily_pnl = end_value - start_value
     daily_return = (end_value - start_value) / start_value if start_value > 0 else 0.0
-    
+
     return {
         "date": date,
         "start_value": start_value,
@@ -342,135 +366,137 @@ def calculate_daily_summary(log_dir: str = "logs/paper", date: Optional[str] = N
 
 def calculate_performance_metrics(log_dir: str = "logs/paper") -> dict[str, Any]:
     """Calculate performance metrics from equity curve.
-    
+
     Args:
         log_dir: Directory containing log files
-        
+
     Returns:
         Dictionary with performance metrics
     """
     df = load_equity_curve(log_dir)
-    
+
     if df.empty or len(df) < 2:
         return {}
-    
+
     # Calculate returns
     df["returns"] = df["total_value"].pct_change()
-    
+
     # Remove NaN values
     returns = df["returns"].dropna()
-    
+
     if len(returns) < 2:
         return {}
-    
+
     # Sharpe ratio (assuming risk-free rate = 0)
-    sharpe = returns.mean() / returns.std() * (252 ** 0.5) if returns.std() > 0 else 0.0
-    
+    sharpe = returns.mean() / returns.std() * (252**0.5) if returns.std() > 0 else 0.0
+
     # Sortino ratio (downside deviation)
     downside_returns = returns[returns < 0]
-    sortino = returns.mean() / downside_returns.std() * (252 ** 0.5) if len(downside_returns) > 0 and downside_returns.std() > 0 else 0.0
-    
+    sortino = (
+        returns.mean() / downside_returns.std() * (252**0.5)
+        if len(downside_returns) > 0 and downside_returns.std() > 0
+        else 0.0
+    )
+
     # Maximum drawdown
     df["cumulative_max"] = df["total_value"].cummax()
     df["drawdown"] = (df["total_value"] - df["cumulative_max"]) / df["cumulative_max"]
     max_drawdown = df["drawdown"].min()
-    
+
     # Total return
     start_value = df["total_value"].iloc[0]
     end_value = df["total_value"].iloc[-1]
     total_return = (end_value - start_value) / start_value if start_value > 0 else 0.0
-    
+
     return {
         "sharpe_ratio": sharpe,
         "sortino_ratio": sortino,
         "max_drawdown": max_drawdown,
         "total_return": total_return,
         "annualized_return": (1 + total_return) ** (252 / len(df)) - 1 if len(df) > 0 else 0.0,
-        "volatility": returns.std() * (252 ** 0.5),
+        "volatility": returns.std() * (252**0.5),
         "win_rate": (returns > 0).sum() / len(returns) if len(returns) > 0 else 0.0,
     }
 
 
 def load_live_account_info() -> dict[str, Any]:
     """Load live account information from Binance.
-    
+
     Returns:
         Dictionary with account info or error
     """
     try:
         from baet.execution.live_client_observation import create_observation_client
-        
+
         client = create_observation_client()
         if not client:
             return {
                 "success": False,
                 "error": "Failed to create observation client",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
-        
+
         account_info = client.get_account_info()
         return account_info
-        
+
     except ImportError:
         return {
             "success": False,
             "error": "Live client module not available",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
+        return {"success": False, "error": str(e), "timestamp": datetime.now().isoformat()}
 
 
 def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
     """Load live account info with timeout support (non-blocking).
-    
+
     This wrapper adds:
     - Timeout protection (prevents hanging)
     - Simple caching using session state
-    
+
     Args:
         timeout_seconds: Maximum time to wait for API response
-        
+
     Returns:
         Dictionary with account info or error
     """
     # Try to use streamlit session state for simple caching
     try:
         import streamlit as st
-        
+
         # Check if we have a cached result in session state
         cache_key = "_live_account_cache"
         cache_time_key = "_live_account_cache_time"
-        
+
         if cache_key in st.session_state:
             import time
+
             current_time = time.time()
             cache_time = st.session_state.get(cache_time_key, 0)
-            
+
             # Use cached result if less than 30 seconds old
             if current_time - cache_time < 30:
                 return st.session_state[cache_key]
-        
+
         # Fetch with timeout
         future = _executor.submit(load_live_account_info)
         try:
             result = future.result(timeout=timeout_seconds)
-            
+
             # Cache result
             import time
+
             st.session_state[cache_key] = result
             st.session_state[cache_time_key] = time.time()
-            
+
             return result
         except FuturesTimeoutError:
             return {
                 "success": False,
                 "error": f"API request timed out after {timeout_seconds}s",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
     except Exception:
         # Fallback: no session state available, just fetch with timeout
@@ -481,11 +507,11 @@ def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
             return {
                 "success": False,
                 "error": f"API request timed out after {timeout_seconds}s",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
         except Exception as fetch_error:
             return {
                 "success": False,
                 "error": str(fetch_error),
-                "timestamp": datetime.now().isoformat()
-        }
+                "timestamp": datetime.now().isoformat(),
+            }
