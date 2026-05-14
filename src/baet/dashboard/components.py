@@ -336,7 +336,7 @@ def render_equity_chart(df: pd.DataFrame, key: Optional[str] = None):
 
     # Also show drawdown chart if we have returns data
     if "total_value" in df.columns and len(df) > 1:
-        render_drawdown_chart(df)
+        render_drawdown_chart(df, key=f"{key}_drawdown" if key else None)
 
 
 def render_drawdown_chart(df: pd.DataFrame, key: str | None = None) -> None:
@@ -380,7 +380,7 @@ def render_drawdown_chart(df: pd.DataFrame, key: str | None = None) -> None:
         yaxis=dict(showgrid=True, gridwidth=1, gridcolor="#f0f0f0", tickformat=".1%"),
     )
 
-    st.plotly_chart(fig, use_container_width=True, key="drawdown_chart")
+    st.plotly_chart(fig, use_container_width=True, key=key)
 
 
 def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000) -> None:

@@ -177,8 +177,7 @@ def emergency_stop() -> tuple[bool, str]:
                     "source": "dashboard_control_panel",
                 },
             )
-        except Exception:
-            # Ignore errors during logging to ensure the process is still killed
+        except:
             pass
 
         # Force kill

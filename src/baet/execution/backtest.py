@@ -21,7 +21,7 @@ def _get_risk_engine() -> type[RiskEngine]:
 
 
 class PortfolioBacktestEngine(BacktestEngine):
-    def __init__(self, config: BacktestConfig, risk_engine: RiskEngine | None = None) -> None:
+    def __init__(self, config: BacktestConfig, risk_engine: "RiskEngine | None" = None) -> None:
         self.config = config
         self.risk_engine = risk_engine  # NEW: Optional RiskEngine
 
@@ -60,16 +60,71 @@ class PortfolioBacktestEngine(BacktestEngine):
         last_timestamp = None
         current_group_rows = []
 
-        # Helper to process equity snapshot at the end of a timestamp
-        def record_equity(ts, group_items):
-            m_value = 0.0
-            snapshots = {}
-            for item in group_items:
-                s_key = str(item.symbol_key)
-                u = positions.get(s_key, 0.0)
-                val = u * float(item.close)
-                m_value += val
-                snapshots[s_key] = val
+                # NEW: Run risk checks if risk engine is available
+                if self.risk_engine:
+                    signal_dict = {
+                        "action": "BUY" if signal > 0 else ("SELL" if signal < 0 else "HOLD"),
+                        "target_position": signal,
+                        "confidence": 1.0,
+                        "size_hint": self.config.allocation_per_signal,
+                        "strategy_name": "backtest",
+                        "symbol": row["symbol"],
+                        "timestamp": timestamp,
+                    }
+                    _get_risk_engine()
+                    result = self.risk_engine.evaluate_signal(signal_dict)
+
+                    if not result.approved or result.adjusted_action == "HOLD":
+                        continue  # Skip this trade - risk rejected
+
+                    # Use adjusted values if provided
+                    if result.adjusted_size is not None:
+                        self.config.allocation_per_signal = result.adjusted_size
+
+                if signal > 0 and current_units == 0.0:
+                    target_cash = cash * self.config.allocation_per_signal
+                    if target_cash > 0.0:
+                        fee = target_cash * self.config.fee_rate
+                        net_cash = target_cash - fee
+                        units = net_cash / fill_price
+                        cash -= target_cash
+                        positions[symbol_key] = units
+                        trade_rows.append(
+                            {
+                                "timestamp": timestamp,
+                                "symbol": row["symbol"],
+                                "timeframe": row["timeframe"],
+                                "side": "BUY",
+                                "price": fill_price,
+                                "units": units,
+                                "fee": fee,
+                            }
+                        )
+                elif signal <= 0 and current_units > 0.0:
+                    gross = current_units * fill_price
+                    fee = gross * self.config.fee_rate
+                    cash += gross - fee
+                    positions[symbol_key] = 0.0
+                    trade_rows.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": row["symbol"],
+                            "timeframe": row["timeframe"],
+                            "side": "SELL",
+                            "price": fill_price,
+                            "units": current_units,
+                            "fee": fee,
+                        }
+                    )
+
+            marked_value = 0.0
+            symbol_snapshots: dict[str, float] = {}
+            for _, row in group.iterrows():
+                symbol_key = str(row["symbol_key"])
+                units = positions.get(symbol_key, 0.0)
+                market_value = units * float(row["close"])
+                marked_value += market_value
+                symbol_snapshots[symbol_key] = market_value
 
             equity_rows.append(
                 {

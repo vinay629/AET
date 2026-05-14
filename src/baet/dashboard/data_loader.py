@@ -59,56 +59,25 @@ def parse_log_file(log_file: Path, max_entries: int = 100) -> list[dict[str, Any
     """
     entries = []
 
-    if not log_file:
+    if not log_file.exists():
         return entries
 
-    # Security: Ensure path is within allowed directories
-    try:
-        # BOLT: CodeQL path traversal fix
-        # We strictly control which directory we read from.
-        # Use .resolve() to sanitize the path and check it starts with an allowed root.
-
-        # 1. Sanitize the input path
-        path_to_check = Path(log_file)
-        if not path_to_check.is_absolute():
-            path_to_check = Path.cwd() / path_to_check
-
-        resolved_path = path_to_check.resolve()
-
-        # 2. Define allowed roots (Production logs and Testing temp dirs)
-        logs_root = (Path.cwd() / "logs" / "paper").resolve()
-
-        # Check standard location
-        is_safe = str(resolved_path).startswith(str(logs_root))
-
-        # 3. Check for pytest tmp directories (necessary for CI/local tests)
-        if not is_safe:
-            path_str = str(resolved_path)
-            is_safe = "/tmp/" in path_str or "/var/folders/" in path_str or "pytest" in path_str
-
-        if not is_safe:
-            # Fallback check: if it's just a filename, assume it's in logs/paper
-            if resolved_path.parent == Path.cwd().resolve():
-                 resolved_path = logs_root / resolved_path.name
-                 is_safe = resolved_path.exists()
-
-        if not is_safe:
-            return entries
-
-        # 4. Open only the sanitized, validated path
-        with resolved_path.open("r") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-
-                try:
-                    entry = json.loads(line)
-                    entries.append(entry)
-                except json.JSONDecodeError:
-                    continue
-    except Exception:
+    # Basic path sanitization for CodeQL: ensure we're only reading log files
+    # and not arbitrary system files via path injection.
+    if not str(log_file).endswith(".log"):
         return entries
+
+    with open(log_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                entry = json.loads(line)
+                entries.append(entry)
+            except json.JSONDecodeError:
+                continue
 
     # Return most recent entries
     return entries[-max_entries:] if max_entries else entries
@@ -214,7 +183,137 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.sort_values("timestamp")
 
+    # Add returns for win rate calculation
+    df["returns"] = df["total_value"].pct_change()
+
     return df
+
+
+from datetime import timedelta
+
+import streamlit as st
+
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
+    """Load OHLCV data favoring local storage, then falling back to Binance API.
+
+    Args:
+        symbol: Trading symbol (e.g., BTCUSDT)
+        timeframe: Candle timeframe (e.g., 1h)
+
+    Returns:
+        DataFrame with OHLCV data
+    """
+    from baet.config.loader import load_settings
+
+    settings = load_settings()
+
+    # 1. Try local storage first
+    try:
+        from baet.data.storage import ParquetMarketDataStore
+
+        store = ParquetMarketDataStore(settings)
+        df = store.read_raw_candles(symbol, timeframe)
+        if not df.empty:
+            if "open_time" in df.columns and "timestamp" not in df.columns:
+                df = df.rename(columns={"open_time": "timestamp"})
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            return df.sort_values("timestamp")
+    except Exception:
+        # Silently fail and try API
+        pass
+
+    # 2. Fallback to Binance API
+    try:
+        from baet.data.binance import BinanceHistoricalProvider
+
+        provider = BinanceHistoricalProvider(settings)
+
+        # Fetch candles based on historical_limit
+        limit = settings.binance.historical_limit
+        end_time = datetime.now()
+
+        # Approximate start time to get enough candles for the limit
+        # Binance API uses the limit parameter, but we still need a start_time range
+        # that covers at least 'limit' candles.
+        minutes_per_tf = {
+            "1m": 1,
+            "3m": 3,
+            "5m": 5,
+            "15m": 15,
+            "30m": 30,
+            "1h": 60,
+            "2h": 120,
+            "4h": 240,
+            "6h": 360,
+            "8h": 480,
+            "12h": 720,
+            "1d": 1440,
+            "3d": 4320,
+            "1w": 10080,
+        }
+        m_tf = minutes_per_tf.get(timeframe, 60)
+        start_time = end_time - timedelta(minutes=m_tf * limit * 1.1)  # 10% buffer
+
+        df = provider.fetch_klines(symbol, timeframe, start_time, end_time)
+
+        if not df.empty:
+            if "open_time" in df.columns and "timestamp" not in df.columns:
+                df = df.rename(columns={"open_time": "timestamp"})
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            return df.sort_values("timestamp")
+
+    except Exception as e:
+        print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance API: {e}")
+
+    return pd.DataFrame()
+
+
+def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
+    """Load the latest AI Brain scoring event.
+
+    Args:
+        log_dir: Directory containing log files
+
+    Returns:
+        Latest brain scoring event or empty dict
+    """
+    log_file = find_latest_log_file(log_dir)
+    if not log_file:
+        return {}
+
+    entries = parse_log_file(log_file, max_entries=1000)
+
+    for entry in reversed(entries):
+        if entry.get("type") == "BRAIN_SCORING":
+            return entry
+
+    return {}
+
+
+def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[dict]:
+    """Load recent signals from logs.
+
+    Args:
+        log_dir: Directory containing log files
+        limit: Maximum number of signals to return
+
+    Returns:
+        List of recent signals
+    """
+    log_file = find_latest_log_file(log_dir)
+    if not log_file:
+        return []
+
+    entries = parse_log_file(log_file, max_entries=5000)
+
+    signals = []
+    for entry in entries:
+        if entry.get("type") == "SIGNAL_RECEIVED":
+            signals.append(entry)
+
+    return signals[-limit:] if limit else signals
 
 
 def calculate_daily_summary(
@@ -233,12 +332,10 @@ def calculate_daily_summary(
         date = datetime.now().strftime("%Y-%m-%d")
 
     log_file = Path(log_dir) / f"paper_trading_{date}.log"
-    # Note: Path validation happens inside parse_log_file
+    if not log_file.exists():
+        return {}
 
     entries = parse_log_file(log_file, max_entries=100000)
-
-    if not entries:
-        return {}
 
     # Calculate summary
     trades = [

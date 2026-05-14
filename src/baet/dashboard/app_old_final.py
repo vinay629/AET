@@ -145,10 +145,9 @@ else:
         from baet.dashboard.data_loader import (
             calculate_daily_summary,
             calculate_performance_metrics,
-            load_equity_curve,
-            load_latest_state,
-            load_recent_trades,
+            find_latest_log_file,
         )
+        from datetime import datetime as dt
 
         # Load data from paper trading logs
         log_dir = "logs/paper"

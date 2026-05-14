@@ -359,6 +359,8 @@ if st is not None:
             if st.button(
                 "🚨 EMERGENCY STOP", type="primary", width="stretch", key="main_emergency_stop"
             ):
+                import os
+
                 with open("EMERGENCY_STOP.txt", "w") as f:
                     f.write("Emergency stop triggered from dashboard")
                 st.error("Emergency stop file created! Bot should stop soon.")
