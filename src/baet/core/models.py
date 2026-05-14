@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Mapping
 
 import pandas as pd
+
+from baet.core.enums import RegimeLabel
 
 
 @dataclass(frozen=True)
@@ -32,12 +33,6 @@ class StrategyMetadata:
     description: str
 
 
-class RegimeLabel(str, Enum):
-    """Market regime classification labels."""
-    TRENDING = "trending"
-    RANGING = "ranging"
-    HIGH_VOLATILITY = "high_volatility"
-    LOW_VOLATILITY = "low_volatility"
 
 
 @dataclass(frozen=True)

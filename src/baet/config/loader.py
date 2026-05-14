@@ -58,7 +58,7 @@ def load_settings(mode: str | None = None, env_file: Path | None = None) -> Sett
     
     if capture_env_vars:
         env_live_key = os.getenv("BAET_LIVE_BINANCE_API_KEY", "")
-        env_live_secret = os.getenv("BAET_LIVE_BINANCE_SECRET", "")
+        env_live_secret = os.getenv("BAET_LIVE_BINANCE_API_SECRET") or os.getenv("BAET_LIVE_BINANCE_SECRET") or ""
     else:
         env_live_key = ""
         env_live_secret = ""

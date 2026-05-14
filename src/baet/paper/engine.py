@@ -7,6 +7,8 @@ import time
 from datetime import datetime
 from typing import Optional
 
+import pandas as pd
+
 from baet.config.models import Settings
 from baet.risk.engine import RiskEngine
 from baet.core.brain import ScoringEnsemble
@@ -37,7 +39,7 @@ class PaperTradingEngine:
         self.start_time: Optional[datetime] = None
         self.last_update_time: Optional[datetime] = None
         self.consecutive_errors = 0
-        self.max_consecutive_errors = 10
+        self.max_consecutive_errors = config.paper.max_consecutive_errors
         
         # Lazy imports to avoid circular imports
         from baet.paper.order_simulator import PaperOrderSimulator
