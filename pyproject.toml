@@ -26,7 +26,8 @@ research = [
     "scikit-learn>=1.7.0",
 ]
 dashboard = [
-    "streamlit>=1.57.0",
+    "flask>=2.3.0",
+    "flask-cors>=4.0.0",
     "plotly>=6.2.0",
 ]
 monitoring = [

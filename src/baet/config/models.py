@@ -153,6 +153,20 @@ class SecretsConfig(BaseModel):
     live_binance_api_secret: SecretStr = SecretStr("")
 
 
+class NotificationConfig(BaseModel):
+    """Configuration for notifications (Telegram, Discord, etc.)."""
+
+    enabled: bool = False
+    telegram_bot_token: SecretStr = SecretStr("")
+    telegram_chat_id: str = ""
+    discord_webhook_url: str = ""
+    notify_on_trade: bool = True
+    notify_on_risk_breach: bool = True
+    notify_on_emergency_stop: bool = True
+    notify_on_daily_summary: bool = True
+    notify_on_error: bool = True
+
+
 class Settings(BaseModel):
     app: AppConfig = Field(default_factory=AppConfig)
     market: MarketConfig = Field(default_factory=MarketConfig)

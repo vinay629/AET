@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAET Dashboard - Binance Adaptive Ensemble Trader</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Top Status Strip -->
+        <div class="top-strip">
+            <div class="status-left">
+                <div class="status-item">
+                    <span class="status-label">MODE:</span>
+                    <span class="status-value info">PAPER</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">STATUS:</span>
+                    <span class="status-value" id="status">RUNNING</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">EQUITY:</span>
+                    <span class="status-value" id="equity">$0.00</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAILY P&L:</span>
+                    <span class="status-value" id="daily-pnl">$0.00</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">POSITIONS:</span>
+                    <span class="status-value" id="positions-count">0</span>
+                </div>
+            </div>
+            <div class="status-right">
+                <div class="status-item">
+                    <span class="status-label">AI SIGNAL:</span>
+                    <span class="status-value" id="ai-signal">NEUTRAL</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">RISK:</span>
+                    <span class="status-value bullish">STABLE</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">LAST UPDATE:</span>
+                    <span class="status-value" id="last-update">00:00:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Column - Charts -->
+            <div class="left-column">
+                <!-- Chart Section -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📈 Market Chart</span>
+                        <div class="chart-controls">
+                            <select id="symbol-select" class="select-input">
+                                <option value="BTCUSDT">BTCUSDT</option>
+                                <option value="ETHUSDT">ETHUSDT</option>
+                            </select>
+                            <select id="timeframe-select" class="select-input">
+                                <option value="1h">1h</option>
+                                <option value="4h">4h</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ohlcv-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Equity Curve -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>💰 Equity Curve</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="equity-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Info -->
+            <div class="right-column">
+                <!-- Portfolio Overview -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>💼 Portfolio Overview</span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Cash</div>
+                            <div class="metric-value" id="cash">$0.00</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Total Value</div>
+                            <div class="metric-value" id="total-value">$0.00</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Total Return</div>
+                            <div class="metric-value" id="total-return">0.00%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Positions Value</div>
+                            <div class="metric-value" id="positions-value">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📊 Performance Metrics</span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Sharpe Ratio</div>
+                            <div class="metric-value" id="sharpe-ratio">0.00</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Sortino Ratio</div>
+                            <div class="metric-value" id="sortino-ratio">0.00</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Max Drawdown</div>
+                            <div class="metric-value" id="max-drawdown">0.00%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Win Rate</div>
+                            <div class="metric-value" id="win-rate">0.00%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Total Return</div>
+                            <div class="metric-value" id="annual-return">0.00%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Volatility</div>
+                            <div class="metric-value" id="volatility">0.00%</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Total Trades</div>
+                            <div class="metric-value" id="total-trades">0</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">AI Score</div>
+                            <div class="metric-value" id="ai-score">0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Positions -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📋 Current Positions</span>
+                    </div>
+                    <div class="positions-table-container">
+                        <table class="positions-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Units</th>
+                                    <th>Avg Price</th>
+                                    <th>Current Price</th>
+                                    <th>Market Value</th>
+                                    <th>P&L ($)</th>
+                                    <th>P&L (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positions-tbody">
+                                <tr>
+                                    <td colspan="7" class="no-data">No open positions</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Trades -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>🔄 Recent Trades</span>
+                    </div>
+                    <div class="trades-table-container">
+                        <table class="trades-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Action</th>
+                                    <th>Symbol</th>
+                                    <th>Cash After</th>
+                                    <th>Value After</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-tbody">
+                                <tr>
+                                    <td colspan="5" class="no-data">No recent trades</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Logs -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📋 Recent Logs</span>
+                    </div>
+                    <div class="logs-container">
+                        <div id="logs-content" class="logs-content">
+                            <div class="log-entry">No logs available</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

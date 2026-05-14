@@ -1,4 +1,4 @@
-"""Script to launch the BAET Streamlit dashboard."""
+"""Script to launch the BAET HTML/JS dashboard."""
 
 import os
 import subprocess
@@ -8,42 +8,44 @@ from pathlib import Path
 # Get the project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
 
-# Path to the Streamlit app
-APP_PATH = PROJECT_ROOT / "src" / "baet" / "dashboard" / "app.py"
+# Path to the HTML dashboard
+DASHBOARD_DIR = PROJECT_ROOT / "src" / "baet" / "dashboard" / "web"
+
+# Path to the API server
+API_SERVER_PATH = PROJECT_ROOT / "src" / "baet" / "dashboard" / "web" / "api_server.py"
 
 # Default port
 PORT = os.getenv("BAET_DASHBOARD_PORT", "8501")
 
 
 def main():
-    """Launch the Streamlit dashboard."""
-    if not APP_PATH.exists():
-        print(f"Error: Dashboard app not found at {APP_PATH}")
+    """Launch the HTML/JS dashboard with Flask API server."""
+    if not DASHBOARD_DIR.exists():
+        print(f"Error: Dashboard directory not found at {DASHBOARD_DIR}")
+        sys.exit(1)
+
+    if not API_SERVER_PATH.exists():
+        print(f"Error: API server not found at {API_SERVER_PATH}")
         sys.exit(1)
 
     print("Starting BAET Dashboard...")
-    print(f"App path: {APP_PATH}")
+    print(f"Dashboard directory: {DASHBOARD_DIR}")
+    print(f"API server: {API_SERVER_PATH}")
     print(f"Port: {PORT}")
     print(f"URL: http://localhost:{PORT}")
     print("\nPress Ctrl+C to stop\n")
 
-    # Build the command
+    # Build the command for Flask API server
     cmd = [
         sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        str(APP_PATH),
-        "--server.port",
-        PORT,
-        "--server.address",
-        "localhost",
-        "--browser.serverAddress",
-        "localhost",
+        str(API_SERVER_PATH),
+        "--host", "localhost",
+        "--port", PORT,
     ]
 
     try:
-        subprocess.run(cmd, cwd=str(PROJECT_ROOT))
+        # Change to the dashboard directory and run the Flask server
+        subprocess.run(cmd, cwd=str(DASHBOARD_DIR))
     except KeyboardInterrupt:
         print("\nDashboard stopped.")
     except Exception as e:
