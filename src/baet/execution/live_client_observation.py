@@ -7,7 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from binance.client import Client as BinanceClientfrom pydantic import SecretStr
+from binance.client import Client as BinanceClient
+from pydantic import SecretStr
 from baet.config.loader import load_settings
 from baet.config.models import Settings
 

@@ -1,13 +1,13 @@
 """Data loading utilities for the BAET dashboard."""
 
 import json
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 import pandas as pd
-
 
 # Thread pool for timeout support
 _executor = ThreadPoolExecutor(max_workers=1)
@@ -180,12 +180,14 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     return df
 
 
+from datetime import timedelta
+
 import streamlit as st
-from datetime import datetime, timedelta
+
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
-    """Load OHLCV data from Binance API.
+    """Load OHLCV data favoring local storage, then falling back to Binance API.
 
     Args:
         symbol: Trading symbol (e.g., BTCUSDT)
@@ -194,57 +196,55 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
     Returns:
         DataFrame with OHLCV data
     """
-    try:
-        from baet.config.loader import load_settings
-        from baet.data.binance import BinanceHistoricalProvider
+    from baet.config.loader import load_settings
+    settings = load_settings()
 
-        settings = load_settings()
+    # 1. Try local storage first
+    try:
+        from baet.data.storage import ParquetMarketDataStore
+        store = ParquetMarketDataStore(settings)
+        df = store.read_raw_candles(symbol, timeframe)
+        if not df.empty:
+            if "open_time" in df.columns and "timestamp" not in df.columns:
+                df = df.rename(columns={"open_time": "timestamp"})
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            return df.sort_values("timestamp")
+    except Exception:
+        # Silently fail and try API
+        pass
+
+    # 2. Fallback to Binance API
+    try:
+        from baet.data.binance import BinanceHistoricalProvider
         provider = BinanceHistoricalProvider(settings)
 
-        # Fetch last 100 candles
+        # Fetch candles based on historical_limit
+        limit = settings.binance.historical_limit
         end_time = datetime.now()
 
-        # Approximate start time based on timeframe
-        if timeframe == '1h':
-            start_time = end_time - timedelta(hours=100)
-        elif timeframe == '4h':
-            start_time = end_time - timedelta(hours=400)
-        elif timeframe == '1m':
-            start_time = end_time - timedelta(minutes=100)
-        elif timeframe == '5m':
-            start_time = end_time - timedelta(minutes=500)
-        elif timeframe == '15m':
-            start_time = end_time - timedelta(minutes=1500)
-        elif timeframe == '1d':
-            start_time = end_time - timedelta(days=100)
-        else:
-            start_time = end_time - timedelta(hours=100)
+        # Approximate start time to get enough candles for the limit
+        # Binance API uses the limit parameter, but we still need a start_time range
+        # that covers at least 'limit' candles.
+        minutes_per_tf = {
+            '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30,
+            '1h': 60, '2h': 120, '4h': 240, '6h': 360, '8h': 480, '12h': 720,
+            '1d': 1440, '3d': 4320, '1w': 10080
+        }
+        m_tf = minutes_per_tf.get(timeframe, 60)
+        start_time = end_time - timedelta(minutes=m_tf * limit * 1.1) # 10% buffer
 
         df = provider.fetch_klines(symbol, timeframe, start_time, end_time)
 
         if not df.empty:
-            # Rename columns to match what the chart expects if needed
-            # Binance provider returns: open_time, open, high, low, close, volume
             if "open_time" in df.columns and "timestamp" not in df.columns:
                 df = df.rename(columns={"open_time": "timestamp"})
-
             df["timestamp"] = pd.to_datetime(df["timestamp"])
-            df = df.sort_values("timestamp")
+            return df.sort_values("timestamp")
 
-        return df
     except Exception as e:
-        print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance: {e}")
-        # Fallback to local data if API fails
-        try:
-            from baet.data.storage import ParquetMarketDataStore
-            store = ParquetMarketDataStore(load_settings())
-            df = store.read_raw_candles(symbol, timeframe)
-            if not df.empty:
-                df["timestamp"] = pd.to_datetime(df["timestamp"])
-                df = df.sort_values("timestamp")
-            return df
-        except:
-            return pd.DataFrame()
+        print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance API: {e}")
+
+    return pd.DataFrame()
 
 
 def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
@@ -472,7 +472,7 @@ def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
                 "error": f"API request timed out after {timeout_seconds}s",
                 "timestamp": datetime.now().isoformat()
             }
-    except Exception as e:
+    except Exception:
         # Fallback: no session state available, just fetch with timeout
         future = _executor.submit(load_live_account_info)
         try:

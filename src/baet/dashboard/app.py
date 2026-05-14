@@ -1,15 +1,15 @@
 """Main Streamlit app for BAET dashboard - Redesigned TradingView-inspired Terminal."""
 
 import sys
-from pathlib import Path
 import time
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path so we can import baet
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 # Page config
 st.set_page_config(
@@ -141,31 +141,34 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Load data
-from baet.dashboard.data_loader import (
-    load_latest_state,
-    load_recent_trades,
-    load_equity_curve,
-    load_latest_brain_scoring,
-    load_recent_signals,
-    load_ohlcv_data,
-    calculate_daily_summary,
-    calculate_performance_metrics,
-)
+from baet.config.loader import load_settings
 from baet.dashboard.components import (
     render_equity_chart,
     render_win_rate_chart,
 )
+from baet.dashboard.data_loader import (
+    calculate_daily_summary,
+    load_equity_curve,
+    load_latest_brain_scoring,
+    load_latest_state,
+    load_ohlcv_data,
+    load_recent_signals,
+    load_recent_trades,
+)
+
+# Load settings
+settings = load_settings()
 
 # Initialize Session State
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 if "symbol" not in st.session_state:
-    st.session_state.symbol = "BTCUSDT"
+    st.session_state.symbol = settings.market.symbols[0] if settings.market.symbols else "BTCUSDT"
 if "timeframe" not in st.session_state:
-    st.session_state.timeframe = "1h"
+    st.session_state.timeframe = settings.market.timeframes[0] if settings.market.timeframes else "1h"
 
 # Top Status Strip
-log_dir = "logs/paper"
+log_dir = settings.paper.logging.get("directory", "logs/paper")
 portfolio_state = load_latest_state(log_dir)
 daily_summary = calculate_daily_summary(log_dir)
 brain_scoring = load_latest_brain_scoring(log_dir)
@@ -175,23 +178,31 @@ def render_top_strip():
     pnl = daily_summary.get('daily_pnl', 0)
     pnl_color = "bullish" if pnl >= 0 else "bearish"
     
+    # Mode from config
+    mode_str = str(settings.app.mode).upper()
+
     signal = "NEUTRAL"
     score = brain_scoring.get("score", 0)
     if score > 0.3: signal = "BULLISH"
     elif score < -0.3: signal = "BEARISH"
     signal_color = "bullish" if signal == "BULLISH" else "bearish" if signal == "BEARISH" else "warning"
 
+    # Dynamic risk status
+    failed_risk = daily_summary.get('failed_risk', 0)
+    risk_status = "STABLE" if failed_risk == 0 else "VIOLATION"
+    risk_color = "bullish" if failed_risk == 0 else "bearish"
+
     st.markdown(f"""
     <div class="top-strip">
         <div style="display: flex;">
-            <div class="status-item"><span class="status-label">MODE:</span><span class="status-value info">PAPER</span></div>
+            <div class="status-item"><span class="status-label">MODE:</span><span class="status-value info">{mode_str}</span></div>
             <div class="status-item"><span class="status-label">EQUITY:</span><span class="status-value">${equity:,.2f}</span></div>
             <div class="status-item"><span class="status-label">DAILY P&L:</span><span class="status-value {pnl_color}">${pnl:+,.2f}</span></div>
             <div class="status-item"><span class="status-label">POSITIONS:</span><span class="status-value">{len(portfolio_state.get('positions', {}))}</span></div>
         </div>
         <div style="display: flex;">
             <div class="status-item"><span class="status-label">AI SIGNAL:</span><span class="status-value {signal_color}">{signal}</span></div>
-            <div class="status-item"><span class="status-label">RISK:</span><span class="status-value bullish">STABLE</span></div>
+            <div class="status-item"><span class="status-label">RISK:</span><span class="status-value {risk_color}">{risk_status}</span></div>
             <div class="status-item"><span class="status-label">LAST UPDATE:</span><span class="status-value">{datetime.now().strftime('%H:%M:%S')}</span></div>
         </div>
     </div>
@@ -207,9 +218,17 @@ with col_main:
     st.markdown('<div class="terminal-panel">', unsafe_allow_html=True)
     c1, c2, c3 = st.columns([2, 1, 4])
     with c1:
-        st.session_state.symbol = st.selectbox("Symbol", ["BTCUSDT", "ETHUSDT"], label_visibility="collapsed")
+        st.session_state.symbol = st.selectbox(
+            "Symbol",
+            settings.market.symbols if settings.market.symbols else ["BTCUSDT"],
+            label_visibility="collapsed"
+        )
     with c2:
-        st.session_state.timeframe = st.selectbox("TF", ["1h", "4h"], label_visibility="collapsed")
+        st.session_state.timeframe = st.selectbox(
+            "TF",
+            settings.market.timeframes if settings.market.timeframes else ["1h"],
+            label_visibility="collapsed"
+        )
     
     ohlcv_df = load_ohlcv_data(st.session_state.symbol, st.session_state.timeframe)
     if not ohlcv_df.empty:
