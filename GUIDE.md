@@ -316,12 +316,22 @@ The dashboard is a **Flask + HTML/JS/CSS** web application for real-time monitor
 
 ### Launch
 
+**One-click launch** (auto-opens browser):
+
 ```bash
-# Use the launcher script
+# From the project root — opens browser automatically after 2 seconds
 uv run python scripts/run_dashboard.py
 ```
 
-Then open **http://localhost:8501** in your browser.
+Or use the platform scripts for true double-click launching:
+
+| Platform | File | How |
+|---|---|---|
+| Windows (CMD) | `run_dashboard.bat` | Double-click in Explorer |
+| Windows (PowerShell) | `run_dashboard.ps1` | Right-click → "Run with PowerShell" |
+| Any (uv) | `uv run python scripts/run_dashboard.py` | Terminal |
+
+The browser opens automatically to **http://localhost:8501**.
 
 ### Dashboard Sections
 

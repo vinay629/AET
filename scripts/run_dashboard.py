@@ -3,6 +3,9 @@
 import os
 import subprocess
 import sys
+import threading
+import time
+import webbrowser
 from pathlib import Path
 
 # Get the project root directory
@@ -16,6 +19,13 @@ API_SERVER_PATH = PROJECT_ROOT / "src" / "baet" / "dashboard" / "web" / "api_ser
 
 # Default port
 PORT = os.getenv("BAET_DASHBOARD_PORT", "8501")
+URL = f"http://localhost:{PORT}"
+
+
+def open_browser_delayed(url: str, delay: float = 2.0):
+    """Open the browser after a short delay to let the server start."""
+    time.sleep(delay)
+    webbrowser.open(url)
 
 
 def main():
@@ -28,19 +38,26 @@ def main():
         print(f"Error: API server not found at {API_SERVER_PATH}")
         sys.exit(1)
 
-    print("Starting BAET Dashboard...")
-    print(f"Dashboard directory: {DASHBOARD_DIR}")
-    print(f"API server: {API_SERVER_PATH}")
-    print(f"Port: {PORT}")
-    print(f"URL: http://localhost:{PORT}")
-    print("\nPress Ctrl+C to stop\n")
+    print("=" * 50)
+    print("  BAET Dashboard - Binance Adaptive Ensemble Trader")
+    print("=" * 50)
+    print(f"  URL: {URL}")
+    print("  Press Ctrl+C to stop")
+    print("=" * 50)
+    print()
+
+    # Open browser in background thread (waits 2s for server to start)
+    browser_thread = threading.Thread(target=open_browser_delayed, args=(URL,), daemon=True)
+    browser_thread.start()
 
     # Build the command for Flask API server
     cmd = [
         sys.executable,
         str(API_SERVER_PATH),
-        "--host", "localhost",
-        "--port", PORT,
+        "--host",
+        "localhost",
+        "--port",
+        PORT,
     ]
 
     try:
