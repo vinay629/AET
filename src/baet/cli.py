@@ -109,22 +109,32 @@ def backtest(
         click.echo(f"  End: {end}")
 
     try:
-        from baet.backtest.pipeline import BacktestPipeline
+        from baet.execution.backtest import PortfolioBacktestEngine
+        from baet.strategies.baselines import BuyAndHoldStrategy
 
-        pipeline = BacktestPipeline(settings=settings)
-        result = pipeline.run(
-            strategy_name=strategy,
-            start_date=start,
-            end_date=end,
-            symbols=list(symbols) if symbols else None,
-        )
+        engine = PortfolioBacktestEngine(settings.backtest)
+        strategy_obj = BuyAndHoldStrategy()
+
+        market_frames = {}
+        signals = {}
+        for sym in list(symbols) if symbols else settings.market.symbols:
+            for tf in settings.market.timeframes:
+                from baet.data.binance import BinanceHistoricalProvider
+                from datetime import UTC, datetime, timedelta
+
+                provider = BinanceHistoricalProvider(settings)
+                end_dt = datetime.now(UTC)
+                start_dt = end_dt - timedelta(days=365)
+                candles = provider.fetch_klines(sym, tf, start_dt, end_dt)
+                key = (sym, tf)
+                market_frames[key] = candles
+                signals[key] = strategy_obj.generate_signals(candles)
+
+        artifacts = engine.run(market_frames, signals, run_name=f"cli_{strategy}")
 
         click.echo("\n📈 Backtest Results:")
-        click.echo(f"  Total Return: {result.get('total_return', 0):.2%}")
-        click.echo(f"  Sharpe Ratio: {result.get('sharpe_ratio', 0):.2f}")
-        click.echo(f"  Max Drawdown: {result.get('max_drawdown', 0):.2%}")
-        click.echo(f"  Total Trades: {result.get('total_trades', 0)}")
-        click.echo(f"  Win Rate: {result.get('win_rate', 0):.1%}")
+        click.echo(f"  Final Equity: {artifacts.equity_curve['equity'].iloc[-1]:.2f}")
+        click.echo(f"  Total Trades: {len(artifacts.trades)}")
         click.echo("✅ Backtest complete")
     except Exception as e:
         click.echo(f"❌ Backtest failed: {e}", err=True)
