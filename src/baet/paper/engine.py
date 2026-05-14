@@ -13,6 +13,8 @@ import pandas as pd
 
 import pandas as pd
 
+import pandas as pd
+
 from baet.config.models import Settings
 from baet.core.brain import ScoringEnsemble
 from baet.plugins.markov import MarkovPlugin
@@ -43,8 +45,8 @@ class PaperTradingEngine:
         self.start_time: datetime | None = None
         self.last_update_time: datetime | None = None
         self.consecutive_errors = 0
-        self.max_consecutive_errors = 10
-
+        self.max_consecutive_errors = config.paper.max_consecutive_errors
+        
         # Lazy imports to avoid circular imports
         from baet.paper.order_simulator import PaperOrderSimulator
         from baet.paper.portfolio import PaperPortfolio

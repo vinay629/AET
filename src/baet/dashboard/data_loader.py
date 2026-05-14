@@ -1,13 +1,15 @@
 """Data loading utilities for the BAET dashboard."""
 
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
+import streamlit as st
 
 # Thread pool for timeout support
 _executor = ThreadPoolExecutor(max_workers=1)
@@ -57,8 +59,8 @@ def parse_log_file(log_file: Path, max_entries: int = 100) -> list[dict[str, Any
     Returns:
         List of log entries as dictionaries
     """
-    entries = []
-
+    entries: list[dict[str, Any]] = []
+    
     if not log_file.exists():
         return entries
 
@@ -189,14 +191,9 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     return df
 
 
-from datetime import timedelta
-
-import streamlit as st
-
-
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
-    """Load OHLCV data favoring local storage, then falling back to Binance API.
+    """Load OHLCV data prioritizing local Parquet data, then Binance API.
 
     Args:
         symbol: Trading symbol (e.g., BTCUSDT)
@@ -206,28 +203,26 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
         DataFrame with OHLCV data
     """
     from baet.config.loader import load_settings
-
     settings = load_settings()
 
-    # 1. Try local storage first
+    # 1. Try local Parquet storage first
     try:
         from baet.data.storage import ParquetMarketDataStore
-
         store = ParquetMarketDataStore(settings)
         df = store.read_raw_candles(symbol, timeframe)
         if not df.empty:
             if "open_time" in df.columns and "timestamp" not in df.columns:
                 df = df.rename(columns={"open_time": "timestamp"})
             df["timestamp"] = pd.to_datetime(df["timestamp"])
-            return df.sort_values("timestamp")
+            df = df.sort_values("timestamp")
+            return df
     except Exception:
-        # Silently fail and try API
+        # File not found or other storage error, proceed to API
         pass
 
     # 2. Fallback to Binance API
     try:
         from baet.data.binance import BinanceHistoricalProvider
-
         provider = BinanceHistoricalProvider(settings)
 
         # Fetch candles based on historical_limit
@@ -266,8 +261,7 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
 
     except Exception as e:
         print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance API: {e}")
-
-    return pd.DataFrame()
+        return pd.DataFrame()
 
 
 def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
@@ -292,7 +286,7 @@ def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
     return {}
 
 
-def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[dict]:
+def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[dict[str, Any]]:
     """Load recent signals from logs.
 
     Args:
@@ -308,7 +302,7 @@ def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[di
 
     entries = parse_log_file(log_file, max_entries=5000)
 
-    signals = []
+    signals: list[dict[str, Any]] = []
     for entry in entries:
         if entry.get("type") == "SIGNAL_RECEIVED":
             signals.append(entry)
@@ -469,34 +463,32 @@ def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
     """
     # Try to use streamlit session state for simple caching
     try:
-        import streamlit as st
-
         # Check if we have a cached result in session state
         cache_key = "_live_account_cache"
         cache_time_key = "_live_account_cache_time"
 
         if cache_key in st.session_state:
-            import time
-
             current_time = time.time()
             cache_time = st.session_state.get(cache_time_key, 0)
 
             # Use cached result if less than 30 seconds old
             if current_time - cache_time < 30:
-                return st.session_state[cache_key]
-
+                result = st.session_state[cache_key]
+                if isinstance(result, dict):
+                    return result
+        
         # Fetch with timeout
         future = _executor.submit(load_live_account_info)
         try:
-            result = future.result(timeout=timeout_seconds)
-
+            fetch_result = future.result(timeout=timeout_seconds)
+            
             # Cache result
-            import time
-
-            st.session_state[cache_key] = result
+            st.session_state[cache_key] = fetch_result
             st.session_state[cache_time_key] = time.time()
-
-            return result
+            
+            if isinstance(fetch_result, dict):
+                return fetch_result
+            return {"success": False, "error": "Invalid result type"}
         except FuturesTimeoutError:
             return {
                 "success": False,
@@ -504,7 +496,7 @@ def load_live_account_info_cached(timeout_seconds: int = 5) -> dict[str, Any]:
                 "timestamp": datetime.now().isoformat(),
             }
     except Exception:
-        # Fallback: no session state available, just fetch with timeout
+        # Fallback: no session state available or error, just fetch with timeout
         future = _executor.submit(load_live_account_info)
         try:
             fallback_result = future.result(timeout=timeout_seconds)
