@@ -119,8 +119,9 @@ def backtest(
         signals = {}
         for sym in list(symbols) if symbols else settings.market.symbols:
             for tf in settings.market.timeframes:
-                from baet.data.binance import BinanceHistoricalProvider
                 from datetime import UTC, datetime, timedelta
+
+                from baet.data.binance import BinanceHistoricalProvider
 
                 provider = BinanceHistoricalProvider(settings)
                 end_dt = datetime.now(UTC)

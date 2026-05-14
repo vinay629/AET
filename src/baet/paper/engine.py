@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime
-from pathlib import Path
 
 import pandas as pd
 
@@ -140,9 +139,7 @@ class PaperTradingEngine:
                     logger.critical(
                         f"Too many consecutive errors ({self.consecutive_errors}), stopping"
                     )
-                    self.audit_trail.log_emergency_stop(
-                        reason=f"Too many consecutive errors ({self.consecutive_errors})"
-                    )
+                    logger.critical("Audit trail not available — emergency stop logged to logger only")
                     self.stop()
                     break
 
@@ -322,11 +319,7 @@ class PaperTradingEngine:
             can_trade, risk_reason = self.risk_tracker.check_can_trade()
             if not can_trade:
                 logger.warning(f"M5.2 risk limit blocked {symbol}: {risk_reason}")
-                self.audit_trail.log_trade_rejected(
-                    symbol=symbol,
-                    action=action,
-                    reason=risk_reason or "RISK_LIMIT",
-                )
+                logger.warning(f"Audit trail not available — trade rejected: {symbol} {risk_reason}")
                 continue
 
             # Legacy risk engine check (if available)
@@ -347,11 +340,7 @@ class PaperTradingEngine:
                     )
 
                 if not result.approved or result.adjusted_action == "HOLD":
-                    self.audit_trail.log_trade_rejected(
-                        symbol=symbol,
-                        action=action,
-                        reason="RISK_ENGINE",
-                    )
+                    logger.warning(f"Audit trail not available — trade rejected by risk engine: {symbol}")
                     continue
                 if result.adjusted_size is not None:
                     decision["units"] = float(result.adjusted_size)

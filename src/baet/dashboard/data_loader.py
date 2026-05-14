@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -57,7 +57,7 @@ def parse_log_file(log_file: Path, max_entries: int = 100) -> list[dict[str, Any
     if not log_file.exists():
         return entries
 
-    with open(log_file, "r") as f:
+    with open(log_file) as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -196,11 +196,13 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
         DataFrame with OHLCV data
     """
     from baet.config.loader import load_settings
+
     settings = load_settings()
 
     # 1. Try local Parquet storage first
     try:
         from baet.data.storage import ParquetMarketDataStore
+
         store = ParquetMarketDataStore(settings)
         df = store.read_raw_candles(symbol, timeframe)
         if not df.empty:
@@ -216,6 +218,7 @@ def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
     # 2. Fallback to Binance API
     try:
         from baet.data.binance import BinanceHistoricalProvider
+
         provider = BinanceHistoricalProvider(settings)
 
         # Fetch candles based on historical_limit
@@ -308,9 +311,7 @@ def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[di
     return signals[-limit:] if limit else signals
 
 
-def calculate_daily_summary(
-    log_dir: str = "logs/paper", date: Optional[str] = None
-) -> dict[str, Any]:
+def calculate_daily_summary(log_dir: str = "logs/paper", date: str | None = None) -> dict[str, Any]:
     """Calculate daily summary from logs.
 
     Args:
@@ -414,6 +415,3 @@ def calculate_performance_metrics(log_dir: str = "logs/paper") -> dict[str, Any]
         "volatility": returns.std() * (252**0.5),
         "win_rate": (returns > 0).sum() / len(returns) if len(returns) > 0 else 0.0,
     }
-
-
-

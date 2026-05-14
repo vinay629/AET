@@ -101,15 +101,9 @@ def test_backtest_command_runs_with_engine(monkeypatch: pytest.MonkeyPatch) -> N
             )
 
     monkeypatch.setattr(cli_module, "_load_config", _fake_load_config)
-    monkeypatch.setattr(
-        "baet.data.binance.BinanceHistoricalProvider", FakeProvider
-    )
-    monkeypatch.setattr(
-        "baet.execution.backtest.PortfolioBacktestEngine", FakeEngine
-    )
-    monkeypatch.setattr(
-        "baet.strategies.baselines.BuyAndHoldStrategy", lambda: FakeStrategy()
-    )
+    monkeypatch.setattr("baet.data.binance.BinanceHistoricalProvider", FakeProvider)
+    monkeypatch.setattr("baet.execution.backtest.PortfolioBacktestEngine", FakeEngine)
+    monkeypatch.setattr("baet.strategies.baselines.BuyAndHoldStrategy", lambda: FakeStrategy())
 
     runner = CliRunner()
     result = runner.invoke(cli_module.cli, ["backtest", "--strategy", "sma_crossover"])
