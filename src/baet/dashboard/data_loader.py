@@ -174,7 +174,123 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.sort_values("timestamp")
     
+    # Add returns for win rate calculation
+    df["returns"] = df["total_value"].pct_change()
+
     return df
+
+
+import streamlit as st
+from datetime import datetime, timedelta
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
+    """Load OHLCV data from Binance API.
+
+    Args:
+        symbol: Trading symbol (e.g., BTCUSDT)
+        timeframe: Candle timeframe (e.g., 1h)
+
+    Returns:
+        DataFrame with OHLCV data
+    """
+    try:
+        from baet.config.loader import load_settings
+        from baet.data.binance import BinanceHistoricalProvider
+
+        settings = load_settings()
+        provider = BinanceHistoricalProvider(settings)
+
+        # Fetch last 100 candles
+        end_time = datetime.now()
+
+        # Approximate start time based on timeframe
+        if timeframe == '1h':
+            start_time = end_time - timedelta(hours=100)
+        elif timeframe == '4h':
+            start_time = end_time - timedelta(hours=400)
+        elif timeframe == '1m':
+            start_time = end_time - timedelta(minutes=100)
+        elif timeframe == '5m':
+            start_time = end_time - timedelta(minutes=500)
+        elif timeframe == '15m':
+            start_time = end_time - timedelta(minutes=1500)
+        elif timeframe == '1d':
+            start_time = end_time - timedelta(days=100)
+        else:
+            start_time = end_time - timedelta(hours=100)
+
+        df = provider.fetch_klines(symbol, timeframe, start_time, end_time)
+
+        if not df.empty:
+            # Rename columns to match what the chart expects if needed
+            # Binance provider returns: open_time, open, high, low, close, volume
+            if "open_time" in df.columns and "timestamp" not in df.columns:
+                df = df.rename(columns={"open_time": "timestamp"})
+
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df = df.sort_values("timestamp")
+
+        return df
+    except Exception as e:
+        print(f"Error loading OHLCV data for {symbol} {timeframe} from Binance: {e}")
+        # Fallback to local data if API fails
+        try:
+            from baet.data.storage import ParquetMarketDataStore
+            store = ParquetMarketDataStore(load_settings())
+            df = store.read_raw_candles(symbol, timeframe)
+            if not df.empty:
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                df = df.sort_values("timestamp")
+            return df
+        except:
+            return pd.DataFrame()
+
+
+def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
+    """Load the latest AI Brain scoring event.
+
+    Args:
+        log_dir: Directory containing log files
+
+    Returns:
+        Latest brain scoring event or empty dict
+    """
+    log_file = find_latest_log_file(log_dir)
+    if not log_file:
+        return {}
+
+    entries = parse_log_file(log_file, max_entries=1000)
+
+    for entry in reversed(entries):
+        if entry.get("type") == "BRAIN_SCORING":
+            return entry
+
+    return {}
+
+
+def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[dict]:
+    """Load recent signals from logs.
+
+    Args:
+        log_dir: Directory containing log files
+        limit: Maximum number of signals to return
+
+    Returns:
+        List of recent signals
+    """
+    log_file = find_latest_log_file(log_dir)
+    if not log_file:
+        return []
+
+    entries = parse_log_file(log_file, max_entries=5000)
+
+    signals = []
+    for entry in entries:
+        if entry.get("type") == "SIGNAL_RECEIVED":
+            signals.append(entry)
+
+    return signals[-limit:] if limit else signals
 
 
 def calculate_daily_summary(log_dir: str = "logs/paper", date: Optional[str] = None) -> dict[str, Any]:

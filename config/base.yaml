@@ -42,8 +42,8 @@ live:
     - position_lookup
 
 binance:
-  rest_base_url: https://api.binance.com
-  websocket_base_url: wss://stream.binance.com:9443/ws
+  rest_base_url: https://api.binance.us
+  websocket_base_url: wss://stream.binance.us:9443/ws
   historical_limit: 1000
   request_timeout_seconds: 30
   live_stream_enabled: true
