@@ -174,7 +174,84 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.sort_values("timestamp")
     
+    # Add returns for win rate calculation
+    df["returns"] = df["total_value"].pct_change()
+
     return df
+
+
+def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
+    """Load OHLCV data from local Parquet files.
+
+    Args:
+        symbol: Trading symbol (e.g., BTCUSDT)
+        timeframe: Candle timeframe (e.g., 1h)
+
+    Returns:
+        DataFrame with OHLCV data
+    """
+    try:
+        from baet.config.loader import load_settings
+        from baet.data.storage import ParquetMarketDataStore
+
+        settings = load_settings()
+        store = ParquetMarketDataStore(settings)
+        df = store.read_raw_candles(symbol, timeframe)
+
+        if not df.empty:
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df = df.sort_values("timestamp")
+
+        return df
+    except Exception as e:
+        print(f"Error loading OHLCV data for {symbol} {timeframe}: {e}")
+        return pd.DataFrame()
+
+
+def load_latest_brain_scoring(log_dir: str = "logs/paper") -> dict[str, Any]:
+    """Load the latest AI Brain scoring event.
+
+    Args:
+        log_dir: Directory containing log files
+
+    Returns:
+        Latest brain scoring event or empty dict
+    """
+    log_file = find_latest_log_file(log_dir)
+    if not log_file:
+        return {}
+
+    entries = parse_log_file(log_file, max_entries=1000)
+
+    for entry in reversed(entries):
+        if entry.get("type") == "BRAIN_SCORING":
+            return entry
+
+    return {}
+
+
+def load_recent_signals(log_dir: str = "logs/paper", limit: int = 50) -> list[dict]:
+    """Load recent signals from logs.
+
+    Args:
+        log_dir: Directory containing log files
+        limit: Maximum number of signals to return
+
+    Returns:
+        List of recent signals
+    """
+    log_file = find_latest_log_file(log_dir)
+    if not log_file:
+        return []
+
+    entries = parse_log_file(log_file, max_entries=5000)
+
+    signals = []
+    for entry in entries:
+        if entry.get("type") == "SIGNAL_RECEIVED":
+            signals.append(entry)
+
+    return signals[-limit:] if limit else signals
 
 
 def calculate_daily_summary(log_dir: str = "logs/paper", date: Optional[str] = None) -> dict[str, Any]:
