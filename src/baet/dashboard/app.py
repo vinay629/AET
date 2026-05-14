@@ -6,6 +6,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Add src to path so we can import baet
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -162,6 +163,9 @@ from baet.dashboard.data_loader import (
     load_recent_trades,
 )
 
+AVAILABLE_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT"]
+AVAILABLE_TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"]
+
 # Initialize Session State
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
@@ -171,7 +175,13 @@ if "timeframe" not in st.session_state:
     st.session_state.timeframe = AVAILABLE_TIMEFRAMES[0]
 
 # Top Status Strip
-log_dir = settings.paper.logging.get("directory", "logs/paper") if settings else "logs/paper"
+try:
+    from baet.config.loader import load_settings as _load_settings
+    settings = _load_settings()
+    log_dir = settings.paper.logging.get("directory", "logs/paper")
+except Exception:
+    settings = None
+    log_dir = "logs/paper"
 portfolio_state = load_latest_state(log_dir)
 daily_summary = calculate_daily_summary(log_dir)
 brain_scoring = load_latest_brain_scoring(log_dir)

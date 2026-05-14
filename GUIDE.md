@@ -312,29 +312,31 @@ Reports:
 
 ## Running the Dashboard
 
-The dashboard is a **Streamlit** application for real-time monitoring of paper trading activity.
+The dashboard is a **Flask + HTML/JS/CSS** web application for real-time monitoring of paper trading activity. It consists of a Flask REST API server (`api_server.py`) serving a single-page frontend with Chart.js visualizations.
 
 ### Launch
 
 ```bash
-# Recommended: use the launcher script
+# Use the launcher script
 uv run python scripts/run_dashboard.py
-
-# Or run directly
-uv run streamlit run src/baet/dashboard/app.py
 ```
 
 Then open **http://localhost:8501** in your browser.
 
-### Dashboard Tabs
+### Dashboard Sections
 
-| Tab | Description |
+The single-page dashboard includes:
+
+| Section | Description |
 |---|---|
-| **Overview** | Portfolio summary, equity curve, Sharpe/Sortino ratios, max drawdown |
-| **Positions** | Open positions with entry price, current price, and unrealized P&L |
-| **Trades** | Trade history with entry/exit details, P&L, and duration |
-| **Performance** | Daily P&L bar chart, cumulative return visualization |
-| **Logs** | Raw paper trading log viewer, filterable by event type |
+| **Status Strip** | Mode, status, equity, daily P&L, position count, AI signal, risk level |
+| **Market Chart** | Interactive OHLCV candlestick chart with symbol/timeframe selectors |
+| **Equity Curve** | Portfolio value over time with area fill |
+| **Portfolio Overview** | Cash, total value, total return, positions value |
+| **Performance Metrics** | Sharpe/Sortino ratios, max drawdown, win rate, volatility, AI score |
+| **Positions Table** | Open positions with units, avg/current price, market value, P&L |
+| **Recent Trades** | Trade history with action, symbol, cash after, value after |
+| **Logs** | Recent log entries with timestamp, type, and message |
 
 ### Dashboard Configuration
 
@@ -344,7 +346,7 @@ The dashboard reads from the `dashboard:` section in `config/base.yaml`:
 dashboard:
   enabled: true
   port: 8501
-  theme: light
+  theme: "dark"
   auto_refresh: true
   refresh_interval_seconds: 30
   max_recent_trades: 50
@@ -364,6 +366,25 @@ The dashboard reads JSONL log files from `logs/paper/`. Each line is a JSON even
 - `TRADE` — trade execution events
 - `ORDER_FILLED` — order fill notifications
 - `RISK_ACTION` — risk management actions
+
+### API Endpoints
+
+The Flask server exposes these REST endpoints:
+
+| Endpoint | Description |
+|---|---|
+| `GET /` | Main dashboard HTML page |
+| `GET /api/status` | System status, equity, daily P&L |
+| `GET /api/portfolio` | Current portfolio state |
+| `GET /api/equity` | Equity curve data |
+| `GET /api/trades` | Recent trades |
+| `GET /api/positions` | Open positions with P&L |
+| `GET /api/logs` | Recent log entries |
+| `GET /api/performance` | Sharpe, Sortino, drawdown, win rate |
+| `GET /api/ohlcv/<symbol>` | OHLCV candle data |
+| `GET /api/ai-signal` | Latest AI signal and score |
+| `GET /api/symbols` | Available trading symbols |
+| `GET /api/daily-summary` | Daily P&L summary |
 
 ---
 
@@ -552,10 +573,10 @@ uv run pytest -m "not e2e"
 
 ```bash
 # Ruff linter
-uv run ruff check src/baet/dashboard/app.py src/baet/dashboard/components.py src/baet/execution/backtest.py src/baet/strategies/baselines.py tests
+uv run ruff check src/baet/dashboard/web/api_server.py src/baet/dashboard/data_loader.py src/baet/execution/backtest.py src/baet/strategies/baselines.py tests
 
 # MyPy type checker
-uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py src/baet/dashboard/app.py
+uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py src/baet/dashboard/web/api_server.py
 ```
 
 ---
@@ -584,10 +605,15 @@ AET/
 │   │   ├── features.py      # Feature engineering
 │   │   ├── validation.py    # Data validation
 │   │   └── schemas.py       # Data schemas
-│   ├── dashboard/           # Streamlit dashboard
-│   │   ├── app.py           # Main dashboard app
+│   ├── dashboard/           # Flask + HTML/JS/CSS dashboard
+│   │   ├── app.py           # Legacy Streamlit app (kept for reference)
 │   │   ├── components.py    # Dashboard UI components
-│   │   └── data_loader.py   # Log file reader
+│   │   ├── data_loader.py   # Log file reader
+│   │   └── web/             # New web dashboard
+│   │       ├── api_server.py    # Flask REST API server
+│   │       ├── index.html       # Main dashboard page
+│   │       ├── styles.css       # Dark terminal theme
+│   │       └── dashboard.js     # Chart.js frontend logic
 │   ├── execution/           # Trade execution
 │   │   └── backtest.py      # Portfolio backtest engine
 │   ├── paper/               # Paper trading engine

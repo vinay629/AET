@@ -274,11 +274,11 @@ class BAETDashboard {
     // Update portfolio overview
     updatePortfolioOverview() {
         const portfolio = this.data.portfolio;
-        const initialBalance = 10000; // Default from config
+        const initialBalance = portfolio.initial_balance || 10000;
         const totalValue = portfolio.total_value || 0;
         const cash = portfolio.cash || 0;
         const positionsValue = totalValue - cash;
-        const totalReturn = ((totalValue - initialBalance) / initialBalance) * 100;
+        const totalReturn = initialBalance > 0 ? ((totalValue - initialBalance) / initialBalance) * 100 : 0;
         
         document.getElementById('total-value').textContent = this.formatCurrency(totalValue);
         document.getElementById('positions-value').textContent = this.formatCurrency(positionsValue);

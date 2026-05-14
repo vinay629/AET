@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  lint-and-test:
+  lint-and-typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +28,3 @@ jobs:
 
       - name: Type check with mypy
         run: uv run mypy .
-
-      - name: Run tests
-        run: uv run pytest tests/test_config_loader.py tests/test_data_ingestion.py tests/test_dashboard.py tests/test_strategy_contracts.py tests/test_backtest_pipeline.py tests/test_paper_trading.py

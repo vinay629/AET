@@ -6,17 +6,16 @@ Serves the HTML dashboard and provides REST API endpoints for real-time data.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 # Add src to path so we can import baet
-import sys
-from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from baet.config.loader import load_settings
@@ -26,7 +25,6 @@ from baet.dashboard.data_loader import (
     load_equity_curve,
     load_latest_brain_scoring,
     load_ohlcv_data,
-    load_recent_signals,
     load_recent_trades,
     load_latest_state,
     parse_log_file,
@@ -225,9 +223,9 @@ def get_performance():
         drawdown = (equity_data['total_value'] - cumulative_max) / cumulative_max
         max_drawdown = drawdown.min()
         
-        # Win rate (from trades)
+        # Win rate (from trades with positive P&L)
         trades = load_recent_trades(LOG_DIR, limit=1000)
-        profitable_trades = sum(1 for trade in trades if trade.get('action') in ['BUY', 'SELL'])
+        profitable_trades = sum(1 for trade in trades if trade.get('pnl', 0) > 0)
         win_rate = profitable_trades / len(trades) if trades else 0
         
         # AI score
