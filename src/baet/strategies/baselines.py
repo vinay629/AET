@@ -168,7 +168,9 @@ class BollingerBandsStrategy(StrategyContract):
         name="bollinger_bands",
         category="baseline",
         version="1.0.0",
-        description="Mean reversion strategy that buys when price drops below the lower Bollinger Band.",
+        description=(
+            "Mean reversion strategy that buys when price drops below the lower " "Bollinger Band."
+        ),
     )
 
     def __init__(self, window: int = 20, multiplier: float = 2.0) -> None:
@@ -259,7 +261,9 @@ class AdxTrendFilterStrategy(StrategyContract):
         name="adx_trend_filter",
         category="baseline",
         version="1.0.0",
-        description="Trend filter strategy that buys when ADX confirms rising directional momentum.",
+        description=(
+            "Trend filter strategy that buys when ADX confirms rising directional " "momentum."
+        ),
     )
 
     def __init__(self, period: int = 14, adx_threshold: float = 20.0) -> None:

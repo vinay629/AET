@@ -68,7 +68,8 @@ class ScoringPlugin(ABC):
         Return the current status/health of the plugin.
 
         Returns:
-            A dictionary containing the plugin's name, current weight, and average historical performance.
+            A dictionary containing the plugin's name, current weight, and
+            average historical performance.
         """
         return {
             "name": self.metadata.name,

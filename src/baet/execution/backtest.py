@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pandas as pd
 
 from baet.config.models import BacktestConfig
@@ -7,9 +9,12 @@ from baet.core.models import BacktestArtifacts
 from baet.data.interfaces import BacktestEngine
 from baet.strategies.adapters import adapt_order_intent_to_backtest_signals
 
+if TYPE_CHECKING:
+    from baet.risk.engine import RiskEngine
+
 
 # Lazy import to avoid circular imports
-def _get_risk_engine():
+def _get_risk_engine() -> type[RiskEngine]:
     from baet.risk.engine import RiskEngine
 
     return RiskEngine

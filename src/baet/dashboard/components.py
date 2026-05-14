@@ -1,5 +1,7 @@
 """Streamlit UI components for BAET dashboard."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import pandas as pd
@@ -8,7 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 
-def render_portfolio_overview(state: dict[str, Any]):
+def render_portfolio_overview(state: dict[str, Any]) -> None:
     """Render portfolio overview section.
 
     Args:
@@ -46,7 +48,7 @@ def render_portfolio_overview(state: dict[str, Any]):
     render_portfolio_allocation(state)
 
 
-def render_portfolio_allocation(state: dict[str, Any]):
+def render_portfolio_allocation(state: dict[str, Any]) -> None:
     """Render portfolio allocation pie chart.
 
     Args:
@@ -89,7 +91,10 @@ def render_portfolio_allocation(state: dict[str, Any]):
     fig.update_traces(
         textposition="inside",
         textinfo="percent+label",
-        hovertemplate="<b>%{label}</b><br>Value: $%{value:,.2f}<br>Percentage: %{percent:.1%}<extra></extra>",
+        hovertemplate=(
+            "<b>%{label}</b><br>Value: $%{value:,.2f}<br>"
+            "Percentage: %{percent:.1%}<extra></extra>"
+        ),
     )
 
     fig.update_layout(
@@ -104,7 +109,7 @@ def render_portfolio_allocation(state: dict[str, Any]):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_positions_table(positions: dict[str, dict]):
+def render_positions_table(positions: dict[str, dict[str, Any]]) -> None:
     """Render current positions table with color coding.
 
     Args:
@@ -134,7 +139,7 @@ def render_positions_table(positions: dict[str, dict]):
     df = pd.DataFrame(data)
 
     # Display with color coding using Styler
-    def color_pnl(val):
+    def color_pnl(val: Any) -> str:
         """Color code P&L values."""
         if isinstance(val, (int, float)):
             if val > 0:
@@ -160,7 +165,7 @@ def render_positions_table(positions: dict[str, dict]):
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 
-def render_recent_trades(trades: list[dict], limit: int = 50):
+def render_recent_trades(trades: list[dict[str, Any]], limit: int = 50) -> None:
     """Render recent trades table with improved formatting.
 
     Args:
@@ -204,7 +209,7 @@ def render_recent_trades(trades: list[dict], limit: int = 50):
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 
-def render_performance_metrics(metrics: dict[str, Any]):
+def render_performance_metrics(metrics: dict[str, Any]) -> None:
     """Render performance metrics section with visual indicators.
 
     Args:
@@ -286,7 +291,7 @@ def render_performance_metrics(metrics: dict[str, Any]):
         st.metric(label="📊 Total Trades", value=f"{metrics.get('trade_count', 0)}")
 
 
-def render_equity_chart(df: pd.DataFrame, key: str | None = None):
+def render_equity_chart(df: pd.DataFrame, key: str | None = None) -> None:
     """Render equity curve chart with enhanced styling.
 
     Args:
@@ -337,7 +342,7 @@ def render_equity_chart(df: pd.DataFrame, key: str | None = None):
         render_drawdown_chart(df)
 
 
-def render_drawdown_chart(df: pd.DataFrame):
+def render_drawdown_chart(df: pd.DataFrame, key: str | None = None) -> None:
     """Render drawdown chart.
 
     Args:
@@ -380,7 +385,7 @@ def render_drawdown_chart(df: pd.DataFrame):
     st.plotly_chart(fig, use_container_width=True, key=key)
 
 
-def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000):
+def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000) -> None:
     """
     Render a cumulative win rate chart for the last N trades.
 
@@ -429,7 +434,7 @@ def render_win_rate_chart(equity_df: pd.DataFrame, window: int = 1000):
     st.plotly_chart(fig, use_container_width=True, key="win_rate_chart_unique")
 
 
-def render_brain_transparency(log_entries: list[dict]):
+def render_brain_transparency(log_entries: list[dict[str, Any]]) -> None:
     """
     Render the AI Brain scoring breakdown for full transparency.
 
@@ -479,7 +484,7 @@ def render_brain_transparency(log_entries: list[dict]):
             st.plotly_chart(fig, use_container_width=True)
 
 
-def render_daily_summary(summary: dict[str, Any]):
+def render_daily_summary(summary: dict[str, Any]) -> None:
     """Render daily summary section with enhanced visuals.
 
     Args:
@@ -541,7 +546,7 @@ def render_daily_summary(summary: dict[str, Any]):
         )
 
 
-def render_risk_status(risk_state: dict | None = None):
+def render_risk_status(risk_state: dict[str, Any] | None = None) -> None:
     """Render risk status section.
 
     Args:
@@ -562,7 +567,7 @@ def render_risk_status(risk_state: dict | None = None):
         st.success("No risk violations")
 
 
-def render_log_viewer(entries: list[dict], max_entries: int = 100):
+def render_log_viewer(entries: list[dict[str, Any]], max_entries: int = 100) -> None:
     """Render recent log entries.
 
     Args:
