@@ -22,13 +22,13 @@ print("✅ Credentials loaded from environment variables")
 try:
     client = Client(API_KEY, API_SECRET, testnet=True)
     print("\n✅ Client created successfully")
-    
+
     print("\nFetching account info...")
     info = client.get_account()
     print(f"✅ Account info retrieved")
     print(f"Can Trade: {info['canTrade']}")
     print(f"Account Type: {info.get('accountType', 'N/A')}")
-    
+
     # Show balances
     print("\nBalances:")
     for balance in info.get("balances", []):
@@ -36,10 +36,11 @@ try:
         locked = float(balance.get("locked", 0))
         if free > 0 or locked > 0:
             print(f"  {balance['asset']}: {free} (free) + {locked} (locked)")
-    
+
     print("\n✅ Testnet connection successful!")
-    
+
 except Exception as e:
     print(f"\n❌ Error: {e}")
     import traceback
+
     traceback.print_exc()

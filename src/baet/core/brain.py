@@ -58,23 +58,21 @@ class ScoringEnsemble:
             components[plugin.metadata.name] = {
                 "score": score,
                 "weight": weight,
-                "contribution": score * weight
+                "contribution": score * weight,
             }
 
         final_score = total_score / total_weight if total_weight > 0 else 0.0
         self.last_scores = {name: info["score"] for name, info in components.items()}
 
-        return {
-            "score": final_score,
-            "components": components,
-            "total_weight": total_weight
-        }
+        return {"score": final_score, "components": components, "total_weight": total_weight}
 
     def learn_from_trade(self, trade_outcome: Dict[str, Any]) -> None:
         """
         Pass trade feedback to all plugins so they can evolve.
         """
-        logger.info(f"AI Brain learning from trade outcome: PnL {trade_outcome.get('pnl_pct', 0):.2%}")
+        logger.info(
+            f"AI Brain learning from trade outcome: PnL {trade_outcome.get('pnl_pct', 0):.2%}"
+        )
 
         for plugin in self.plugins:
             # We can also pass how much this specific plugin contributed to the decision

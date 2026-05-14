@@ -95,7 +95,7 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         from_id: int,
         limit: int = 500,
     ) -> list:
-        """"Fetch historical block trades (New - May 2026)."""
+        """ "Fetch historical block trades (New - May 2026)."""
         query = urlencode(
             {
                 "symbol": symbol,
@@ -111,7 +111,7 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         self,
         symbol: str,
     ) -> dict:
-        """"Fetch reference price (New - March 2026)."""
+        """ "Fetch reference price (New - March 2026)."""
         query = urlencode({"symbol": symbol})
         url = f"{self.settings.binance.rest_base_url}/api/v3/referencePrice?{query}"
         with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
@@ -121,7 +121,7 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         self,
         symbol: str = None,
     ) -> dict:
-        """"Fetch price range execution rules (New - March 2026)."""
+        """ "Fetch price range execution rules (New - March 2026)."""
         params = {}
         if symbol:
             params["symbol"] = symbol
@@ -153,12 +153,12 @@ class BinanceLiveStream:
     def handle_message(self, message: str) -> dict:
         """Handle incoming WebSocket messages including serverShutdown."""
         data = json.loads(message)
-        
+
         # Handle serverShutdown event (New - May 2026)
         if isinstance(data, dict):
             if data.get("e") == "serverShutdown":
                 if self._on_shutdown_callback:
                     self._on_shutdown_callback(data)
                 return {"event": "shutdown", "data": data}
-        
+
         return data

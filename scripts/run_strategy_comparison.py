@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """End-to-end strategy comparison workflow for validating M2.3."""
+
 from __future__ import annotations
 
 import sys
@@ -21,13 +22,13 @@ def main() -> None:
     print("=" * 80)
     print("BAET Stage 2 Strategy Comparison Validation")
     print("=" * 80)
-    
+
     # Load settings
     settings = load_settings(mode="dev")
     store = ParquetMarketDataStore(settings)
     print("\nSettings loaded from mode: dev")
     print(f"Processing data from: {settings.storage.processed_data_dir}")
-    
+
     # Load market data
     market_frames: dict[tuple[str, str], pd.DataFrame] = {}
     for symbol in settings.market.symbols:
@@ -39,12 +40,12 @@ def main() -> None:
                     print(f"✓ Loaded {symbol} {timeframe}: {len(data)} bars")
             except Exception as e:
                 print(f"✗ Failed to load {symbol} {timeframe}: {e}")
-    
+
     if not market_frames:
         print("\n⚠ No market data found. Please run data ingestion first.")
         print("Example: python -m baet.data.binance")
         sys.exit(1)
-    
+
     # Run strategy comparison
     print(f"\nRunning strategy comparison on {len(market_frames)} market frames...")
     try:
@@ -56,27 +57,32 @@ def main() -> None:
     except Exception as e:
         print(f"✗ Strategy comparison failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
-    
+
     # Print results
     print("\n✓ Comparison completed successfully!")
     print(f"✓ Backtested {len(metrics)} strategies\n")
-    
+
     # Print rankings
     print("-" * 80)
     print("STRATEGY RANKINGS (by Sharpe Ratio)")
     print("-" * 80)
-    print(ranked[[
-        "rank",
-        "strategy_name",
-        "total_return",
-        "max_drawdown",
-        "sharpe_ratio",
-        "sortino_ratio",
-        "win_rate",
-    ]].to_string(index=False))
-    
+    print(
+        ranked[
+            [
+                "rank",
+                "strategy_name",
+                "total_return",
+                "max_drawdown",
+                "sharpe_ratio",
+                "sortino_ratio",
+                "win_rate",
+            ]
+        ].to_string(index=False)
+    )
+
     # Print summary statistics
     print("\n" + "-" * 80)
     print("SUMMARY STATISTICS")
@@ -87,17 +93,17 @@ def main() -> None:
             print(f"{key:.<40} {value:.4f}")
         else:
             print(f"{key:.<40} {value}")
-    
+
     # Print best strategies by different criteria
     print("\n" + "-" * 80)
     print("BEST STRATEGIES BY CRITERIA")
     print("-" * 80)
-    
+
     for criteria in ["sharpe", "return", "drawdown", "calmar"]:
         ranked_by_criteria = build_ranking_by_criteria(metrics, criteria)
         best = ranked_by_criteria.iloc[0]
         print(f"{criteria.upper():.<40} {best['strategy_name']}")
-    
+
     # Print artifacts location
     output_dir = settings.reporting.backtests_dir / "stage2_comparison_comparison"
     print("\n" + "-" * 80)
@@ -108,7 +114,7 @@ def main() -> None:
     if output_dir.exists():
         for file in output_dir.glob("*"):
             print(f"  - {file.name}")
-    
+
     print("\n" + "=" * 80)
     print("✓ Stage 2 Strategy Comparison Validation Complete!")
     print("=" * 80 + "\n")

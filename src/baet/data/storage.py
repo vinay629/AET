@@ -33,16 +33,14 @@ class ParquetMarketDataStore(MarketDataStore):
 
     def write_features(self, frame: pd.DataFrame, symbol: str, timeframe: str) -> None:
         path = (
-            self._symbol_timeframe_dir(self.processed_root, symbol, timeframe)
-            / "features.parquet"
+            self._symbol_timeframe_dir(self.processed_root, symbol, timeframe) / "features.parquet"
         )
         self._ensure_parent(path)
         frame.to_parquet(path, index=False)
 
     def read_features(self, symbol: str, timeframe: str) -> pd.DataFrame:
         path = (
-            self._symbol_timeframe_dir(self.processed_root, symbol, timeframe)
-            / "features.parquet"
+            self._symbol_timeframe_dir(self.processed_root, symbol, timeframe) / "features.parquet"
         )
         return pd.read_parquet(path)
 

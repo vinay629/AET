@@ -12,6 +12,7 @@ import pandas as pd
 @dataclass
 class PluginMetadata:
     """Metadata for a scoring plugin."""
+
     name: str
     version: str
     description: str
@@ -37,7 +38,7 @@ class ScoringPlugin(ABC):
         """
         self.config = config or {}
         self.weight = 1.0  # Initial weight in the ensemble, used for scoring aggregation
-        self.performance_history: list[float] = [] # Stores PnL of trades influenced by this plugin
+        self.performance_history: list[float] = []  # Stores PnL of trades influenced by this plugin
 
     @abstractmethod
     def calculate_score(self, data: pd.DataFrame) -> float:
@@ -72,5 +73,7 @@ class ScoringPlugin(ABC):
         return {
             "name": self.metadata.name,
             "weight": self.weight,
-            "avg_performance": sum(self.performance_history) / len(self.performance_history) if self.performance_history else 0.0
+            "avg_performance": sum(self.performance_history) / len(self.performance_history)
+            if self.performance_history
+            else 0.0,
         }

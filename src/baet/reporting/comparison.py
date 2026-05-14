@@ -19,7 +19,9 @@ def calculate_sharpe_ratio(returns: pd.Series, risk_free_rate: float = 0.0) -> f
     return float(excess_returns.mean() / std_dev * np.sqrt(252.0))
 
 
-def calculate_sortino_ratio(returns: pd.Series, risk_free_rate: float = 0.0, target: float = 0.0) -> float:
+def calculate_sortino_ratio(
+    returns: pd.Series, risk_free_rate: float = 0.0, target: float = 0.0
+) -> float:
     if len(returns) < 2:
         return 0.0
     excess_returns = returns - (risk_free_rate / 252.0)
@@ -67,8 +69,7 @@ def build_strategy_metrics_row(
     artifacts: BacktestArtifacts,
 ) -> dict[str, object]:
     metric_values = {
-        str(row["metric"]): float(row["value"])
-        for _, row in artifacts.metrics.iterrows()
+        str(row["metric"]): float(row["value"]) for _, row in artifacts.metrics.iterrows()
     }
     trades = artifacts.trades.copy()
     avg_trade_return = 0.0
@@ -226,7 +227,9 @@ def persist_comparison_artifacts(
     metadata_table.to_parquet(comparison_root / "strategy_metadata.parquet", index=False)
     (comparison_root / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     summary_stats = build_summary_statistics(metrics)
-    (comparison_root / "summary_statistics.json").write_text(json.dumps(summary_stats, indent=2), encoding="utf-8")
+    (comparison_root / "summary_statistics.json").write_text(
+        json.dumps(summary_stats, indent=2), encoding="utf-8"
+    )
 
 
 def build_intelligence_stack_comparison(
@@ -236,80 +239,80 @@ def build_intelligence_stack_comparison(
 ) -> pd.DataFrame:
     """
     Build comparison table for intelligence stack validation.
-    
+
     Compares baseline strategies, ensemble strategies, and ML strategies
     to validate that the intelligence stack improves performance.
     """
     if baseline_metrics.empty and ensemble_metrics.empty and ml_metrics.empty:
         return pd.DataFrame()
-    
+
     # Add strategy type column
     result_dfs = []
-    
+
     if not baseline_metrics.empty:
         baseline = baseline_metrics.copy()
-        baseline['strategy_type'] = 'baseline'
+        baseline["strategy_type"] = "baseline"
         result_dfs.append(baseline)
-    
+
     if not ensemble_metrics.empty:
         ensemble = ensemble_metrics.copy()
-        ensemble['strategy_type'] = 'ensemble'
+        ensemble["strategy_type"] = "ensemble"
         result_dfs.append(ensemble)
-    
+
     if not ml_metrics.empty:
         ml = ml_metrics.copy()
-        ml['strategy_type'] = 'ml'
+        ml["strategy_type"] = "ml"
         result_dfs.append(ml)
-    
+
     if not result_dfs:
         return pd.DataFrame()
-    
+
     combined = pd.concat(result_dfs, ignore_index=True)
-    
+
     # Calculate improvement metrics
     if not baseline_metrics.empty and not ensemble_metrics.empty:
-        baseline_sharpe = baseline_metrics['sharpe_ratio'].mean()
-        ensemble_sharpe = ensemble_metrics['sharpe_ratio'].mean()
-        combined['ensemble_improvement'] = 0.0
+        baseline_sharpe = baseline_metrics["sharpe_ratio"].mean()
+        ensemble_sharpe = ensemble_metrics["sharpe_ratio"].mean()
+        combined["ensemble_improvement"] = 0.0
         if baseline_sharpe > 0:
-            combined.loc[combined['strategy_type'] == 'ensemble', 'ensemble_improvement'] = (
-                ensemble_sharpe - baseline_sharpe
-            ) / abs(baseline_sharpe) * 100
-    
+            combined.loc[combined["strategy_type"] == "ensemble", "ensemble_improvement"] = (
+                (ensemble_sharpe - baseline_sharpe) / abs(baseline_sharpe) * 100
+            )
+
     return combined
 
 
-def build_regime_performance_report(
-    regime_metrics: dict[str, pd.DataFrame]
-) -> pd.DataFrame:
+def build_regime_performance_report(regime_metrics: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Build performance report by regime type.
-    
+
     Args:
         regime_metrics: Dict mapping regime label to metrics DataFrame
-        
+
     Returns:
         DataFrame with performance metrics grouped by regime
     """
     if not regime_metrics:
         return pd.DataFrame()
-    
+
     records = []
     for regime, metrics in regime_metrics.items():
         if metrics.empty:
             continue
-        
+
         record = {
-            'regime': regime,
-            'strategy_count': len(metrics),
-            'avg_sharpe': metrics['sharpe_ratio'].mean(),
-            'avg_return': metrics['total_return'].mean(),
-            'avg_max_drawdown': metrics['max_drawdown'].mean(),
-            'best_strategy': metrics.loc[metrics['sharpe_ratio'].idxmax(), 'strategy_name'] if not metrics.empty else 'N/A',
-            'best_sharpe': metrics['sharpe_ratio'].max()
+            "regime": regime,
+            "strategy_count": len(metrics),
+            "avg_sharpe": metrics["sharpe_ratio"].mean(),
+            "avg_return": metrics["total_return"].mean(),
+            "avg_max_drawdown": metrics["max_drawdown"].mean(),
+            "best_strategy": metrics.loc[metrics["sharpe_ratio"].idxmax(), "strategy_name"]
+            if not metrics.empty
+            else "N/A",
+            "best_sharpe": metrics["sharpe_ratio"].max(),
         }
         records.append(record)
-    
+
     return pd.DataFrame(records)
 
 
@@ -317,45 +320,45 @@ def validate_intelligence_stack(
     baseline_metrics: pd.DataFrame,
     ensemble_metrics: pd.DataFrame,
     ml_metrics: pd.DataFrame,
-    min_improvement: float = 0.0
+    min_improvement: float = 0.0,
 ) -> dict[str, object]:
     """
     Validate that the intelligence stack provides value.
-    
+
     Returns validation results with success flags and improvement metrics.
     """
     results = {
-        'baseline_count': len(baseline_metrics) if not baseline_metrics.empty else 0,
-        'ensemble_count': len(ensemble_metrics) if not ensemble_metrics.empty else 0,
-        'ml_count': len(ml_metrics) if not ml_metrics.empty else 0,
-        'ensemble_improves_sharpe': False,
-        'ml_improves_sharpe': False,
-        'ensemble_sharpe_improvement': 0.0,
-        'ml_sharpe_improvement': 0.0,
-        'validation_passed': False
+        "baseline_count": len(baseline_metrics) if not baseline_metrics.empty else 0,
+        "ensemble_count": len(ensemble_metrics) if not ensemble_metrics.empty else 0,
+        "ml_count": len(ml_metrics) if not ml_metrics.empty else 0,
+        "ensemble_improves_sharpe": False,
+        "ml_improves_sharpe": False,
+        "ensemble_sharpe_improvement": 0.0,
+        "ml_sharpe_improvement": 0.0,
+        "validation_passed": False,
     }
-    
+
     if not baseline_metrics.empty and not ensemble_metrics.empty:
-        baseline_sharpe = baseline_metrics['sharpe_ratio'].mean()
-        ensemble_sharpe = ensemble_metrics['sharpe_ratio'].mean()
-        
+        baseline_sharpe = baseline_metrics["sharpe_ratio"].mean()
+        ensemble_sharpe = ensemble_metrics["sharpe_ratio"].mean()
+
         if baseline_sharpe != 0:
             improvement = (ensemble_sharpe - baseline_sharpe) / abs(baseline_sharpe) * 100
-            results['ensemble_sharpe_improvement'] = improvement
-            results['ensemble_improves_sharpe'] = improvement > min_improvement
-    
+            results["ensemble_sharpe_improvement"] = improvement
+            results["ensemble_improves_sharpe"] = improvement > min_improvement
+
     if not baseline_metrics.empty and not ml_metrics.empty:
-        baseline_sharpe = baseline_metrics['sharpe_ratio'].mean()
-        ml_sharpe = ml_metrics['sharpe_ratio'].mean()
-        
+        baseline_sharpe = baseline_metrics["sharpe_ratio"].mean()
+        ml_sharpe = ml_metrics["sharpe_ratio"].mean()
+
         if baseline_sharpe != 0:
             improvement = (ml_sharpe - baseline_sharpe) / abs(baseline_sharpe) * 100
-            results['ml_sharpe_improvement'] = improvement
-            results['ml_improves_sharpe'] = improvement > min_improvement
-    
+            results["ml_sharpe_improvement"] = improvement
+            results["ml_improves_sharpe"] = improvement > min_improvement
+
     # Validation passes if at least one improvement is positive
-    results['validation_passed'] = (
-        results['ensemble_improves_sharpe'] or results['ml_improves_sharpe']
+    results["validation_passed"] = (
+        results["ensemble_improves_sharpe"] or results["ml_improves_sharpe"]
     )
-    
+
     return results

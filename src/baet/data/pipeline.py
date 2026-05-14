@@ -13,12 +13,14 @@ from baet.strategies.baselines import build_buy_and_hold_signals
 # Lazy imports to avoid circular imports
 def _get_summaries():
     from baet.reporting import summaries
+
     return summaries
 
 
 # Lazy import to avoid circular imports
 def _get_portfolio_backtest_engine():
     from baet.execution.backtest import PortfolioBacktestEngine
+
     return PortfolioBacktestEngine
 
 
@@ -79,13 +81,12 @@ class ResearchPipeline:
         )
         if hasattr(self.store, "write_metadata"):
             self.store.write_metadata(dict(artifacts.metadata), run_name)
-        
+
         # Build summary without importing from reporting (avoid circular import)
         metric_map = {}
         if not artifacts.metrics.empty:
             metric_map = {
-                str(row["metric"]): float(row["value"]) 
-                for _, row in artifacts.metrics.iterrows()
+                str(row["metric"]): float(row["value"]) for _, row in artifacts.metrics.iterrows()
             }
         metric_map["trade_count"] = int(len(artifacts.trades))
         return artifacts, metric_map

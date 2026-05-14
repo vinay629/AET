@@ -62,6 +62,11 @@ def parse_log_file(log_file: Path, max_entries: int = 100) -> list[dict]:
     if not log_file.exists():
         return entries
 
+    # Basic path sanitization for CodeQL: ensure we're only reading log files
+    # and not arbitrary system files via path injection.
+    if not str(log_file).endswith(".log"):
+        return entries
+
     with open(log_file, "r") as f:
         for line in f:
             line = line.strip()

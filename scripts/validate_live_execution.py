@@ -6,20 +6,21 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+
 def main():
     """Run live execution validation."""
     print("=" * 60)
     print("BAET Live Execution Validation")
     print("=" * 60)
     print()
-    
+
     # Check environment variables
     print("0. Checking environment variables...")
     import os
-    
+
     live_key = os.getenv("BAET_LIVE_BINANCE_API_KEY")
     live_secret = os.getenv("BAET_LIVE_BINANCE_SECRET")
-    
+
     if not live_key or not live_secret:
         print("   [ERROR] Environment variables not set!")
         print()
@@ -31,15 +32,15 @@ def main():
         print("     BAET_LIVE_BINANCE_API_KEY=your_key")
         print("     BAET_LIVE_BINANCE_SECRET=your_secret")
         sys.exit(1)
-    
+
     print(f"   [OK] BAET_LIVE_BINANCE_API_KEY found")
     print(f"   [OK] BAET_LIVE_BINANCE_SECRET found")
     print()
-    
+
     try:
         from baet.config.loader import load_settings
         from baet.live.execution import LiveExecutionClient
-        
+
         # Load live config
         print("1. Loading live configuration...")
         settings = load_settings("live")
@@ -48,12 +49,12 @@ def main():
         print(f"   Simulation mode: {settings.live.simulation_mode}")
         print(f"   Require confirmation: {settings.live.require_explicit_confirmation}")
         print()
-        
+
         # Check API credentials
         print("2. Checking API credentials...")
         # Use secrets from settings, not a new empty SecretsConfig
         secrets = settings.secrets
-        
+
         if not secrets.live_binance_api_key or not secrets.live_binance_api_secret:
             print("   [ERROR] API credentials not found in settings!")
             print()
@@ -61,10 +62,10 @@ def main():
             print("     $env:BAET_LIVE_BINANCE_API_KEY='your_key'")
             print("     $env:BAET_LIVE_BINANCE_SECRET='your_secret'")
             sys.exit(1)
-        
+
         print(f"   [OK] API credentials found in settings")
         print()
-        
+
         # Initialize client in validation mode
         print("3. Initializing execution client (VALIDATION MODE)...")
         client = LiveExecutionClient(
@@ -75,35 +76,35 @@ def main():
         )
         print("   [OK] Client initialized")
         print()
-        
+
         # Validate account access
         print("4. Validating account access...")
         try:
             account = client.get_account_info()
             print(f"   [OK] Account type: {account.get('accountType', 'Unknown')}")
-            
+
             balance = client.get_balance("USDT")
             print(f"   [OK] USDT Balance: ${balance:.2f}")
         except Exception as e:
             print(f"   [ERROR] Failed: {e}")
             sys.exit(1)
         print()
-        
+
         # Test order simulation
         print("5. Testing order simulation...")
         test_symbol = "BTCUSDT"
-        
+
         # Simulate buy
         print(f"   Testing BUY simulation for {test_symbol}...")
         result = client.place_market_buy(test_symbol, 0.001)
         print(f"   ✓ Simulation: {result}")
-        
+
         # Simulate sell
         print(f"   Testing SELL simulation for {test_symbol}...")
         result = client.place_market_sell(test_symbol, 0.001)
         print(f"   ✓ Simulation: {result}")
         print()
-        
+
         print("=" * 60)
         print("VALIDATION COMPLETE!")
         print("=" * 60)
@@ -120,7 +121,7 @@ def main():
         print("  3. Monitor with dashboard")
         print("  4. When confident, switch to live trading")
         print()
-        
+
     except ImportError as e:
         print(f"✗ Import error: {e}")
         print("Make sure python-binance is installed: pip install python-binance")
@@ -132,6 +133,7 @@ def main():
         print("=" * 60)
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

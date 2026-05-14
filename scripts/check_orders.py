@@ -21,7 +21,7 @@ client = Client(api_key, api_secret, testnet=True)
 print("Recent BTCUSDT Orders:")
 print("=" * 60)
 
-orders = client.get_all_orders(symbol='BTCUSDT')
+orders = client.get_all_orders(symbol="BTCUSDT")
 
 for order in orders[-5:]:  # Last 5 orders
     print(f"  ID: {order['orderId']}")

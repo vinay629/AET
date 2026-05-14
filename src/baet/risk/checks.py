@@ -10,11 +10,11 @@ from pydantic import BaseModel, Field
 class RiskViolation(BaseModel):
     """
     Represents a single risk rule violation.
-    
+
     Used to provide detailed information about why a trade was rejected
     or modified by the risk engine.
     """
-    
+
     rule: str  # Which rule was violated (e.g., "max_position_size", "drawdown_limit")
     severity: Literal["warning", "critical", "kill_switch"] = "warning"
     message: str  # Human-readable description
@@ -22,7 +22,7 @@ class RiskViolation(BaseModel):
     threshold_value: float | None = None  # Threshold that was exceeded
     strategy_name: str | None = None  # Which strategy triggered this
     symbol: str | None = None  # Which symbol triggered this
-    
+
     class Config:
         frozen = True
 
@@ -30,11 +30,11 @@ class RiskViolation(BaseModel):
 class RiskCheckResult(BaseModel):
     """
     Result of running risk checks on a trade signal.
-    
+
     This is the output of the risk engine. It indicates whether the trade
     was approved, rejected, or modified, along with detailed reasons.
     """
-    
+
     approved: bool  # Whether the trade is approved (may be modified)
     action: str  # Original action (BUY, SELL, HOLD)
     adjusted_action: str  # May be modified to HOLD or reduced
@@ -44,13 +44,14 @@ class RiskCheckResult(BaseModel):
     risk_score: float = 0.0  # 0.0 (safe) to 1.0 (high risk)
     violations: list[RiskViolation] = Field(default_factory=list)
     metadata: dict[str, object] = Field(default_factory=dict)
-    
+
     class Config:
         frozen = True
-    
+
     @classmethod
-    def approve(cls, action: str, size: float | None = None, 
-                reasons: list[str] | None = None) -> RiskCheckResult:
+    def approve(
+        cls, action: str, size: float | None = None, reasons: list[str] | None = None
+    ) -> RiskCheckResult:
         """Create an approved result."""
         return cls(
             approved=True,
@@ -59,12 +60,13 @@ class RiskCheckResult(BaseModel):
             adjusted_size=size,
             confidence=1.0,
             reasons=reasons or ["Risk check passed"],
-            risk_score=0.0
+            risk_score=0.0,
         )
-    
+
     @classmethod
-    def reject(cls, action: str, reasons: list[str], 
-               violations: list[RiskViolation] | None = None) -> RiskCheckResult:
+    def reject(
+        cls, action: str, reasons: list[str], violations: list[RiskViolation] | None = None
+    ) -> RiskCheckResult:
         """Create a rejected result."""
         return cls(
             approved=False,
@@ -74,12 +76,13 @@ class RiskCheckResult(BaseModel):
             confidence=1.0,
             reasons=reasons,
             risk_score=1.0,
-            violations=violations or []
+            violations=violations or [],
         )
-    
+
     @classmethod
-    def modify(cls, action: str, original_size: float, 
-                 modified_size: float, reasons: list[str]) -> RiskCheckResult:
+    def modify(
+        cls, action: str, original_size: float, modified_size: float, reasons: list[str]
+    ) -> RiskCheckResult:
         """Create a modified result (approved with changes)."""
         return cls(
             approved=True,
@@ -90,7 +93,7 @@ class RiskCheckResult(BaseModel):
             reasons=reasons,
             risk_score=0.3,
         )
-    
+
     def add_violation(self, violation: RiskViolation) -> None:
         """Add a violation to the result (mutable for building results)."""
         self.violations.append(violation)
@@ -98,7 +101,7 @@ class RiskCheckResult(BaseModel):
             self.approved = False
             self.adjusted_action = "HOLD"
             self.adjusted_size = 0.0
-    
+
     def get_summary(self) -> str:
         """Get a human-readable summary of the risk check."""
         status = "APPROVED" if self.approved else "REJECTED"

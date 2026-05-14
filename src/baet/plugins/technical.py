@@ -15,7 +15,7 @@ class TechnicalIndicatorPlugin(ScoringPlugin):
     metadata = PluginMetadata(
         name="technical_indicators",
         version="1.0.0",
-        description="Scores based on RSI, MACD, and Bollinger Bands"
+        description="Scores based on RSI, MACD, and Bollinger Bands",
     )
 
     def calculate_score(self, data: pd.DataFrame) -> float:
@@ -28,7 +28,7 @@ class TechnicalIndicatorPlugin(ScoringPlugin):
             return 0.0
 
         # Simple RSI scoring
-        close = data['close']
+        close = data["close"]
         delta = close.diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()

@@ -35,7 +35,7 @@ if st is not None:
         find_latest_log_file,
         parse_log_file,
     )
-    
+
     # Page config with explicit light theme
     st.set_page_config(
         page_title="BAET Dashboard",
@@ -43,14 +43,14 @@ if st is not None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
-    
+
     # Force light theme configuration
     st._config.set_option("theme.base", "light")
     st._config.set_option("theme.primaryColor", "#007bff")
     st._config.set_option("theme.backgroundColor", "#ffffff")
     st._config.set_option("theme.secondaryBackgroundColor", "#f8f9fa")
     st._config.set_option("theme.textColor", "#000000")
-    
+
     # Custom CSS for clean, professional appearance
     st.markdown(
         """
@@ -109,15 +109,16 @@ if st is not None:
         """,
         unsafe_allow_html=True,
     )
-    
+
     # Title - dynamic based on mode
     from baet.config.loader import load_settings
+
     try:
         settings = load_settings()
-        if hasattr(settings, 'live') and settings.live and settings.live.enabled:
+        if hasattr(settings, "live") and settings.live and settings.live.enabled:
             st.title("📈 BAET Live Trading Dashboard")
             st.caption("Environment: Testnet • Real-time demo trading")
-        elif hasattr(settings, 'paper') and settings.paper and settings.paper.enabled:
+        elif hasattr(settings, "paper") and settings.paper and settings.paper.enabled:
             st.title("📈 BAET Paper Trading Dashboard")
             st.caption("Simulated trading with virtual funds")
         else:
@@ -126,32 +127,33 @@ if st is not None:
     except Exception as e:
         st.title("📈 BAET Dashboard")
         st.error(f"Config error: {e}")
-    
+
     # Sidebar
     with st.sidebar:
         st.header("⚙️ Configuration")
-        
+
         # Control Panel (if available)
         try:
             from baet.dashboard.control import render_control_panel
+
             render_control_panel()
             st.divider()
         except ImportError:
             pass  # Control panel not available
-        
+
         # Log directory
         st.subheader("📁 Data Source")
         log_dir = st.text_input(
-            "Log Directory",
-            value="logs/paper",
-            help="Directory containing trading logs"
+            "Log Directory", value="logs/paper", help="Directory containing trading logs"
         )
-        
+
         st.divider()
-        
+
         # Auto-refresh settings
         st.subheader("🔄 Refresh Settings")
-        auto_refresh = st.checkbox("Auto Refresh", value=True, help="Automatically refresh dashboard data")
+        auto_refresh = st.checkbox(
+            "Auto Refresh", value=True, help="Automatically refresh dashboard data"
+        )
         refresh_interval = st.slider(
             "Refresh Interval (seconds)",
             min_value=10,
@@ -159,54 +161,63 @@ if st is not None:
             value=30,
             step=10,
             disabled=not auto_refresh,
-            help="Time between automatic refreshes"
+            help="Time between automatic refreshes",
         )
-        
+
         # Manual refresh button
-        if st.button("🔄 Refresh Now", width='stretch'):
+        if st.button("🔄 Refresh Now", width="stretch"):
             st.session_state.last_refresh = 0  # Force refresh
             st.rerun()
-        
+
         # Initialize session state for auto-refresh
         import time
         from datetime import datetime
-        
+
         if "last_refresh" not in st.session_state:
             st.session_state.last_refresh = time.time()
-        
+
         # Auto-refresh logic using session state (non-blocking)
         current_time = time.time()
         time_since_refresh = current_time - st.session_state.last_refresh
-        
+
         if auto_refresh and time_since_refresh > refresh_interval:
             st.session_state.last_refresh = current_time
             st.rerun()
-        
+
         # Last updated timestamp (updated on each refresh)
         st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
-    
+
     # Check if live mode is enabled
     try:
         settings = load_settings()
-        is_live_mode = settings.live.enabled if hasattr(settings, 'live') and settings.live else False
-        is_paper_mode = settings.paper.enabled if hasattr(settings, 'paper') and settings.paper else False
+        is_live_mode = (
+            settings.live.enabled if hasattr(settings, "live") and settings.live else False
+        )
+        is_paper_mode = (
+            settings.paper.enabled if hasattr(settings, "paper") and settings.paper else False
+        )
     except:
         is_live_mode = False
         is_paper_mode = False
-    
+
     # Load data based on mode - load ONCE here
     account_info = None  # Initialize
-    
+
     if is_live_mode:
         try:
             from baet.dashboard.data_loader import load_live_account_info
+
             account_info = load_live_account_info()  # Load ONCE
-            
+
             portfolio_state = {
-                "cash": account_info.get("total_usdt_value", 0) if account_info.get("success") else 0,
-                "total_value": account_info.get("total_usdt_value", 0) if account_info.get("success") else 0,
+                "cash": account_info.get("total_usdt_value", 0)
+                if account_info.get("success")
+                else 0,
+                "total_value": account_info.get("total_usdt_value", 0)
+                if account_info.get("success")
+                else 0,
                 "positions": account_info.get("balances", {}),
-                "is_live": True
+                "is_live": True,
             }
             recent_trades = []
             equity_df = None
@@ -230,6 +241,7 @@ if st is not None:
             equity_df = load_equity_curve(log_dir)
             metrics = calculate_performance_metrics(log_dir)
             from datetime import datetime
+
             today = datetime.now().strftime("%Y-%m-%d")
             daily_summary = calculate_daily_summary(log_dir, date=today)
             log_file = find_latest_log_file(log_dir)
@@ -242,17 +254,17 @@ if st is not None:
             metrics = {}
             daily_summary = {}
             log_entries = []
-    
+
     # Show mode indicator in sidebar with enhanced visuals
     with st.sidebar:
         st.divider()
-        
+
         # Mode status with colored containers
         if is_live_mode:
             with st.container(border=True):
                 st.markdown("### 🔴 LIVE MODE ACTIVE")
                 st.warning("⚠️ Demo money at risk! Monitor positions closely.")
-                
+
                 # Show live account info in sidebar (use account_info loaded above)
                 st.markdown("#### 💼 Live Account (Testnet)")
                 if account_info and account_info.get("success"):
@@ -260,15 +272,15 @@ if st is not None:
                     with col1:
                         st.metric("Total Value", f"${account_info.get('total_usdt_value', 0):.2f}")
                     with col2:
-                        can_trade = "✅" if account_info.get('can_trade') else "❌"
+                        can_trade = "✅" if account_info.get("can_trade") else "❌"
                         st.metric("Can Trade", can_trade)
-                    
+
                     # Show key balances
                     balances = account_info.get("balances", {})
                     if "USDT" in balances:
                         usdt = balances["USDT"]
                         st.text(f"USDT: {usdt['free']:.2f} free / {usdt['locked']:.2f} locked")
-                    
+
                     # Show other assets
                     for asset, data in sorted(balances.items())[:5]:  # Show top 5
                         if asset != "USDT" and data["total"] > 0:
@@ -283,39 +295,44 @@ if st is not None:
             with st.container(border=True):
                 st.markdown("### 🟢 OBSERVATION MODE")
                 st.success("👁️ Market observation only • No trading")
-        
+
         # Emergency stop button (only in live mode)
         if is_live_mode:
             st.divider()
-            if st.button("🚨 EMERGENCY STOP", type="primary", width='stretch', key="sidebar_emergency_stop"):
+            if st.button(
+                "🚨 EMERGENCY STOP", type="primary", width="stretch", key="sidebar_emergency_stop"
+            ):
                 import os
+
                 with open("EMERGENCY_STOP.txt", "w") as f:
                     f.write("Emergency stop triggered from dashboard")
                 st.error("Emergency stop file created! Bot should stop soon.")
-    
+
     # Tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
         ["Overview", "Positions", "Trades", "Performance", "Logs"]
     )
-    
+
     with tab1:
         st.header("Portfolio Overview")
-        
+
         # Show live account info prominently if in live mode
         if is_live_mode:
             if account_info and account_info.get("success"):
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
+                    st.metric(
+                        "Total Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}"
+                    )
                 with col2:
-                    st.metric("Account Type", account_info.get('account_type', 'N/A'))
+                    st.metric("Account Type", account_info.get("account_type", "N/A"))
                 with col3:
-                    st.metric("Can Trade", "✅ Yes" if account_info.get('can_trade') else "❌ No")
-                
+                    st.metric("Can Trade", "✅ Yes" if account_info.get("can_trade") else "❌ No")
+
                 # Show key balances
                 st.subheader("Demo Account Balances (Testnet)")
                 balances = account_info.get("balances", {})
-                
+
                 # Display key assets
                 cols = st.columns(4)
                 with cols[0]:
@@ -334,29 +351,33 @@ if st is not None:
                     if "BNB" in balances:
                         bnb = balances["BNB"]
                         st.metric("BNB", f"{bnb['total']:.6f}", f"Free: {bnb['free']:.6f}")
-                
+
                 # Show all balances in expander
                 with st.expander("View All Balances"):
                     for asset, data in sorted(balances.items()):
                         if data["total"] > 0:
-                            st.text(f"{asset}: {data['total']:.6f} (Free: {data['free']:.6f}, Locked: {data['locked']:.6f})")
+                            st.text(
+                                f"{asset}: {data['total']:.6f} (Free: {data['free']:.6f}, Locked: {data['locked']:.6f})"
+                            )
             else:
-                st.error(f"Cannot load live account: {account_info.get('error', 'Unknown error') if account_info else 'Not loaded'}")
+                st.error(
+                    f"Cannot load live account: {account_info.get('error', 'Unknown error') if account_info else 'Not loaded'}"
+                )
         else:
             # Portfolio overview (paper/observation mode)
             render_portfolio_overview(portfolio_state)
-            
+
             # Equity chart
             st.subheader("Equity Curve")
             render_equity_chart(equity_df)
-            
+
             # Daily summary
             st.subheader("Today's Summary")
             render_daily_summary(daily_summary)
-    
+
     with tab2:
         st.header("Current Positions")
-        
+
         if is_live_mode:
             # In live mode, show message that positions come from live account
             st.info("📡 **Live Mode**: Positions are managed by the live trading bot.")
@@ -366,16 +387,19 @@ if st is not None:
                 positions_data = []
                 for asset, data in balances.items():
                     if data["total"] > 0 and asset != "USDT":
-                        positions_data.append({
-                            "Asset": asset,
-                            "Total": data["total"],
-                            "Free": data["free"],
-                            "Locked": data["locked"]
-                        })
+                        positions_data.append(
+                            {
+                                "Asset": asset,
+                                "Total": data["total"],
+                                "Free": data["free"],
+                                "Locked": data["locked"],
+                            }
+                        )
                 if positions_data:
                     import pandas as pd
+
                     df = pd.DataFrame(positions_data)
-                    st.dataframe(df, width='stretch')
+                    st.dataframe(df, width="stretch")
                 else:
                     st.warning("No open positions found.")
             else:
@@ -383,33 +407,40 @@ if st is not None:
         else:
             positions = portfolio_state.get("positions", {})
             render_positions_table(positions)
-    
+
     with tab3:
         st.header("Recent Trades")
-        
+
         if is_live_mode:
-            st.info("📡 **Live Mode**: Trade history will appear here when the live bot places orders.")
+            st.info(
+                "📡 **Live Mode**: Trade history will appear here when the live bot places orders."
+            )
             st.warning("No trades yet. The bot is in observation mode (no orders placed).")
         else:
             render_recent_trades(recent_trades, limit=50)
-    
+
     with tab4:
         st.header("Performance Metrics")
-        
+
         if is_live_mode:
-            st.info("📡 **Live Mode**: Performance metrics will be calculated after trades are executed.")
+            st.info(
+                "📡 **Live Mode**: Performance metrics will be calculated after trades are executed."
+            )
             # Show account value instead
             if account_info and account_info.get("success"):
-                st.metric("Current Account Value (USDT)", f"${account_info.get('total_usdt_value', 0):.2f}")
-                st.metric("Account Type", account_info.get('account_type', 'N/A'))
+                st.metric(
+                    "Current Account Value (USDT)",
+                    f"${account_info.get('total_usdt_value', 0):.2f}",
+                )
+                st.metric("Account Type", account_info.get("account_type", "N/A"))
         else:
             # Performance metrics
             render_performance_metrics(metrics)
-            
+
             # Equity chart (full width)
             st.subheader("Equity Curve (Detailed)")
             render_equity_chart(equity_df)
-            
+
             # Export button
             if not equity_df.empty:
                 csv = equity_df.to_csv(index=False)
@@ -419,16 +450,16 @@ if st is not None:
                     file_name=f"baet_equity_curve_{today}.csv",
                     mime="text/csv",
                 )
-    
+
     with tab5:
         st.header("Log Viewer")
-        
+
         if is_live_mode:
             st.info("📡 **Live Mode**: Live trading logs will appear here.")
             st.warning("No logs yet. Start the live trading bot to see logs.")
         else:
             render_log_viewer(log_entries, max_entries=100)
-    
+
     # Footer
     st.sidebar.markdown("---")
     st.sidebar.markdown(
