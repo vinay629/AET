@@ -514,4 +514,4 @@ def internal_error(error):
 if __name__ == "__main__":
     print(f"Starting BAET Dashboard API server on http://{HOST}:{PORT}")
     print(f"Serving dashboard from: {Path(__file__).parent}")
-    app.run(host=HOST, port=PORT, debug=True)
+    app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
