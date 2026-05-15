@@ -12,7 +12,4 @@ echo.
 cd /d "%~dp0"
 
 uv run python scripts/run_dashboard.py
-
-echo.
-echo Dashboard stopped.
 pause
