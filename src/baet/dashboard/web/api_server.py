@@ -312,6 +312,195 @@ def get_symbols():
         return jsonify({"error": str(e)}), 500
 
 
+# ---------------------------------------------------------------------------
+# Trading engine control
+# ---------------------------------------------------------------------------
+_paper_engine = None
+_live_engine = None
+_engine_lock = threading.Lock()
+
+
+@app.route("/api/engine/start", methods=["POST"])
+def start_engine():
+    """Start the trading engine (paper or live)."""
+    global _paper_engine, _live_engine
+    try:
+        data = request.json or {}
+        mode = data.get("mode", "paper")
+        settings = load_settings()
+
+        # Stop any running engine first
+        with _engine_lock:
+            if _paper_engine and getattr(_paper_engine, "running", False):
+                try:
+                    _paper_engine.stop()
+                except Exception:
+                    pass
+                _paper_engine = None
+            if _live_engine and getattr(_live_engine, "running", False):
+                try:
+                    _live_engine.stop()
+                except Exception:
+                    pass
+                _live_engine = None
+
+        # Create engine outside the lock
+        if mode == "paper":
+            from baet.paper.engine import PaperTradingEngine
+            from baet.risk.engine import RiskEngine
+            from baet.risk.policy import RiskPolicy
+
+            risk_engine = RiskEngine(policy=RiskPolicy())
+            engine = PaperTradingEngine(config=settings, risk_engine=risk_engine)
+            with _engine_lock:
+                _paper_engine = engine
+            # Start the engine loop in a daemon thread
+            def _run_engine():
+                try:
+                    engine.start()
+                except Exception as e:
+                    import logging
+                    logging.error(f"Engine error: {e}")
+            t = threading.Thread(target=_run_engine, daemon=True, name="paper-engine")
+            t.start()
+            return jsonify({"status": "started", "mode": "paper"})
+
+        elif mode == "live":
+            from baet.live.engine import LiveTradingEngine
+
+            engine = LiveTradingEngine(config=settings)
+            with _engine_lock:
+                _live_engine = engine
+            def _run_live():
+                try:
+                    engine.start()
+                except Exception as e:
+                    import logging
+                    logging.error(f"Live engine error: {e}")
+            t = threading.Thread(target=_run_live, daemon=True, name="live-engine")
+            t.start()
+            return jsonify({"status": "started", "mode": "live"})
+
+        return jsonify({"error": f"Unknown mode: {mode}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/engine/stop", methods=["POST"])
+def stop_engine():
+    """Stop the running trading engine."""
+    global _paper_engine, _live_engine
+    try:
+        with _engine_lock:
+            if _paper_engine and getattr(_paper_engine, "running", False):
+                try:
+                    _paper_engine.stop()
+                except Exception:
+                    pass
+                _paper_engine = None
+            if _live_engine and getattr(_live_engine, "running", False):
+                try:
+                    _live_engine.stop()
+                except Exception:
+                    pass
+                _live_engine = None
+        return jsonify({"status": "stopped"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/engine/status")
+def engine_status():
+    """Get current engine status including portfolio state."""
+    global _paper_engine, _live_engine
+    try:
+        paper_running = _paper_engine is not None and getattr(_paper_engine, "running", False)
+        live_running = _live_engine is not None and getattr(_live_engine, "running", False)
+
+        mode = "none"
+        portfolio = {}
+        positions = []
+        trades = []
+
+        if paper_running:
+            mode = "paper"
+            eng = _paper_engine
+            if hasattr(eng, "portfolio"):
+                p = eng.portfolio
+                portfolio = {
+                    "cash": p.cash,
+                    "total_value": p.cash,
+                    "initial_balance": p.initial_balance,
+                    "daily_pnl": 0,
+                }
+                for sym, pos in p.positions.items():
+                    positions.append({
+                        "symbol": sym,
+                        "units": pos.get("units", 0),
+                        "avg_price": pos.get("avg_price", 0),
+                        "current_price": pos.get("current_price", 0),
+                    })
+            if hasattr(eng, "order_simulator") and hasattr(eng.order_simulator, "trade_history"):
+                trades = eng.order_simulator.trade_history[-20:]
+
+        elif live_running:
+            mode = "live"
+            eng = _live_engine
+            if hasattr(eng, "portfolio"):
+                p = eng.portfolio
+                portfolio = {
+                    "cash": getattr(p, "cash", 0),
+                    "total_value": getattr(p, "total_value", 0),
+                    "initial_balance": getattr(p, "initial_balance", 10000),
+                    "daily_pnl": getattr(p, "daily_pnl", 0),
+                }
+
+        return jsonify({
+            "mode": mode,
+            "running": paper_running or live_running,
+            "paper_running": paper_running,
+            "live_running": live_running,
+            "portfolio": portfolio,
+            "positions": positions,
+            "recent_trades": trades,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/order", methods=["POST"])
+def place_order():
+    """Place an order through the running engine."""
+    global _paper_engine, _live_engine
+    try:
+        data = request.json or {}
+        symbol = data.get("symbol", "BTCUSDT").upper()
+        side = data.get("side", "BUY").upper()
+        qty = float(data.get("qty", 0.001))
+
+        if side not in ("BUY", "SELL"):
+            return jsonify({"error": f"Invalid side: {side}"}), 400
+        if qty <= 0:
+            return jsonify({"error": "Quantity must be positive"}), 400
+
+        with _engine_lock:
+            if _paper_engine and getattr(_paper_engine, "running", False):
+                result = _paper_engine.place_order(symbol, side, qty)
+                if "error" in result:
+                    return jsonify({"error": result["error"]}), 400
+                return jsonify({"status": "filled", "mode": "paper", "result": result})
+
+            if _live_engine and getattr(_live_engine, "running", False):
+                result = _live_engine.place_order(symbol, side, qty)
+                if "error" in result:
+                    return jsonify({"error": result["error"]}), 400
+                return jsonify({"status": "filled", "mode": "live", "result": result})
+
+            return jsonify({"error": "No engine running. Start an engine first."}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({"error": "Not found"}), 404

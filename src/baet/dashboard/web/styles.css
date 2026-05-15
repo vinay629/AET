@@ -296,6 +296,49 @@ body {
 .log-entry.warning { background: var(--amber-dim); }
 .log-entry.error { background: var(--red-dim); }
 
+/* ===== TRADING BUTTONS ===== */
+.btn-start {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid var(--green);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.btn-start:hover:not(:disabled) { background: var(--green); color: #000; }
+.btn-start:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.btn-stop {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid var(--red);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.btn-stop:hover:not(:disabled) { background: var(--red); color: #fff; }
+.btn-stop:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ===== BADGES ===== */
+.badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+.badge-paper { background: var(--green-dim); color: var(--green); }
+.badge-live { background: var(--red-dim); color: var(--red); }
+.badge-stopped { background: var(--border-color); color: var(--text-muted); }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1300px) {
     .main-content { grid-template-columns: 1fr; }

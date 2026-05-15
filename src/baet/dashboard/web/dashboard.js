@@ -3,7 +3,7 @@
 
 class BAETDashboard {
     constructor() {
-        this.refreshInterval = 30000; // 30 seconds
+        this.refreshInterval = 10000; // 10 seconds
         this.lastRefresh = 0;
         this.charts = {};
         this.data = {
@@ -13,7 +13,11 @@ class BAETDashboard {
             positions: [],
             logs: [],
             ohlcv: {},
-            performance: {}
+            performance: {},
+            engine: null,
+            marketSummary: null,
+            binanceTrades: [],
+            tickers: [],
         };
 
         this.initializeCharts();
@@ -143,10 +147,24 @@ class BAETDashboard {
             const sym = document.getElementById('symbol-select').value;
             const label = document.getElementById('live-trade-symbol');
             if (label) label.textContent = sym;
+            // Sync order panel symbol
+            const orderSym = document.getElementById('order-symbol');
+            if (orderSym) orderSym.value = sym;
         });
 
         document.getElementById('timeframe-select').addEventListener('change', () => {
             this.loadOHLCVData();
+        });
+
+        // Sync order symbol back to chart symbol
+        document.getElementById('order-symbol')?.addEventListener('change', () => {
+            const orderSym = document.getElementById('order-symbol').value;
+            const chartSym = document.getElementById('symbol-select');
+            if (chartSym && chartSym.value !== orderSym) {
+                chartSym.value = orderSym;
+                this.loadOHLCVData();
+                this.loadBinanceTrades();
+            }
         });
     }
 
@@ -165,6 +183,7 @@ class BAETDashboard {
                 this.loadOHLCVData(),
                 this.loadMarketSummary(),
                 this.loadBinanceTrades(),
+                this.loadEngineStatus(),
             ]);
 
             this.updateUI();
@@ -275,11 +294,9 @@ class BAETDashboard {
     // Update UI elements
     updateUI() {
         this.updateStatusStrip();
+        this.updateEngineDisplay();
         this.updatePortfolioOverview();
-    }
-
-        signalEl.textContent = signal;
-        signalEl.className = 'status-value ' + cls;
+        this.updatePositionsDisplay();
     }
 
     // Update top status strip from status API (includes live tickers)
@@ -287,18 +304,7 @@ class BAETDashboard {
         const s = this.data.status;
         if (!s) return;
 
-        const modeEl = document.getElementById('mode');
-        const statusEl = document.getElementById('status');
         const lastUpdateEl = document.getElementById('last-update');
-
-        if (modeEl) {
-            modeEl.textContent = (s.mode || 'UNKNOWN').toUpperCase();
-            modeEl.className = 'status-value info';
-        }
-        if (statusEl) {
-            statusEl.textContent = s.status || 'UNKNOWN';
-            statusEl.className = 'status-value ' + (s.status === 'RUNNING' ? 'bullish' : s.status === 'WARNING' ? 'warning' : 'bearish');
-        }
         if (lastUpdateEl) {
             lastUpdateEl.textContent = s.last_update
                 ? new Date(s.last_update).toLocaleTimeString()
@@ -322,18 +328,180 @@ class BAETDashboard {
         }
     }
 
+    // Engine control methods
+    onModeChange() {
+        const mode = document.getElementById('trading-mode-select').value;
+        const badge = document.getElementById('order-mode-badge');
+        if (badge) {
+            badge.textContent = mode.toUpperCase();
+            badge.className = mode === 'paper' ? 'badge badge-paper' : 'badge badge-live';
+        }
+    }
+
+    async startEngine() {
+        const mode = document.getElementById('trading-mode-select').value;
+        try {
+            const response = await fetch('/api/engine/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mode})
+            });
+            const data = await response.json();
+            if (data.status === 'started') {
+                document.getElementById('btn-start').disabled = true;
+                document.getElementById('btn-stop').disabled = false;
+                const engEl = document.getElementById('engine-status');
+                engEl.textContent = 'RUNNING';
+                engEl.className = 'status-value bullish';
+                this.onModeChange();
+            } else {
+                alert('Failed to start: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error starting engine:', error);
+            alert('Error starting engine: ' + error.message);
+        }
+    }
+
+    async stopEngine() {
+        try {
+            const response = await fetch('/api/engine/stop', {method: 'POST'});
+            const data = await response.json();
+            if (data.status === 'stopped') {
+                document.getElementById('btn-start').disabled = false;
+                document.getElementById('btn-stop').disabled = true;
+                const engEl = document.getElementById('engine-status');
+                engEl.textContent = 'STOPPED';
+                engEl.className = 'status-value';
+            }
+        } catch (error) {
+            console.error('Error stopping engine:', error);
+        }
+    }
+
+    async placeOrder(side) {
+        const symbol = document.getElementById('order-symbol').value;
+        const qty = parseFloat(document.getElementById('order-qty').value);
+        const resultEl = document.getElementById('order-result');
+
+        if (!qty || qty <= 0) {
+            resultEl.textContent = '❌ Invalid quantity';
+            resultEl.style.color = 'var(--red)';
+            return;
+        }
+
+        resultEl.textContent = '⏳ Placing order...';
+        resultEl.style.color = 'var(--text-muted)';
+
+        try {
+            const response = await fetch('/api/order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({symbol, side, qty})
+            });
+            const data = await response.json();
+            if (data.status === 'filled') {
+                resultEl.textContent = `✅ ${side} ${qty} ${symbol} filled (${data.mode})`;
+                resultEl.style.color = 'var(--green)';
+            } else {
+                resultEl.textContent = `❌ ${data.error || 'Order failed'}`;
+                resultEl.style.color = 'var(--red)';
+            }
+        } catch (error) {
+            resultEl.textContent = `❌ ${error.message}`;
+            resultEl.style.color = 'var(--red)';
+        }
+    }
+
+    async loadEngineStatus() {
+        try {
+            const response = await fetch('/api/engine/status');
+            if (response.ok) {
+                this.data.engine = await response.json();
+            }
+        } catch (error) {
+            console.error('Error loading engine status:', error);
+        }
+    }
+
+    updateEngineDisplay() {
+        const eng = this.data.engine;
+        if (!eng) return;
+
+        const statusEl = document.getElementById('engine-status');
+        const startBtn = document.getElementById('btn-start');
+        const stopBtn = document.getElementById('btn-stop');
+
+        if (eng.running) {
+            statusEl.textContent = '● ' + (eng.mode || 'UNKNOWN').toUpperCase();
+            statusEl.className = 'status-value ' + (eng.mode === 'live' ? 'bearish' : 'bullish');
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        } else {
+            statusEl.textContent = 'STOPPED';
+            statusEl.className = 'status-value';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        // Update equity/pnl from engine portfolio
+        if (eng.portfolio) {
+            const p = eng.portfolio;
+            const equity = p.total_value || 0;
+            const pnl = p.daily_pnl || 0;
+            document.getElementById('equity').textContent = this.formatCurrency(equity);
+            const pnlEl = document.getElementById('daily-pnl');
+            pnlEl.textContent = (pnl >= 0 ? '+' : '') + this.formatCurrency(pnl);
+            pnlEl.className = 'status-value ' + (pnl >= 0 ? 'bullish' : 'bearish');
+        }
+    }
+
+    updatePositionsDisplay() {
+        const eng = this.data.engine;
+        const container = document.getElementById('positions-content');
+        const badge = document.getElementById('positions-count-badge');
+        if (!container) return;
+
+        const positions = (eng && eng.positions) ? eng.positions : [];
+
+        if (badge) badge.textContent = positions.length + ' open';
+
+        if (positions.length === 0) {
+            container.innerHTML = '<div class="no-data" style="padding:10px;">No open positions</div>';
+            return;
+        }
+
+        container.innerHTML = positions.map(pos => {
+            const pnl = pos.current_price && pos.avg_price && pos.units
+                ? (pos.current_price - pos.avg_price) * pos.units : 0;
+            const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+            return `<div class="log-entry" style="justify-content:space-between; gap:8px;">
+                <span style="font-weight:700; flex-shrink:0">${pos.symbol}</span>
+                <span style="color:var(--text-muted); flex-shrink:0">${pos.units?.toFixed(6) || 0}</span>
+                <span style="flex-shrink:0">$${pos.avg_price?.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) || 0}</span>
+                <span class="${pnlClass}" style="flex-shrink:0">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</span>
+            </div>`;
+        }).join('');
+    }
+
     // Update portfolio overview
     updatePortfolioOverview() {
+        const eng = this.data.engine;
         const s = this.data.status || {};
-        const portfolio = this.data.portfolio;
-        const initialBalance = s.initial_balance || portfolio.initial_balance || 10000;
-        const totalValue = s.equity || portfolio.total_value || 0;
-        const cash = portfolio.cash || 0;
-        const positionsValue = totalValue - cash;
+        const initialBalance = (eng && eng.portfolio && eng.portfolio.initial_balance)
+            || s.initial_balance || 10000;
+        const totalValue = (eng && eng.portfolio && eng.portfolio.total_value) || 0;
+        const positionsValue = totalValue;
         const totalReturn = initialBalance > 0 ? (totalValue - initialBalance) / initialBalance : 0;
 
         const totalReturnEl = document.getElementById('total-return');
         document.getElementById('total-value').textContent = this.formatCurrency(totalValue);
+        document.getElementById('positions-value').textContent = this.formatCurrency(positionsValue);
+        if (totalReturnEl) {
+            totalReturnEl.textContent = (totalReturn >= 0 ? '+' : '') + (totalReturn * 100).toFixed(2) + '%';
+            totalReturnEl.style.color = totalReturn >= 0 ? 'var(--green)' : 'var(--red)';
+        }
+    }
         document.getElementById('positions-value').textContent = this.formatCurrency(positionsValue);
         if (totalReturnEl) {
             totalReturnEl.textContent = this.formatPercentage(totalReturn);

@@ -17,23 +17,26 @@
             <div class="status-left">
                 <div class="status-item">
                     <span class="status-label">MODE:</span>
-                    <span class="status-value info" id="mode">PAPER</span>
+                    <select id="trading-mode-select" class="select-input" style="padding:2px 6px; font-size:0.75rem;" onchange="dashboard.onModeChange()">
+                        <option value="paper">📝 PAPER</option>
+                        <option value="live">🔴 LIVE</option>
+                    </select>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">STATUS:</span>
-                    <span class="status-value" id="status">RUNNING</span>
+                    <span class="status-label">ENGINE:</span>
+                    <span class="status-value" id="engine-status">STOPPED</span>
+                </div>
+                <div class="status-item" style="gap:6px;">
+                    <button id="btn-start" class="btn-start" onclick="dashboard.startEngine()">▶ Start</button>
+                    <button id="btn-stop" class="btn-stop" onclick="dashboard.stopEngine()" disabled>⏹ Stop</button>
                 </div>
                 <div class="status-item">
                     <span class="status-label">EQUITY:</span>
                     <span class="status-value" id="equity">$0.00</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">DAILY P&L:</span>
+                    <span class="status-label">P&L:</span>
                     <span class="status-value" id="daily-pnl">$0.00</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">POSITIONS:</span>
-                    <span class="status-value" id="positions-count">0</span>
                 </div>
             </div>
             <div class="status-right">
@@ -219,6 +222,45 @@
                         <div id="binance-trades-content" class="logs-content">
                             <div class="log-entry">Loading...</div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Order Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📊 Place Order</span>
+                        <span id="order-mode-badge" class="badge badge-paper">PAPER</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; gap:8px;">
+                            <button id="btn-buy" class="btn-start" style="flex:1; padding:8px;" onclick="dashboard.placeOrder('BUY')">🟢 BUY</button>
+                            <button id="btn-sell" class="btn-stop" style="flex:1; padding:8px;" onclick="dashboard.placeOrder('SELL')">🔴 SELL</button>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div>
+                                <label class="metric-label">Symbol</label>
+                                <select id="order-symbol" class="select-input" style="width:100%; padding:6px;">
+                                    <option value="BTCUSDT">BTCUSDT</option>
+                                    <option value="ETHUSDT">ETHUSDT</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="metric-label">Qty</label>
+                                <input id="order-qty" type="number" step="0.001" value="0.001" class="select-input" style="width:100%; padding:6px; box-sizing:border-box;" />
+                            </div>
+                        </div>
+                        <div id="order-result" style="font-size:0.7rem; color:var(--text-muted); text-align:center; min-height:16px;"></div>
+                    </div>
+                </div>
+
+                <!-- Positions Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📋 Positions</span>
+                        <span id="positions-count-badge" style="font-size:0.7rem; color:var(--text-muted)">0 open</span>
+                    </div>
+                    <div id="positions-content" style="max-height:200px; overflow-y:auto;">
+                        <div class="no-data" style="padding:10px;">No open positions</div>
                     </div>
                 </div>
             </div>

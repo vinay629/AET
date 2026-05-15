@@ -163,6 +163,93 @@ class PaperTradingEngine:
                 },
             )
 
+    def place_order(self, symbol: str, side: str, qty: float) -> dict:
+        """
+        Place a manual order through the paper trading engine.
+
+        Args:
+            symbol: Trading symbol (e.g., BTCUSDT)
+            side: BUY or SELL
+            qty: Quantity to trade
+
+        Returns:
+            Dict with order result details
+        """
+        import time
+        # Get current price from order simulator's last known price
+        # For now, use a simple approach: get price from Binance
+        try:
+            from baet.data.binance import BinanceHistoricalProvider
+            provider = BinanceHistoricalProvider(self.config)
+            # Fetch latest candle for price
+            from datetime import datetime, timedelta
+            end_time = datetime.now()
+            start_time = end_time - timedelta(hours=1)
+            df = provider.fetch_klines(symbol, "1h", start_time, end_time)
+            if df.empty:
+                return {"error": "Could not fetch price data"}
+            current_price = float(df.iloc[-1]["close"])
+        except Exception as e:
+            return {"error": f"Price fetch failed: {e}"}
+
+        if side == "BUY":
+            fill_price, units, fee = self.order_simulator.simulate_buy(current_price, qty)
+            cost = fill_price * units + fee
+            if cost > self.portfolio.cash:
+                return {"error": f"Insufficient cash: need ${cost:.2f}, have ${self.portfolio.cash:.2f}"}
+            self.portfolio.cash -= cost
+            # Add to positions
+            if symbol in self.portfolio.positions:
+                pos = self.portfolio.positions[symbol]
+                total_units = pos["units"] + units
+                avg_price = (pos["avg_price"] * pos["units"] + fill_price * units) / total_units
+                pos["units"] = total_units
+                pos["avg_price"] = avg_price
+            else:
+                self.portfolio.positions[symbol] = {
+                    "units": units,
+                    "avg_price": fill_price,
+                    "current_price": fill_price,
+                }
+        elif side == "SELL":
+            fill_price, net_proceeds, fee = self.order_simulator.simulate_sell(current_price, qty)
+            if symbol not in self.portfolio.positions:
+                return {"error": f"No position in {symbol}"}
+            pos = self.portfolio.positions[symbol]
+            if qty > pos["units"]:
+                return {"error": f"Insufficient units: have {pos['units']}, want to sell {qty}"}
+            self.portfolio.cash += net_proceeds
+            pos["units"] -= qty
+            if pos["units"] <= 0.0000001:
+                del self.portfolio.positions[symbol]
+        else:
+            return {"error": f"Invalid side: {side}"}
+
+        # Update position current prices
+        if symbol in self.portfolio.positions:
+            self.portfolio.positions[symbol]["current_price"] = current_price
+
+        result = {
+            "symbol": symbol,
+            "side": side,
+            "qty": qty,
+            "fill_price": fill_price,
+            "fee": fee,
+            "cash_after": self.portfolio.cash,
+        }
+
+        if self.paper_logger:
+            self.paper_logger.log_order_simulated(
+                symbol=symbol, side=side,
+                requested_price=current_price,
+                filled_price=fill_price,
+                units=qty, fee=fee,
+                slippage=fill_price - current_price,
+            )
+
+        logger.info(f"Paper order filled: {side} {qty} {symbol} @ ${fill_price:.2f}")
+        return result
+
     def _iteration(self) -> None:
         """
         Execute a single iteration of the paper trading loop.
