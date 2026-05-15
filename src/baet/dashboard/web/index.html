@@ -38,12 +38,14 @@
             </div>
             <div class="status-right">
                 <div class="status-item">
-                    <span class="status-label">AI SIGNAL:</span>
-                    <span class="status-value" id="ai-signal">NEUTRAL</span>
+                    <span class="status-label">BTC:</span>
+                    <span class="status-value" id="price-BTCUSDT">---</span>
+                    <span class="status-value" id="change-BTCUSDT" style="font-size:0.7rem">---</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">RISK:</span>
-                    <span class="status-value bullish">STABLE</span>
+                    <span class="status-label">ETH:</span>
+                    <span class="status-value" id="price-ETHUSDT">---</span>
+                    <span class="status-value" id="change-ETHUSDT" style="font-size:0.7rem">---</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">LAST UPDATE:</span>
@@ -207,14 +209,15 @@
                     </div>
                 </div>
 
-                <!-- Logs -->
+                <!-- Live Trades from Binance -->
                 <div class="panel">
                     <div class="panel-header">
-                        <span>📋 Recent Logs</span>
+                        <span>⚡ Live Trades</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted)" id="live-trade-symbol">BTCUSDT</span>
                     </div>
-                    <div class="logs-container">
-                        <div id="logs-content" class="logs-content">
-                            <div class="log-entry">No logs available</div>
+                    <div class="logs-container" style="max-height: 300px;">
+                        <div id="binance-trades-content" class="logs-content">
+                            <div class="log-entry">Loading...</div>
                         </div>
                     </div>
                 </div>

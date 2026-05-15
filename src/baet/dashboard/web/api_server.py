@@ -1,14 +1,19 @@
 """Flask API server for BAET dashboard.
 
-Serves the HTML dashboard and provides REST API endpoints for real-time data.
+Serves the HTML dashboard and provides REST API endpoints.
+Fetches live market data from Binance REST API.
 """
 
 from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime
+import threading
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
+from urllib.request import urlopen
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -17,39 +22,118 @@ from flask_cors import CORS
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from baet.config.loader import load_settings
-from baet.dashboard.data_loader import (
-    calculate_daily_summary,
-    find_latest_log_file,
-    load_equity_curve,
-    load_latest_brain_scoring,
-    load_latest_state,
-    load_ohlcv_data,
-    load_recent_trades,
-    parse_log_file,
-)
+
+# ---------------------------------------------------------------------------
+# Binance REST API helpers
+# ---------------------------------------------------------------------------
+_cache: dict[str, Any] = {}
+_cache_lock = threading.Lock()
+_CACHE_TTL = 30  # seconds
+
+
+def _binance_get(path: str, params: dict | None = None) -> Any:
+    """Make a GET request to Binance REST API and return parsed JSON."""
+    settings = load_settings()
+    base = settings.binance.rest_base_url.rstrip("/")
+    url = f"{base}{path}"
+    if params:
+        url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
+    with urlopen(url, timeout=settings.binance.request_timeout_seconds) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _cached(key: str, fetch_fn, *args, **kwargs):
+    """Thread-safe TTL cache."""
+    now = time.monotonic()
+    with _cache_lock:
+        if key in _cache and (now - _cache[key]["ts"]) < _CACHE_TTL:
+            return _cache[key]["data"]
+    data = fetch_fn(*args, **kwargs)
+    with _cache_lock:
+        _cache[key] = {"data": data, "ts": now}
+    return data
+
+
+def _fetch_ohlcv(symbol: str, timeframe: str, limit: int = 500) -> list[dict]:
+    """Fetch OHLCV klines from Binance."""
+    raw = _binance_get(
+        "/api/v3/klines",
+        {"symbol": symbol.upper(), "interval": timeframe, "limit": limit},
+    )
+    return [
+        {
+            "timestamp": datetime.utcfromtimestamp(r[0] / 1000).isoformat() + "Z",
+            "open": float(r[1]),
+            "high": float(r[2]),
+            "low": float(r[3]),
+            "close": float(r[4]),
+            "volume": float(r[5]),
+            "close_time": datetime.utcfromtimestamp(r[6] / 1000).isoformat() + "Z",
+            "quote_volume": float(r[7]),
+            "trade_count": int(r[8]),
+        }
+        for r in raw
+    ]
+
+
+def _fetch_ticker_24h(symbol: str | None = None):
+    """Fetch 24h ticker from Binance."""
+    params = {"symbol": symbol.upper()} if symbol else None
+    raw = _binance_get("/api/v3/ticker/24hr", params)
+
+    def _parse(row):
+        return {
+            "symbol": row["symbol"],
+            "last_price": float(row["lastPrice"]),
+            "price_change": float(row["priceChange"]),
+            "price_change_pct": float(row["priceChangePercent"]),
+            "high_price": float(row["highPrice"]),
+            "low_price": float(row["lowPrice"]),
+            "volume": float(row["volume"]),
+            "quote_volume": float(row["quoteVolume"]),
+            "open_price": float(row["openPrice"]),
+            "prev_close": float(row["prevClosePrice"]),
+            "trade_count": int(row["count"]),
+        }
+
+    if isinstance(raw, list):
+        return [_parse(r) for r in raw]
+    return _parse(raw)
+
+
+def _fetch_orderbook(symbol: str, limit: int = 20) -> dict:
+    """Fetch order book depth from Binance."""
+    raw = _binance_get("/api/v3/depth", {"symbol": symbol.upper(), "limit": limit})
+    return {
+        "symbol": symbol.upper(),
+        "last_update_id": raw["lastUpdateId"],
+        "bids": [[float(p), float(q)] for p, q in raw["bids"]],
+        "asks": [[float(p), float(q)] for p, q in raw["asks"]],
+    }
+
+
+def _fetch_recent_trades(symbol: str, limit: int = 50) -> list[dict]:
+    """Fetch recent trades from Binance."""
+    raw = _binance_get("/api/v3/trades", {"symbol": symbol.upper(), "limit": limit})
+    return [
+        {
+            "id": t["id"],
+            "price": float(t["price"]),
+            "qty": float(t["qty"]),
+            "quote_qty": float(t["quoteQty"]),
+            "time": datetime.utcfromtimestamp(t["time"] / 1000).isoformat() + "Z",
+            "is_buyer_maker": t["isBuyerMaker"],
+            "side": "SELL" if t["isBuyerMaker"] else "BUY",
+        }
+        for t in raw
+    ]
+
 
 app = Flask(__name__)
 CORS(app)
 
-# Configuration
-LOG_DIR = "logs/paper"
 PORT = 8501
 HOST = "localhost"
-
-# Cache for performance
-cache = {}
-cache_timeout = 30  # seconds
-
-
-def get_cached_data(key: str, fetch_func, *args, **kwargs):
-    """Get cached data or fetch fresh data if expired."""
-    now = datetime.now().timestamp()
-    if key in cache and (now - cache[key]["timestamp"]) < cache_timeout:
-        return cache[key]["data"]
-
-    data = fetch_func(*args, **kwargs)
-    cache[key] = {"data": data, "timestamp": now}
-    return data
 
 
 @app.route("/")
@@ -68,284 +152,148 @@ def serve_js():
     return send_from_directory(".", "dashboard.js", mimetype="application/javascript")
 
 
-@app.route("/api/portfolio")
-def get_portfolio():
-    """Get current portfolio state."""
-    try:
-        portfolio_state = get_cached_data("portfolio", load_latest_state, LOG_DIR)
-        return jsonify(portfolio_state)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# ---------------------------------------------------------------------------
+# Live market data endpoints (Binance REST API)
+# ---------------------------------------------------------------------------
 
 
-@app.route("/api/equity")
-def get_equity():
-    """Get equity curve data."""
+@app.route("/api/ohlcv/<symbol>")
+def get_ohlcv(symbol: str):
+    """Get OHLCV kline data from Binance."""
     try:
-        equity_data = get_cached_data("equity", load_equity_curve, LOG_DIR)
-        # Convert to list of dicts for JSON serialization
-        return jsonify(
-            [
-                {
-                    "timestamp": item["timestamp"].isoformat()
-                    if isinstance(item["timestamp"], datetime)
-                    else item["timestamp"],
-                    "cash": item.get("cash", 0),
-                    "total_value": item.get("total_value", 0),
-                    "action": item.get("action", ""),
-                    "symbol": item.get("symbol", ""),
-                }
-                for item in equity_data.to_dict("records")
-            ]
+        timeframe = request.args.get("timeframe", "1h")
+        limit = int(request.args.get("limit", 500))
+        data = _cached(
+            f"ohlcv_{symbol}_{timeframe}_{limit}",
+            _fetch_ohlcv, symbol, timeframe, limit,
         )
+        return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/trades")
-def get_trades():
-    """Get recent trades."""
+@app.route("/api/ticker/<symbol>")
+def get_ticker(symbol: str):
+    """Get 24h ticker for a symbol from Binance."""
     try:
-        trades = get_cached_data("trades", load_recent_trades, LOG_DIR, limit=50)
-        return jsonify(trades)
+        data = _cached(f"ticker_{symbol}", _fetch_ticker_24h, symbol)
+        return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/positions")
-def get_positions():
-    """Get current positions."""
+@app.route("/api/tickers")
+def get_all_tickers():
+    """Get 24h tickers for all configured symbols."""
     try:
-        portfolio_state = get_cached_data("positions", load_latest_state, LOG_DIR)
-        positions = portfolio_state.get("positions", {})
+        settings = load_settings()
+        data = _cached("all_tickers", _fetch_ticker_24h, None)
+        symbols = {s.upper() for s in settings.market.symbols}
+        if isinstance(data, list):
+            filtered = [t for t in data if t["symbol"] in symbols]
+        else:
+            filtered = [data] if data["symbol"] in symbols else []
+        return jsonify(filtered)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-        # Calculate P&L for each position
-        result = {}
-        for symbol, pos in positions.items():
-            # Calculate P&L if we have current price
-            current_price = pos.get("current_price", pos.get("avg_price", 0))
-            avg_price = pos.get("avg_price", 0)
-            units = pos.get("units", 0)
 
-            market_value = current_price * units
-            cost_basis = avg_price * units
-            pnl = market_value - cost_basis
-            pnl_percent = (pnl / cost_basis) * 100 if cost_basis > 0 else 0
+@app.route("/api/orderbook/<symbol>")
+def get_orderbook(symbol: str):
+    """Get order book depth from Binance."""
+    try:
+        limit = int(request.args.get("limit", 20))
+        data = _cached(f"ob_{symbol}_{limit}", _fetch_orderbook, symbol, limit)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-            result[symbol] = {
-                "units": units,
-                "avg_price": avg_price,
-                "current_price": current_price,
-                "market_value": market_value,
-                "pnl": pnl,
-                "pnl_percent": pnl_percent,
+
+@app.route("/api/binance-trades/<symbol>")
+def get_binance_trades(symbol: str):
+    """Get recent trades from Binance."""
+    try:
+        limit = int(request.args.get("limit", 50))
+        data = _cached(
+            f"btrades_{symbol}_{limit}",
+            _fetch_recent_trades, symbol, limit,
+        )
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/market-summary")
+def get_market_summary():
+    """Get a combined market summary: tickers + server time."""
+    try:
+        settings = load_settings()
+        tickers = _cached("all_tickers", _fetch_ticker_24h, None)
+        symbols = {s.upper() for s in settings.market.symbols}
+        if isinstance(tickers, list):
+            filtered = [t for t in tickers if t["symbol"] in symbols]
+        else:
+            filtered = [tickers] if tickers["symbol"] in symbols else []
+
+        return jsonify({
+            "tickers": filtered,
+            "server_time": datetime.utcnow().isoformat() + "Z",
+            "symbols_configured": settings.market.symbols,
+            "timeframes_configured": settings.market.timeframes,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+# ---------------------------------------------------------------------------
+# System status endpoint
+# ---------------------------------------------------------------------------
+
+
+@app.route("/api/status")
+def get_status():
+    """Get system status including live market data."""
+    try:
+        settings = load_settings()
+
+        # Get live ticker data for configured symbols
+        tickers = _cached("status_tickers", _fetch_ticker_24h, None)
+        symbols = {s.upper() for s in settings.market.symbols}
+        if isinstance(tickers, list):
+            filtered = [t for t in tickers if t["symbol"] in symbols]
+        else:
+            filtered = [tickers] if tickers["symbol"] in symbols else []
+
+        return jsonify(
+            {
+                "status": "RUNNING",
+                "mode": settings.app.mode.value,
+                "equity": 0,
+                "initial_balance": settings.paper.initial_balance,
+                "daily_pnl": 0,
+                "positions_count": 0,
+                "tickers": filtered,
+                "server_time": datetime.utcnow().isoformat() + "Z",
+                "last_update": datetime.utcnow().isoformat() + "Z",
             }
-
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/logs")
-def get_logs():
-    """Get recent logs."""
-    try:
-        log_file = find_latest_log_file(LOG_DIR)
-        if not log_file:
-            return jsonify([])
-
-        entries = parse_log_file(log_file, max_entries=100)
-
-        # Format logs for display
-        formatted_logs = []
-        for entry in entries:
-            log_type = entry.get("type", "UNKNOWN")
-            message = entry.get("message", "")
-
-            if not message:
-                # Create a message from the entry data
-                if log_type == "PORTFOLIO_UPDATE":
-                    message = f"Portfolio updated: ${entry.get('total_value', 0):,.2f}"
-                elif log_type == "TRADE":
-                    message = f"Trade executed: {entry.get('action', '')} {entry.get('symbol', '')}"
-                elif log_type == "BRAIN_SCORING":
-                    score = entry.get("score", 0)
-                    message = f"AI Score: {score:.3f}"
-                else:
-                    message = json.dumps(entry)
-
-            formatted_logs.append(
-                {"timestamp": entry.get("timestamp", ""), "type": log_type, "message": message}
-            )
-
-        return jsonify(formatted_logs)
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/performance")
 def get_performance():
-    """Get performance metrics."""
+    """Get performance metrics (placeholder for live trading)."""
     try:
-        # Calculate performance metrics from equity data
-        equity_data = load_equity_curve(LOG_DIR)
-
-        if equity_data.empty:
-            return jsonify(
-                {
-                    "sharpe_ratio": 0,
-                    "sortino_ratio": 0,
-                    "max_drawdown": 0,
-                    "win_rate": 0,
-                    "total_return": 0,
-                    "annualized_return": 0,
-                    "volatility": 0,
-                    "trade_count": 0,
-                    "ai_score": 0,
-                }
-            )
-
-        # Calculate returns
-        returns = equity_data["total_value"].pct_change().dropna()
-
-        # Basic metrics
-        total_return = (
-            equity_data["total_value"].iloc[-1] / equity_data["total_value"].iloc[0]
-        ) - 1
-        annualized_return = (
-            (1 + total_return) ** (365 / len(equity_data)) - 1 if len(equity_data) > 1 else 0
-        )
-        volatility = returns.std() * (365**0.5) if len(returns) > 1 else 0
-
-        # Sharpe ratio (assuming risk-free rate = 0)
-        sharpe_ratio = (annualized_return / volatility) if volatility > 0 else 0
-
-        # Sortino ratio (downside deviation only)
-        downside_returns = returns[returns < 0]
-        downside_deviation = downside_returns.std() * (365**0.5) if len(downside_returns) > 1 else 0
-        sortino_ratio = (annualized_return / downside_deviation) if downside_deviation > 0 else 0
-
-        # Max drawdown
-        cumulative_max = equity_data["total_value"].expanding().max()
-        drawdown = (equity_data["total_value"] - cumulative_max) / cumulative_max
-        max_drawdown = drawdown.min()
-
-        # Win rate (from trades with positive P&L)
-        trades = load_recent_trades(LOG_DIR, limit=1000)
-        profitable_trades = sum(1 for trade in trades if trade.get("pnl", 0) > 0)
-        win_rate = profitable_trades / len(trades) if trades else 0
-
-        # AI score
-        brain_scoring = load_latest_brain_scoring(LOG_DIR)
-        ai_score = brain_scoring.get("score", 0)
-
         return jsonify(
             {
-                "sharpe_ratio": sharpe_ratio,
-                "sortino_ratio": sortino_ratio,
-                "max_drawdown": max_drawdown,
-                "win_rate": win_rate,
-                "total_return": total_return,
-                "annualized_return": annualized_return,
-                "volatility": volatility,
-                "trade_count": len(trades),
-                "ai_score": ai_score,
-            }
-        )
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/ohlcv/<symbol>")
-def get_ohlcv(symbol: str):
-    """Get OHLCV data for a symbol."""
-    try:
-        timeframe = request.args.get("timeframe", "1h")
-
-        # Load OHLCV data
-        ohlcv_df = load_ohlcv_data(symbol, timeframe)
-
-        if ohlcv_df.empty:
-            return jsonify([])
-
-        # Convert to list of dicts for JSON serialization
-        result = []
-        for _, row in ohlcv_df.iterrows():
-            result.append(
-                {
-                    "timestamp": row["timestamp"].isoformat()
-                    if isinstance(row["timestamp"], datetime)
-                    else row["timestamp"],
-                    "open": row["open"],
-                    "high": row["high"],
-                    "low": row["low"],
-                    "close": row["close"],
-                    "volume": row.get("volume", 0),
-                }
-            )
-
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/daily-summary")
-def get_daily_summary():
-    """Get daily summary."""
-    try:
-        summary = get_cached_data("daily_summary", calculate_daily_summary, LOG_DIR)
-        return jsonify(summary)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/ai-signal")
-def get_ai_signal():
-    """Get latest AI signal."""
-    try:
-        brain_scoring = get_cached_data("ai_signal", load_latest_brain_scoring, LOG_DIR)
-
-        score = brain_scoring.get("score", 0)
-        signal = "NEUTRAL"
-
-        if score > 0.3:
-            signal = "BULLISH"
-        elif score < -0.3:
-            signal = "BEARISH"
-
-        return jsonify(
-            {"signal": signal, "score": score, "timestamp": brain_scoring.get("timestamp", "")}
-        )
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/status")
-def get_status():
-    """Get system status."""
-    try:
-        settings = load_settings()
-        portfolio_state = load_latest_state(LOG_DIR)
-
-        # Calculate daily P&L
-        daily_summary = calculate_daily_summary(LOG_DIR)
-        daily_pnl = daily_summary.get("daily_pnl", 0)
-
-        # Determine status
-        status = "RUNNING"
-        if daily_pnl < -100:  # Large loss
-            status = "WARNING"
-        elif daily_pnl < -500:  # Very large loss
-            status = "CRITICAL"
-
-        return jsonify(
-            {
-                "status": status,
-                "mode": settings.app.mode.value,
-                "equity": portfolio_state.get("total_value", 0),
-                "daily_pnl": daily_pnl,
-                "positions_count": len(portfolio_state.get("positions", {})),
-                "last_update": datetime.now().isoformat(),
+                "sharpe_ratio": 0,
+                "sortino_ratio": 0,
+                "max_drawdown": 0,
+                "win_rate": 0,
+                "total_return": 0,
+                "annualized_return": 0,
+                "volatility": 0,
+                "trade_count": 0,
+                "ai_score": 0,
             }
         )
     except Exception as e:
@@ -354,7 +302,7 @@ def get_status():
 
 @app.route("/api/symbols")
 def get_symbols():
-    """Get available trading symbols."""
+    """Get available trading symbols and timeframes."""
     try:
         settings = load_settings()
         return jsonify(

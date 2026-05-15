@@ -94,6 +94,7 @@ def load_latest_state(log_dir: str = "logs/paper") -> dict[str, Any]:
             return {
                 "cash": entry.get("cash", 0.0),
                 "total_value": entry.get("total_value", 0.0),
+                "initial_balance": entry.get("initial_balance", 10000.0),
                 "positions": entry.get("positions", {}),
                 "action": entry.get("action", ""),
                 "symbol": entry.get("symbol"),
@@ -181,10 +182,7 @@ def load_equity_curve(log_dir: str = "logs/paper") -> pd.DataFrame:
 
 from datetime import timedelta
 
-import streamlit as st
 
-
-@st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_ohlcv_data(symbol: str, timeframe: str) -> pd.DataFrame:
     """Load OHLCV data prioritizing local Parquet data, then Binance API.
 

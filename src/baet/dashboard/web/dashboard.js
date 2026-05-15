@@ -139,6 +139,10 @@ class BAETDashboard {
     bindEvents() {
         document.getElementById('symbol-select').addEventListener('change', () => {
             this.loadOHLCVData();
+            this.loadBinanceTrades();
+            const sym = document.getElementById('symbol-select').value;
+            const label = document.getElementById('live-trade-symbol');
+            if (label) label.textContent = sym;
         });
 
         document.getElementById('timeframe-select').addEventListener('change', () => {
@@ -158,13 +162,9 @@ class BAETDashboard {
         try {
             await Promise.all([
                 this.loadStatusData(),
-                this.loadPortfolioData(),
-                this.loadEquityData(),
-                this.loadTradesData(),
-                this.loadPositionsData(),
-                this.loadLogsData(),
-                this.loadPerformanceData(),
-                this.loadOHLCVData()
+                this.loadOHLCVData(),
+                this.loadMarketSummary(),
+                this.loadBinanceTrades(),
             ]);
 
             this.updateUI();
@@ -174,7 +174,7 @@ class BAETDashboard {
         }
     }
 
-    // Load status data
+    // Load status data (includes live tickers)
     async loadStatusData() {
         try {
             const response = await fetch('/api/status');
@@ -187,90 +187,13 @@ class BAETDashboard {
         }
     }
 
-    // Load portfolio data
-    async loadPortfolioData() {
-        try {
-            const response = await fetch('/api/portfolio');
-            if (response.ok) {
-                this.data.portfolio = await response.json();
-            }
-        } catch (error) {
-            console.error('Error loading portfolio data:', error);
-        }
-    }
-
-    // Load equity curve data
-    async loadEquityData() {
-        try {
-            const response = await fetch('/api/equity');
-            if (response.ok) {
-                this.data.equity = await response.json();
-                this.updateEquityChart();
-            }
-        } catch (error) {
-            console.error('Error loading equity data:', error);
-        }
-    }
-
-    // Load trades data
-    async loadTradesData() {
-        try {
-            const response = await fetch('/api/trades');
-            if (response.ok) {
-                this.data.trades = await response.json();
-                this.updateTradesTable();
-            }
-        } catch (error) {
-            console.error('Error loading trades data:', error);
-        }
-    }
-
-    // Load positions data
-    async loadPositionsData() {
-        try {
-            const response = await fetch('/api/positions');
-            if (response.ok) {
-                this.data.positions = await response.json();
-                this.updatePositionsTable();
-            }
-        } catch (error) {
-            console.error('Error loading positions data:', error);
-        }
-    }
-
-    // Load logs data
-    async loadLogsData() {
-        try {
-            const response = await fetch('/api/logs');
-            if (response.ok) {
-                this.data.logs = await response.json();
-                this.updateLogsDisplay();
-            }
-        } catch (error) {
-            console.error('Error loading logs data:', error);
-        }
-    }
-
-    // Load performance metrics
-    async loadPerformanceData() {
-        try {
-            const response = await fetch('/api/performance');
-            if (response.ok) {
-                this.data.performance = await response.json();
-                this.updatePerformanceMetrics();
-            }
-        } catch (error) {
-            console.error('Error loading performance data:', error);
-        }
-    }
-
-    // Load OHLCV data
+    // Load OHLCV data from Binance
     async loadOHLCVData() {
         const symbol = document.getElementById('symbol-select').value;
         const timeframe = document.getElementById('timeframe-select').value;
 
         try {
-            const response = await fetch(`/api/ohlcv/${symbol}?timeframe=${timeframe}`);
+            const response = await fetch(`/api/ohlcv/${symbol}?timeframe=${timeframe}&limit=500`);
             if (response.ok) {
                 this.data.ohlcv[symbol] = await response.json();
                 this.updateOHLCVChart();
@@ -280,41 +203,92 @@ class BAETDashboard {
         }
     }
 
+    // Load market summary (all tickers)
+    async loadMarketSummary() {
+        try {
+            const response = await fetch('/api/market-summary');
+            if (response.ok) {
+                this.data.marketSummary = await response.json();
+                this.updateMarketSummary();
+            }
+        } catch (error) {
+            console.error('Error loading market summary:', error);
+        }
+    }
+
+    // Load recent trades from Binance
+    async loadBinanceTrades() {
+        const symbol = document.getElementById('symbol-select').value;
+        try {
+            const response = await fetch(`/api/binance-trades/${symbol}?limit=50`);
+            if (response.ok) {
+                this.data.binanceTrades = await response.json();
+                this.updateBinanceTradesTable();
+            }
+        } catch (error) {
+            console.error('Error loading binance trades:', error);
+        }
+    }
+
+    // Update market summary display
+    updateMarketSummary() {
+        const summary = this.data.marketSummary;
+        if (!summary || !summary.tickers) return;
+
+        summary.tickers.forEach(t => {
+            const priceEl = document.getElementById(`price-${t.symbol}`);
+            const changeEl = document.getElementById(`change-${t.symbol}`);
+            if (priceEl) {
+                priceEl.textContent = '$' + t.last_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            if (changeEl) {
+                const sign = t.price_change_pct >= 0 ? '+' : '';
+                changeEl.textContent = sign + t.price_change_pct.toFixed(2) + '%';
+                changeEl.style.color = t.price_change_pct >= 0 ? 'var(--green)' : 'var(--red)';
+            }
+        });
+    }
+
+    // Update Binance trades table
+    updateBinanceTradesTable() {
+        const trades = this.data.binanceTrades || [];
+        const container = document.getElementById('binance-trades-content');
+        if (!container) return;
+
+        if (trades.length === 0) {
+            container.innerHTML = '<div class="no-data">No recent trades</div>';
+            return;
+        }
+
+        container.innerHTML = trades.slice(0, 20).map(t => {
+            const sideClass = t.side === 'BUY' ? 'pnl-positive' : 'pnl-negative';
+            const time = new Date(t.time).toLocaleTimeString();
+            return `<div class="log-entry" style="justify-content:space-between; gap:8px;">
+                <span class="log-time" style="flex-shrink:0">${time}</span>
+                <span class="${sideClass}" style="font-weight:700; flex-shrink:0">${t.side}</span>
+                <span style="flex-shrink:0">$${t.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+                <span style="color:var(--text-muted)">${t.qty.toFixed(6)}</span>
+            </div>`;
+        }).join('');
+    }
+
     // Update UI elements
     updateUI() {
         this.updateStatusStrip();
-        this.updateTopStrip();
         this.updatePortfolioOverview();
-        this.updateAISignal();
     }
-
-    // Update AI signal display
-    updateAISignal() {
-        const perf = this.data.performance;
-        const signalEl = document.getElementById('ai-signal');
-        if (!signalEl) return;
-
-        const score = perf.ai_score || 0;
-        let signal = 'NEUTRAL';
-        let cls = '';
-
-        if (score > 0.3) { signal = 'BULLISH'; cls = 'bullish'; }
-        else if (score < -0.3) { signal = 'BEARISH'; cls = 'bearish'; }
 
         signalEl.textContent = signal;
         signalEl.className = 'status-value ' + cls;
     }
 
-    // Update top status strip from status API
+    // Update top status strip from status API (includes live tickers)
     updateStatusStrip() {
         const s = this.data.status;
         if (!s) return;
 
         const modeEl = document.getElementById('mode');
         const statusEl = document.getElementById('status');
-        const equityEl = document.getElementById('equity');
-        const dailyPnlEl = document.getElementById('daily-pnl');
-        const positionsEl = document.getElementById('positions-count');
         const lastUpdateEl = document.getElementById('last-update');
 
         if (modeEl) {
@@ -325,46 +299,46 @@ class BAETDashboard {
             statusEl.textContent = s.status || 'UNKNOWN';
             statusEl.className = 'status-value ' + (s.status === 'RUNNING' ? 'bullish' : s.status === 'WARNING' ? 'warning' : 'bearish');
         }
-        if (equityEl) equityEl.textContent = this.formatCurrency(s.equity || 0);
-        if (dailyPnlEl) {
-            const pnl = s.daily_pnl || 0;
-            dailyPnlEl.textContent = this.formatCurrency(pnl);
-            dailyPnlEl.className = 'status-value ' + (pnl >= 0 ? 'bullish' : 'bearish');
-        }
-        if (positionsEl) positionsEl.textContent = s.positions_count || 0;
         if (lastUpdateEl) {
             lastUpdateEl.textContent = s.last_update
                 ? new Date(s.last_update).toLocaleTimeString()
                 : new Date().toLocaleTimeString();
         }
-    }
 
-    // Update top status strip (fallback from portfolio data)
-    updateTopStrip() {
-        const portfolio = this.data.portfolio;
-        const equity = portfolio.total_value || 0;
-        const cash = portfolio.cash || 0;
-        const positions = portfolio.positions || {};
-        const positionsCount = Object.keys(positions).length;
-
-        document.getElementById('equity').textContent = this.formatCurrency(equity);
-        document.getElementById('cash').textContent = this.formatCurrency(cash);
-        document.getElementById('positions-count').textContent = positionsCount;
-        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+        // Update live ticker prices from status response
+        if (s.tickers && Array.isArray(s.tickers)) {
+            s.tickers.forEach(t => {
+                const priceEl = document.getElementById(`price-${t.symbol}`);
+                const changeEl = document.getElementById(`change-${t.symbol}`);
+                if (priceEl) {
+                    priceEl.textContent = '$' + t.last_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+                if (changeEl) {
+                    const sign = t.price_change_pct >= 0 ? '+' : '';
+                    changeEl.textContent = sign + t.price_change_pct.toFixed(2) + '%';
+                    changeEl.style.color = t.price_change_pct >= 0 ? 'var(--green)' : 'var(--red)';
+                }
+            });
+        }
     }
 
     // Update portfolio overview
     updatePortfolioOverview() {
+        const s = this.data.status || {};
         const portfolio = this.data.portfolio;
-        const initialBalance = portfolio.initial_balance || 10000;
-        const totalValue = portfolio.total_value || 0;
+        const initialBalance = s.initial_balance || portfolio.initial_balance || 10000;
+        const totalValue = s.equity || portfolio.total_value || 0;
         const cash = portfolio.cash || 0;
         const positionsValue = totalValue - cash;
         const totalReturn = initialBalance > 0 ? (totalValue - initialBalance) / initialBalance : 0;
 
+        const totalReturnEl = document.getElementById('total-return');
         document.getElementById('total-value').textContent = this.formatCurrency(totalValue);
         document.getElementById('positions-value').textContent = this.formatCurrency(positionsValue);
-        document.getElementById('total-return').textContent = this.formatPercentage(totalReturn);
+        if (totalReturnEl) {
+            totalReturnEl.textContent = this.formatPercentage(totalReturn);
+            totalReturnEl.style.color = totalReturn >= 0 ? 'var(--green)' : 'var(--red)';
+        }
     }
 
     // Update OHLCV chart
