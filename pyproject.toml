@@ -54,17 +54,6 @@ packages = ["src/baet"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
-exclude = [
-    "src/baet/dashboard/app_old*.py",
-    "src/baet/dashboard/control.py",
-    "src/baet/execution/bridge_trader.py",
-    "src/baet/execution/live_client_observation.py",
-    "src/baet/reporting/audit_trail.py",
-    "src/baet/reporting/notifier.py",
-    "src/baet/strategies/adaptive_ensemble.py",
-    "src/baet/strategies/ensemble.py",
-    "src/baet/strategies/ml_strategy.py",
-]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ARG", "SIM"]
@@ -78,17 +67,6 @@ indent-style = "space"
 python_version = "3.13"
 strict = true
 packages = ["baet"]
-exclude = '''(?x)(
-    ^src/baet/dashboard/app_old.*\.py$|
-    ^src/baet/dashboard/control\.py$|
-    ^src/baet/execution/bridge_trader\.py$|
-    ^src/baet/execution/live_client_observation\.py$|
-    ^src/baet/reporting/audit_trail\.py$|
-    ^src/baet/reporting/notifier\.py$|
-    ^src/baet/strategies/adaptive_ensemble\.py$|
-    ^src/baet/strategies/ensemble\.py$|
-    ^src/baet/strategies/ml_strategy\.py$
-)'''
 
 [[tool.mypy.overrides]]
 module = [
@@ -99,10 +77,7 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = [
-    "baet.dashboard.components",
-    "baet.dashboard.data_loader",
-]
+module = ["baet.dashboard.data_loader"]
 disallow_untyped_defs = false
 
 [dependency-groups]

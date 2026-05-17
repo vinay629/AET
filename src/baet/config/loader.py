@@ -63,11 +63,13 @@ def load_settings(mode: str | None = None, env_file: Path | None = None) -> Sett
     capture_env_vars = env_file is None  # Only capture if no specific env_file is provided
 
     if capture_env_vars:
-        env_live_key = os.getenv("BAET_LIVE_BINANCE_API_KEY", "")
-        env_live_secret = os.getenv("BAET_LIVE_BINANCE_API_SECRET") or os.getenv("BAET_LIVE_BINANCE_SECRET") or ""
+        env_live_key: str = os.getenv("BAET_LIVE_BINANCE_API_KEY", "")
+        env_live_secret: str = (
+            os.getenv("BAET_LIVE_BINANCE_API_SECRET") or os.getenv("BAET_LIVE_BINANCE_SECRET") or ""
+        )
     else:
-        env_live_key = ""
-        env_live_secret = ""
+        env_live_key: str = ""
+        env_live_secret: str = ""
 
     # Load .env file (with override=False so existing env vars are not overwritten)
     load_dotenv(dotenv_path=env_file_to_load, override=False)

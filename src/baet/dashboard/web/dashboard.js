@@ -184,6 +184,10 @@ class BAETDashboard {
                 this.loadMarketSummary(),
                 this.loadBinanceTrades(),
                 this.loadEngineStatus(),
+                this.loadEquityData(),
+                this.loadTrades(),
+                this.loadLogs(),
+                this.loadPerformance(),
             ]);
 
             this.updateUI();
@@ -249,6 +253,55 @@ class BAETDashboard {
         }
     }
 
+    // Load equity curve data
+    async loadEquityData() {
+        try {
+            const response = await fetch('/api/equity');
+            if (response.ok) {
+                const result = await response.json();
+                this.data.equity = result.equity || [];
+            }
+        } catch (error) {
+            console.error('Error loading equity data:', error);
+        }
+    }
+
+    // Load trades data
+    async loadTrades() {
+        try {
+            const response = await fetch('/api/trades');
+            if (response.ok) {
+                this.data.trades = await response.json();
+            }
+        } catch (error) {
+            console.error('Error loading trades data:', error);
+        }
+    }
+
+    // Load logs data
+    async loadLogs() {
+        try {
+            const response = await fetch('/api/logs?limit=50');
+            if (response.ok) {
+                this.data.logs = await response.json();
+            }
+        } catch (error) {
+            console.error('Error loading logs data:', error);
+        }
+    }
+
+    // Load performance metrics
+    async loadPerformance() {
+        try {
+            const response = await fetch('/api/performance');
+            if (response.ok) {
+                this.data.performance = await response.json();
+            }
+        } catch (error) {
+            console.error('Error loading performance data:', error);
+        }
+    }
+
     // Update market summary display
     updateMarketSummary() {
         const summary = this.data.marketSummary;
@@ -297,6 +350,10 @@ class BAETDashboard {
         this.updateEngineDisplay();
         this.updatePortfolioOverview();
         this.updatePositionsDisplay();
+        this.updateEquityChart();
+        this.updateTradesTable();
+        this.updateLogsDisplay();
+        this.updatePerformanceMetrics();
     }
 
     // Update top status strip from status API (includes live tickers)
@@ -502,12 +559,6 @@ class BAETDashboard {
             totalReturnEl.style.color = totalReturn >= 0 ? 'var(--green)' : 'var(--red)';
         }
     }
-        document.getElementById('positions-value').textContent = this.formatCurrency(positionsValue);
-        if (totalReturnEl) {
-            totalReturnEl.textContent = this.formatPercentage(totalReturn);
-            totalReturnEl.style.color = totalReturn >= 0 ? 'var(--green)' : 'var(--red)';
-        }
-    }
 
     // Update OHLCV chart
     updateOHLCVChart() {
@@ -542,36 +593,7 @@ class BAETDashboard {
         this.charts.equity.update('none');
     }
 
-    // Update positions table
-    updatePositionsTable() {
-        const tbody = document.getElementById('positions-tbody');
-        const positions = this.data.positions;
-
-        if (Object.keys(positions).length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="no-data">No open positions</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = Object.entries(positions).map(([symbol, pos]) => {
-            const pnl = pos.pnl || 0;
-            const pnlPercent = pos.pnl_percent || 0;
-            const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
-
-            return `
-                <tr>
-                    <td>${symbol}</td>
-                    <td>${pos.units || 0}</td>
-                    <td>${this.formatCurrency(pos.avg_price || 0)}</td>
-                    <td>${this.formatCurrency(pos.current_price || 0)}</td>
-                    <td>${this.formatCurrency(pos.market_value || 0)}</td>
-                    <td class="${pnlClass}">${this.formatCurrency(pnl)}</td>
-                    <td class="${pnlClass}">${this.formatPercentage(pnlPercent)}</td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    // Update trades table
+        // Update trades table
     updateTradesTable() {
         const tbody = document.getElementById('trades-tbody');
         const trades = this.data.trades;
@@ -608,14 +630,16 @@ class BAETDashboard {
         }
 
         logsContainer.innerHTML = logs.map(log => {
-            const timestamp = new Date(log.timestamp).toLocaleTimeString();
-            const typeClass = log.type.toLowerCase().replace('_', '-');
+            const ts = log.timestamp ? new Date(log.timestamp) : null;
+            const timestamp = ts && !isNaN(ts.getTime()) ? ts.toLocaleTimeString() : '';
+            const typeClass = (log.type || '').toLowerCase().replace('_', '-');
+            const message = log.message || (log.type !== 'LOG_ENTRY' ? JSON.stringify(log) : '');
 
             return `
                 <div class="log-entry ${typeClass}">
                     <span class="log-time">[${timestamp}]</span>
-                    <span class="log-type">[${log.type}]</span>
-                    <span class="log-message">${log.message || JSON.stringify(log)}</span>
+                    <span class="log-type">[${log.type || 'LOG'}]</span>
+                    <span class="log-message">${message}</span>
                 </div>
             `;
         }).join('');

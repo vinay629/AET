@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from baet.risk.engine import RiskEngine
 
 
-# Lazy import to avoid circular imports
 def _get_risk_engine() -> type[RiskEngine]:
     from baet.risk.engine import RiskEngine
 
@@ -21,7 +20,7 @@ def _get_risk_engine() -> type[RiskEngine]:
 
 
 class PortfolioBacktestEngine(BacktestEngine):
-    def __init__(self, config: BacktestConfig, risk_engine: "RiskEngine | None" = None) -> None:
+    def __init__(self, config: BacktestConfig, risk_engine: RiskEngine | None = None) -> None:
         self.config = config
         self.risk_engine = risk_engine  # NEW: Optional RiskEngine
 
@@ -47,6 +46,8 @@ class PortfolioBacktestEngine(BacktestEngine):
 
         combined = (
             pd.concat(prepared, ignore_index=True).sort_values("close_time").reset_index(drop=True)
+            if prepared
+            else pd.DataFrame(columns=["symbol_key", "close_time", "signal", "open"])
         )
 
         cash = self.config.initial_cash

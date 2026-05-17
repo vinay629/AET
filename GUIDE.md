@@ -582,10 +582,10 @@ uv run pytest -m "not e2e"
 ### Linting and Type Checking
 
 ```bash
-# Ruff linter
-uv run ruff check src/baet/dashboard/web/api_server.py src/baet/dashboard/data_loader.py src/baet/execution/backtest.py src/baet/strategies/baselines.py tests
+# Ruff linter — core verified modules only
+uv run ruff check src/baet/config src/baet/data src/baet/strategies src/baet/execution src/baet/core src/baet/dashboard/web tests
 
-# MyPy type checker
+# MyPy type checker — core modules and tests
 uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py src/baet/dashboard/web/api_server.py
 ```
 

@@ -94,8 +94,8 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         symbol: str,
         from_id: int,
         limit: int = 500,
-    ) -> list:
-        """ "Fetch historical block trades (New - May 2026)."""
+    ) -> list[dict[str, Any]]:
+        """Fetch historical block trades (New - May 2026)."""
         query = urlencode(
             {
                 "symbol": symbol,
@@ -155,10 +155,9 @@ class BinanceLiveStream:
         data = json.loads(message)
 
         # Handle serverShutdown event (New - May 2026)
-        if isinstance(data, dict):
-            if data.get("e") == "serverShutdown":
-                if self._on_shutdown_callback:
-                    self._on_shutdown_callback(data)
-                return {"event": "shutdown", "data": data}
+        if isinstance(data, dict) and data.get("e") == "serverShutdown":
+            if self._on_shutdown_callback:
+                self._on_shutdown_callback(data)
+            return {"event": "shutdown", "data": data}
 
         return data

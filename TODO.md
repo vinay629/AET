@@ -11,11 +11,14 @@ This branch is in **stabilization mode**. The goal is to restore one trustworthy
 - [x] Restore minimal core test collection
 - [x] Add dashboard smoke coverage
 - [x] Revalidate config, data, strategy, backtest, and dashboard core tests
+- [x] Fix broken smoke tests, add missing endpoints, create all four test files
 - [ ] Keep the same core checks green after each cleanup pass
 
 ### 2. Reconcile status with reality
 - [x] Rewrite `README.md` to reflect verified status only
-- [ ] Add a short stabilization note to scripts or developer docs if needed
+- [x] Update verified-commands in `README.md` and `GUIDE.md` with real file paths
+- [x] Deprecate legacy `app.py` → `app_old.py` stub
+- [ ] Full docs/usage runthrough to catch any remaining stale references
 - [ ] Stop using old milestone assumptions from the earlier branch state
 
 ## Next
@@ -46,9 +49,14 @@ This branch is in **stabilization mode**. The goal is to restore one trustworthy
 ## Current Verified Commands
 
 ```bash
+# Full core test suite (all 5 files must exist and pass)
 uv run pytest tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py
-uv run ruff check src/baet/dashboard/app.py src/baet/dashboard/components.py src/baet/execution/backtest.py src/baet/strategies/baselines.py tests
-uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py src/baet/dashboard/app.py
+
+# Ruff — core modules only (configuration/data/strategies/execution)
+uv run ruff check src/baet/config src/baet/data src/baet/strategies src/baet/execution src/baet/core src/baet/dashboard/web tests
+
+# MyPy — core modules only (configuration/data/strategies/execution/dashboard)
+uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py src/baet/dashboard/web/api_server.py
 ```
 
 ## Deferred For Now

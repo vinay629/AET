@@ -12,27 +12,29 @@ BAET is a local-first Python trading research project for Binance. The current b
 - strategy contract and discovery
 - portfolio backtesting
 - strategy comparison reporting
-- one authoritative Streamlit dashboard entrypoint for paper-mode logs
+- one authoritative Flask + JS dashboard at `src/baet/dashboard/web/`
 
 The repo also contains broader experimental modules for live trading, streaming, scout logic, database persistence, and extra dashboard variants, but those are **not part of the current stabilized core baseline**.
 
 ## Current Verified Status
 
-The following checks are currently green for the stabilized core slice:
+The following checks are green for the stabilized core slice:
 
 ```bash
+# --- Full test suite ---
 uv run pytest tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py
-uv run ruff check src/baet/dashboard/app.py src/baet/dashboard/components.py src/baet/execution/backtest.py src/baet/strategies/baselines.py tests
-uv run mypy tests/test_config_core.py tests/test_data_core.py tests/test_strategy_core.py tests/test_backtest_core.py tests/test_dashboard_smoke.py src/baet/dashboard/app.py
+
+# --- Lint (core modules only; excluded legacy files still filtered by pyproject.toml) ---
+uv run ruff check src/baet/config src/baet/data src/baet/strategies src/baet/execution src/baet/core src/baet/dashboard/web tests
 ```
 
 Current restored test baseline:
 
 - config core tests
-- data normalization tests
-- strategy contract/discovery tests
-- backtester smoke tests
-- dashboard smoke tests
+- data normalisation and schema tests
+- strategy contract and discovery tests
+- backtest engine smoke tests
+- dashboard API smoke tests
 
 ## What Is Stable Right Now
 

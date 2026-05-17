@@ -6,8 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from baet.core.enums import RegimeLabel
-
 
 @dataclass(frozen=True)
 class DatasetRef:

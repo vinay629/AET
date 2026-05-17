@@ -107,7 +107,8 @@ class PaperTradingEngine:
                     elapsed = datetime.now() - self.start_time
                     if elapsed.total_seconds() > self.config.paper.duration_days * 24 * 3600:
                         logger.info(
-                            f"Autonomous duration of {self.config.paper.duration_days} days reached. Stopping."
+                            "Autonomous duration of %s days reached. Stopping.",
+                            self.config.paper.duration_days,
                         )
                         self.stop()
                         break
@@ -139,7 +140,7 @@ class PaperTradingEngine:
                     logger.critical(
                         f"Too many consecutive errors ({self.consecutive_errors}), stopping"
                     )
-                    logger.critical("Audit trail not available — emergency stop logged to logger only")
+                    logger.critical("Audit trail not available — emergency stop")
                     self.stop()
                     break
 
@@ -175,14 +176,15 @@ class PaperTradingEngine:
         Returns:
             Dict with order result details
         """
-        import time
         # Get current price from order simulator's last known price
         # For now, use a simple approach: get price from Binance
         try:
             from baet.data.binance import BinanceHistoricalProvider
+
             provider = BinanceHistoricalProvider(self.config)
             # Fetch latest candle for price
             from datetime import datetime, timedelta
+
             end_time = datetime.now()
             start_time = end_time - timedelta(hours=1)
             df = provider.fetch_klines(symbol, "1h", start_time, end_time)
@@ -196,7 +198,10 @@ class PaperTradingEngine:
             fill_price, units, fee = self.order_simulator.simulate_buy(current_price, qty)
             cost = fill_price * units + fee
             if cost > self.portfolio.cash:
-                return {"error": f"Insufficient cash: need ${cost:.2f}, have ${self.portfolio.cash:.2f}"}
+                return {
+                    "error": f"Insufficient cash: need ${cost:.2f}, "
+                    f"have ${self.portfolio.cash:.2f}",
+                }
             self.portfolio.cash -= cost
             # Add to positions
             if symbol in self.portfolio.positions:
@@ -240,10 +245,12 @@ class PaperTradingEngine:
 
         if self.paper_logger:
             self.paper_logger.log_order_simulated(
-                symbol=symbol, side=side,
+                symbol=symbol,
+                side=side,
                 requested_price=current_price,
                 filled_price=fill_price,
-                units=qty, fee=fee,
+                units=qty,
+                fee=fee,
                 slippage=fill_price - current_price,
             )
 
@@ -261,6 +268,7 @@ class PaperTradingEngine:
 
         # 1. Update market data (placeholder for now)
         market_data = self._update_market_data()
+        self._last_market_data = market_data
 
         # 2. Update features (placeholder for now)
         features = self._update_features(market_data)
@@ -310,13 +318,13 @@ class PaperTradingEngine:
         logger.debug("Updating market data (not implemented)")
         return {}
 
-    def _update_features(self, market_data: dict) -> dict:
+    def _update_features(self, _market_data: dict) -> dict:
         """Update features based on market data."""
         # TODO: Implement feature updates
         logger.debug("Updating features (not implemented)")
         return {}
 
-    def _generate_signals_from_brain(self, brain_result: dict, market_data: dict) -> dict:
+    def _generate_signals_from_brain(self, brain_result: dict, _market_data: dict) -> dict:
         """
         Generate trading signals based on the AI Brain's output score.
 
@@ -350,13 +358,13 @@ class PaperTradingEngine:
         logger.debug("Generating signals (not implemented)")
         return {}
 
-    def _combine_signals(self, signals: dict) -> list:
+    def _combine_signals(self, _signals: dict) -> list:
         """Combine signals from multiple strategies."""
         # TODO: Implement ensemble combination
         logger.debug("Combining signals (not implemented)")
         return []
 
-    def _make_decisions(self, combined: list) -> list:
+    def _make_decisions(self, _combined: list) -> list:
         """Make trading decisions from combined signals."""
         # TODO: Implement decision making
         logger.debug("Making decisions (not implemented)")
@@ -385,58 +393,7 @@ class PaperTradingEngine:
 
         return approved
 
-    def _execute_paper_trades(self, approved: list, market_data: dict) -> None:
-        """Execute approved paper trades."""
-        for decision in approved:
-            # Feedback loop for brain
-            # In a real scenario, we'd wait for the trade to close
-            # For now, we simulate a learning step after each execution
-            trade_outcome = {
-                "symbol": decision.get("symbol"),
-                "pnl_pct": 0.01 if decision.get("action") == "BUY" else -0.01,  # Dummy feedback
-                "action": decision.get("action"),
-            }
-            self.brain.learn_from_trade(trade_outcome)
-
-            # Skip HOLD decisions — no risk check needed
-            if action == "HOLD":
-                continue
-
-            # M5.2 risk limit check
-            can_trade, risk_reason = self.risk_tracker.check_can_trade()
-            if not can_trade:
-                logger.warning(f"M5.2 risk limit blocked {symbol}: {risk_reason}")
-                logger.warning(f"Audit trail not available — trade rejected: {symbol} {risk_reason}")
-                continue
-
-            # Legacy risk engine check (if available)
-            if self.risk_engine:
-                signal = decision.get("signal", {})
-                result = self.risk_engine.evaluate_signal(signal)
-
-                if self.paper_logger:
-                    self.paper_logger.log_risk_evaluation(
-                        symbol,
-                        signal,
-                        {
-                            "passed": result.approved,
-                            "adjusted_action": result.adjusted_action,
-                            "adjusted_size": result.adjusted_size,
-                            "reasons": result.reasons,
-                        },
-                    )
-
-                if not result.approved or result.adjusted_action == "HOLD":
-                    logger.warning(f"Audit trail not available — trade rejected by risk engine: {symbol}")
-                    continue
-                if result.adjusted_size is not None:
-                    decision["units"] = float(result.adjusted_size)
-
-            approved.append(decision)
-
-        return approved
-
-    def _execute_paper_trades(self, approved: list, market_data: dict) -> None:
+    def _execute_paper_trades(self, approved: list, _market_data: dict) -> None:
         """Execute approved paper trades with audit trail + risk tracking."""
         for decision in approved:
             symbol = decision.get("symbol")
@@ -521,20 +478,33 @@ class PaperTradingEngine:
                             total_value=self.portfolio.get_total_value(market_data),
                         )
 
-    def _update_portfolio_state(self, market_data: dict) -> None:
+    def _update_portfolio_state(self, _market_data: dict) -> None:
         """Update portfolio state with current market prices."""
         # TODO: Implement portfolio state update
         logger.debug("Updating portfolio state (not implemented)")
         pass
 
     def _log_iteration(self) -> None:
-        """Log iteration summary."""
+        """Log iteration summary and portfolio state."""
         status = self.get_status()
         logger.info(
             f"Iteration: cash={status['cash']:.2f}, "
             f"positions={len(status['positions'])}, "
             f"value={status['portfolio_value']:.2f}"
         )
+
+        # Log a PORTFOLIO_UPDATE so the dashboard can display equity/portfolio data
+        if self.paper_logger:
+            try:
+                self.paper_logger.log_portfolio_update(
+                    action="UPDATE",
+                    symbol=None,
+                    cash=status["cash"],
+                    positions=status["positions"],
+                    total_value=status["portfolio_value"],
+                )
+            except Exception:
+                logger.debug("Failed to log portfolio update", exc_info=True)
 
     def get_status(self) -> dict:
         """
