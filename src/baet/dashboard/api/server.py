@@ -32,6 +32,7 @@ from baet.dashboard.views import (
     MarketView,
     StrategyView,
     AuditView,
+    ResearchView,
 )
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ class DashboardState:
         self.market_view = MarketView(event_store, cache_ttl=1.0)
         self.strategy_view = StrategyView(event_store, cache_ttl=1.0)
         self.audit_view = AuditView(event_store, cache_ttl=0.5)
+        self.research_view = ResearchView(event_store, cache_ttl=2.0)
 
         # WebSocket connections for live streaming
         self._ws_connections: list[WebSocket] = []
@@ -220,6 +222,67 @@ async def get_status() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Research & ML Terminal API
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/research")
+async def get_research() -> dict[str, Any]:
+    """Full research dashboard payload (labels, features, CV, models, derivatives)."""
+    return get_state().research_view.refresh()
+
+
+@app.get("/api/research/labels")
+async def get_research_labels(
+    symbol: str = Query(default="BTCUSDT"),
+    timeframe: str = Query(default="1h"),
+    atr_window: int = Query(default=14, ge=1, le=200),
+    atr_multiplier: float = Query(default=2.0, ge=0.5, le=10.0),
+    timeout_bars: int = Query(default=20, ge=1, le=100),
+) -> dict[str, Any]:
+    """Label quality data with configurable barrier parameters."""
+    return get_state().research_view.get_labels(
+        symbol=symbol,
+        timeframe=timeframe,
+        atr_window=atr_window,
+        atr_multiplier=atr_multiplier,
+        timeout_bars=timeout_bars,
+    )
+
+
+@app.get("/api/research/cv-splits")
+async def get_research_cv_splits(
+    n_samples: int = Query(default=500, ge=100, le=10000),
+    n_splits: int = Query(default=5, ge=2, le=10),
+    purge_gap: int = Query(default=2, ge=0, le=20),
+    embargo_gap: int = Query(default=1, ge=0, le=10),
+    label_horizon: int = Query(default=20, ge=1, le=100),
+) -> dict[str, Any]:
+    """PurgedKFold cross-validation split visualization data."""
+    return get_state().research_view.get_cv_splits(
+        n_samples=n_samples,
+        n_splits=n_splits,
+        purge_gap=purge_gap,
+        embargo_gap=embargo_gap,
+        label_horizon=label_horizon,
+    )
+
+
+@app.get("/api/research/models")
+async def get_research_models() -> dict[str, Any]:
+    """Model registry comparison data."""
+    return get_state().research_view.get_models()
+
+
+@app.get("/api/research/derivatives")
+async def get_research_derivatives(
+    symbol: str = Query(default="BTCUSDT"),
+) -> dict[str, Any]:
+    """Derivatives microstructure data (OI, funding, liquidations)."""
+    return get_state().research_view.get_derivatives(symbol=symbol)
+
+
+# ---------------------------------------------------------------------------
 # WebSocket — live event stream
 # ---------------------------------------------------------------------------
 
@@ -259,14 +322,30 @@ async def websocket_endpoint(websocket: WebSocket):
 # ---------------------------------------------------------------------------
 
 
+@app.get("/terminal", response_class=HTMLResponse)
+async def serve_terminal():
+    """Serve the quantitative intelligence terminal."""
+    terminal_path = Path(__file__).parent / "quant_terminal.html"
+    if terminal_path.exists():
+        return HTMLResponse(content=terminal_path.read_text(encoding="utf-8"), status_code=200)
+    return HTMLResponse(content="<h1>Terminal not found</h1>", status_code=404)
+
+
 @app.get("/{full_path:path}", response_class=HTMLResponse)
 async def serve_react(full_path: str):
     """Serve the React SPA for all non-API routes."""
+    # Don't intercept API or terminal routes
+    if full_path.startswith("api/") or full_path == "terminal":
+        return HTMLResponse(content="", status_code=404)
     state = get_state()
     if state.ui_dir:
         index_path = state.ui_dir / "index.html"
         if index_path.exists():
             return HTMLResponse(content=index_path.read_text(), status_code=200)
+    # Default: redirect to terminal
+    terminal_path = Path(__file__).parent / "quant_terminal.html"
+    if terminal_path.exists():
+        return HTMLResponse(content=terminal_path.read_text(encoding="utf-8"), status_code=200)
     return HTMLResponse(
         content="<h1>BAET Dashboard</h1><p>UI not built yet. Use API endpoints directly.</p>",
         status_code=200,

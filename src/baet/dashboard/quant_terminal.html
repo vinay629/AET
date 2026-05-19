@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAET Quantitative Intelligence Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        /* Chart container */
+        .chart-box { position: relative; }
+        .chart-box .lw-chart { width: 100%; height: 100%; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HEADER — System Status Bar
+    ═══════════════════════════════════════════════════════════════ -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <h1 class="text-lg font-bold tracking-tight text-white">
+                    <span class="text-indigo-400">BAET</span> Intelligence Terminal
+                </h1>
+                <span id="connection-status" class="px-2 py-0.5 bg-slate-800 text-xs text-amber-400 rounded font-mono border border-slate-700">
+                    ● Connecting...
+                </span>
+            </div>
+            <div class="flex items-center gap-6 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">Engine:</span>
+                    <span id="hdr-engine" class="font-mono text-slate-300">---</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">Equity:</span>
+                    <span id="hdr-equity" class="font-mono text-emerald-400">---</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">P&L:</span>
+                    <span id="hdr-pnl" class="font-mono">---</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">Events:</span>
+                    <span id="hdr-events" class="font-mono text-slate-400">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PROBABILITY MATRIX — Hero Section
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="px-6 py-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Up Probability -->
+            <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Up Probability</h3>
+                    <span class="text-xs text-slate-500">Long Signal</span>
+                </div>
+                <p id="prob-up" class="text-4xl font-bold text-emerald-500">--%</p>
+                <div class="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="prob-up-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Sideways Probability -->
+            <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sideways</h3>
+                    <span class="text-xs text-slate-500">Timeout / Neutral</span>
+                </div>
+                <p id="prob-side" class="text-4xl font-bold text-slate-400">--%</p>
+                <div class="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="prob-side-bar" class="h-full bg-slate-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Down Probability -->
+            <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-semibold text-rose-400 uppercase tracking-wider">Down Probability</h3>
+                    <span class="text-xs text-slate-500">Short Signal</span>
+                </div>
+                <p id="prob-down" class="text-4xl font-bold text-rose-500">--%</p>
+                <div class="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="prob-down-bar" class="h-full bg-rose-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MAIN GRID — Charts & Analytics
+    ═══════════════════════════════════════════════════════════════ -->
+    <main class="px-6 pb-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        <!-- ── Module 1: Market Chart with Dynamic Barriers ── -->
+        <div class="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-bold tracking-tight">Market Microstructure & Adaptive Barriers</h2>
+                <div class="flex items-center gap-3">
+                    <select id="symbol-select" class="bg-slate-800 text-xs text-slate-300 rounded px-2 py-1 border border-slate-700">
+                        <option value="BTCUSDT">BTCUSDT</option>
+                        <option value="ETHUSDT">ETHUSDT</option>
+                    </select>
+                    <span class="px-2 py-0.5 bg-slate-800 text-xs text-indigo-400 rounded font-mono border border-slate-700">
+                        ATR Dynamic
+                    </span>
+                </div>
+            </div>
+            <div id="chart-main" class="w-full h-[400px]"></div>
+        </div>
+
+        <!-- ── Module 2: Label Distribution ── -->
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+            <h2 class="text-sm font-bold tracking-tight mb-4">Label Quality Inspector</h2>
+            <div id="label-distribution" class="space-y-3">
+                <div class="text-xs text-slate-500 italic">Loading label data...</div>
+            </div>
+            <div id="label-config" class="mt-4 pt-4 border-t border-slate-800">
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1">ATR Window</label>
+                        <input id="cfg-atr-window" type="range" min="5" max="50" value="14"
+                               class="w-full accent-indigo-500">
+                        <span id="cfg-atr-window-val" class="text-xs text-slate-400">14</span>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1">ATR Multiplier</label>
+                        <input id="cfg-atr-mult" type="range" min="10" max="50" value="20"
+                               class="w-full accent-indigo-500">
+                        <span id="cfg-atr-mult-val" class="text-xs text-slate-400">2.0</span>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1">Timeout Bars</label>
+                        <input id="cfg-timeout" type="range" min="5" max="50" value="20"
+                               class="w-full accent-indigo-500">
+                        <span id="cfg-timeout-val" class="text-xs text-slate-400">20</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Module 3: CV Split Map ── -->
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+            <h2 class="text-sm font-bold tracking-tight mb-4">PurgedKFold Split Map</h2>
+            <div id="cv-split-map" class="overflow-x-auto">
+                <div class="text-xs text-slate-500 italic">Loading CV splits...</div>
+            </div>
+            <div class="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                <span class="flex items-center gap-1"><span class="w-3 h-2 bg-indigo-500 rounded-sm"></span> Train</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-2 bg-amber-500 rounded-sm"></span> Test</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-2 bg-rose-500/40 rounded-sm"></span> Purged/Embargo</span>
+            </div>
+        </div>
+
+        <!-- ── Module 4: Feature Importance ── -->
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+            <h2 class="text-sm font-bold tracking-tight mb-4">Feature Importance</h2>
+            <div id="feature-importance" class="space-y-2">
+                <div class="text-xs text-slate-500 italic">No models registered yet. Train a baseline model to see feature importance.</div>
+            </div>
+        </div>
+
+        <!-- ── Module 5: Model Registry ── -->
+        <div class="bg-slate-900 rounded-xl border border-slate-800 p-5">
+            <h2 class="text-sm font-bold tracking-tight mb-4">Model Registry</h2>
+            <div id="model-registry" class="space-y-2">
+                <div class="text-xs text-slate-500 italic">Loading model registry...</div>
+            </div>
+        </div>
+
+        <!-- ── Module 6: Derivatives Microstructure ── -->
+        <div class="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 p-5">
+            <h2 class="text-sm font-bold tracking-tight mb-4">Derivatives Microstructure</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Funding Rate Z-Score -->
+                <div>
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Funding Rate Z-Score</h3>
+                    <div id="chart-funding" class="h-[150px]"></div>
+                </div>
+                <!-- OI Change -->
+                <div>
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Open Interest Change</h3>
+                    <div id="chart-oi" class="h-[150px]"></div>
+                </div>
+                <!-- Liquidation Ratio -->
+                <div>
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Liquidation Ratio</h3>
+                    <div id="chart-liq" class="h-[150px]"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         JAVASCRIPT — Chart Initialization & WebSocket
+    ═══════════════════════════════════════════════════════════════ -->
+    <script>
+    (function() {
+        'use strict';
+
+        // ── Chart Instances ──
+        const chartMain = LightweightCharts.createChart(
+            document.getElementById('chart-main'),
+            {
+                layout: { backgroundColor: '#0f172a', textColor: '#94a3b8' },
+                grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                timeScale: { borderColor: '#334155' },
+                rightPriceScale: { borderColor: '#334155' },
+            }
+        );
+        const candleSeries = chartMain.addCandlestickSeries({
+            upColor: '#10b981', downColor: '#ef4444',
+            borderUpColor: '#10b981', borderDownColor: '#ef4444',
+            wickUpColor: '#10b981', wickDownColor: '#ef4444',
+        });
+        const upperBarrier = chartMain.addLineSeries({ color: '#6366f1', lineWidth: 1, lineStyle: 2 });
+        const lowerBarrier = chartMain.addLineSeries({ color: '#6366f1', lineWidth: 1, lineStyle: 2 });
+
+        // Mini charts for derivatives
+        function createMiniChart(id) {
+            const chart = LightweightCharts.createChart(document.getElementById(id), {
+                layout: { backgroundColor: 'transparent', textColor: '#64748b' },
+                grid: { vertLines: { visible: false }, horzLines: { color: '#1e293b' } },
+                timeScale: { visible: false },
+                rightPriceScale: { visible: false },
+                crosshair: { vertWidth: 0, horzWidth: 0 },
+            });
+            return chart;
+        }
+        const chartFunding = createMiniChart('chart-funding');
+        const fundingSeries = chartFunding.addHistogramSeries({
+            color: '#6366f1', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+        });
+        const chartOI = createMiniChart('chart-oi');
+        const oiSeries = chartOI.addHistogramSeries({
+            color: '#10b981', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+        });
+        const chartLiq = createMiniChart('chart-liq');
+        const liqSeries = chartLiq.addHistogramSeries({
+            color: '#ef4444', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+        });
+
+        // ── WebSocket Connection ──
+        let ws = null;
+        let wsReconnectTimer = null;
+
+        function connectWebSocket() {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+
+            ws.onopen = () => {
+                document.getElementById('connection-status').textContent = '● Live';
+                document.getElementById('connection-status').className =
+                    'px-2 py-0.5 bg-slate-800 text-xs text-emerald-400 rounded font-mono border border-slate-700';
+                if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'status' || msg.type === 'init') {
+                        updateStatus(msg.data);
+                    }
+                } catch (e) { /* ignore parse errors */ }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connection-status').textContent = '● Disconnected';
+                document.getElementById('connection-status').className =
+                    'px-2 py-0.5 bg-slate-800 text-xs text-rose-400 rounded font-mono border border-slate-700';
+                wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = () => { ws.close(); };
+        }
+
+        function updateStatus(data) {
+            document.getElementById('hdr-engine').textContent = data.engine || '---';
+            document.getElementById('hdr-equity').textContent = data.equity || '---';
+            const pnl = data.total_pnl || '---';
+            const pnlEl = document.getElementById('hdr-pnl');
+            pnlEl.textContent = pnl;
+            pnlEl.className = 'font-mono ' + (pnl.startsWith('-') ? 'text-rose-400' : 'text-emerald-400');
+            document.getElementById('hdr-events').textContent = data.event_count || 0;
+        }
+
+        // ── Fetch Research Data ──
+        async function fetchResearch() {
+            try {
+                const resp = await fetch('/api/research');
+                const data = await resp.json();
+                if (data.labels) updateLabels(data.labels);
+                if (data.cv_splits) updateCVSplits(data.cv_splits);
+                if (data.features) updateFeatureImportance(data.features);
+                if (data.models) updateModelRegistry(data.models);
+                if (data.derivatives) updateDerivatives(data.derivatives);
+            } catch (e) { console.error('Research fetch failed:', e); }
+        }
+
+        // ── Label Distribution UI ──
+        function updateLabels(labels) {
+            const container = document.getElementById('label-distribution');
+            if (!labels.available) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic">${labels.message || 'No label data'}</div>`;
+                return;
+            }
+            const dist = labels.distribution_pct || {};
+            const total = labels.total_labels || 0;
+            const colors = { '1': 'emerald', '0': 'slate', '-1': 'rose' };
+            const labels_map = { '1': 'Up', '0': 'Sideways', '-1': 'Down' };
+
+            let html = `<div class="text-xs text-slate-400 mb-2">Total: ${total} labels</div>`;
+
+            // Update probability matrix
+            for (const [key, label] of Object.entries(labels_map)) {
+                const pct = dist[key] || 0;
+                const color = colors[key];
+                document.getElementById(`prob-${key === '1' ? 'up' : key === '-1' ? 'down' : 'side'}`).textContent = pct.toFixed(1) + '%';
+                document.getElementById(`prob-${key === '1' ? 'up' : key === '-1' ? 'down' : 'side'}-bar`).style.width = pct + '%';
+            }
+
+            // Distribution bars
+            for (const [key, pct] of Object.entries(dist)) {
+                const color = colors[key] || 'slate';
+                const label = labels_map[key] || key;
+                html += `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-400 w-16">${label}</span>
+                        <div class="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-${color}-500 rounded-full" style="width: ${pct}%"></div>
+                        </div>
+                        <span class="text-xs text-slate-500 w-12 text-right">${pct.toFixed(1)}%</span>
+                    </div>`;
+            }
+
+            // Barrier counts
+            if (labels.barrier_counts) {
+                html += `<div class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">`;
+                html += `Barrier touches: `;
+                for (const [barrier, count] of Object.entries(labels.barrier_counts)) {
+                    html += `<span class="text-slate-400 ml-2">${barrier}: ${count}</span>`;
+                }
+                html += `</div>`;
+            }
+
+            container.innerHTML = html;
+
+            // Update barrier chart if we have price data
+            if (labels.barrier_points && labels.barrier_points.length > 0) {
+                // This would need actual price data from the market API
+                // For now, we show the barrier points as markers
+            }
+        }
+
+        // ── CV Split Map UI ──
+        function updateCVSplits(data) {
+            const container = document.getElementById('cv-split-map');
+            if (!data.folds || data.folds.length === 0) {
+                container.innerHTML = '<div class="text-xs text-slate-500 italic">No CV data</div>';
+                return;
+            }
+
+            const n = data.n_samples;
+            let html = '<div class="space-y-1 min-w-[400px]">';
+            for (const fold of data.folds) {
+                const row = new Array(n).fill('train');
+                for (const i of fold.test_indices) { if (i < n) row[i] = 'test'; }
+                html += `<div class="flex items-center gap-2">`;
+                html += `<span class="text-xs text-slate-500 w-12">F${fold.fold_index + 1}</span>`;
+                html += `<div class="flex-1 flex gap-px">`;
+                for (let i = 0; i < Math.min(n, 200); i++) {
+                    const cls = row[i] === 'test' ? 'bg-amber-500' : 'bg-indigo-500/60';
+                    html += `<div class="h-3 flex-1 ${cls} rounded-sm"></div>`;
+                }
+                if (n > 200) html += `<span class="text-xs text-slate-600">+${n - 200}</span>`;
+                html += `</div></div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // ── Feature Importance UI ──
+        function updateFeatureImportance(data) {
+            const container = document.getElementById('feature-importance');
+            if (!data.available) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic">${data.message || 'No data'}</div>`;
+                return;
+            }
+            const top = data.top_features || [];
+            if (top.length === 0) {
+                container.innerHTML = '<div class="text-xs text-slate-500 italic">No feature importance data</div>';
+                return;
+            }
+            const maxImp = top[0][1] || 1;
+            let html = '';
+            for (const [name, imp] of top) {
+                const pct = (imp / maxImp * 100).toFixed(1);
+                html += `
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-400 w-32 truncate">${name}</span>
+                        <div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-500 rounded-full" style="width: ${pct}%"></div>
+                        </div>
+                        <span class="text-xs text-slate-500 w-12 text-right">${imp.toFixed(4)}</span>
+                    </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        // ── Model Registry UI ──
+        function updateModelRegistry(data) {
+            const container = document.getElementById('model-registry');
+            if (!data.available) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic">${data.message || 'No data'}</div>`;
+                return;
+            }
+            const models = data.models || [];
+            if (models.length === 0) {
+                container.innerHTML = '<div class="text-xs text-slate-500 italic">No models registered</div>';
+                return;
+            }
+            let html = '';
+            for (const m of models) {
+                const statusColors = {
+                    candidate: 'text-amber-400', validated: 'text-emerald-400',
+                    production: 'text-indigo-400', retired: 'text-slate-500', rejected: 'text-rose-400',
+                };
+                const sc = statusColors[m.status] || 'text-slate-400';
+                const metrics = m.validation_metrics || {};
+                html += `
+                    <div class="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-mono text-slate-300">${m.name} v${m.version}</span>
+                            <span class="text-xs ${sc}">${m.status}</span>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs text-slate-500">
+                            <span>Acc: ${(metrics.mean_accuracy || 0).toFixed(4)}</span>
+                            <span>F1: ${(metrics.mean_f1_macro || 0).toFixed(4)}</span>
+                            <span>ID: ${m.model_id}</span>
+                        </div>
+                    </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        // ── Derivatives UI ──
+        function updateDerivatives(data) {
+            if (!data.available) return;
+            if (data.funding_rate_zscore) {
+                fundingSeries.setData(data.funding_rate_zscore.map((v, i) => ({
+                    time: Math.floor(Date.now() / 3600000) - data.funding_rate_zscore.length + i,
+                    value: v,
+                    color: v > 0 ? '#10b98180' : '#ef444480',
+                })));
+            }
+            if (data.oi_change) {
+                oiSeries.setData(data.oi_change.map((v, i) => ({
+                    time: Math.floor(Date.now() / 3600000) - data.oi_change.length + i,
+                    value: v,
+                    color: v > 0 ? '#10b98180' : '#ef444480',
+                })));
+            }
+            if (data.liquidation_ratio) {
+                liqSeries.setData(data.liquidation_ratio.map((v, i) => ({
+                    time: Math.floor(Date.now() / 3600000) - data.liquidation_ratio.length + i,
+                    value: v,
+                    color: v > 0 ? '#10b98180' : '#ef444480',
+                })));
+            }
+        }
+
+        // ── Config Sliders ──
+        function setupConfigSliders() {
+            const sliders = [
+                { input: 'cfg-atr-window', display: 'cfg-atr-window-val', fn: v => v },
+                { input: 'cfg-atr-mult', display: 'cfg-atr-mult-val', fn: v => (v / 10).toFixed(1) },
+                { input: 'cfg-timeout', display: 'cfg-timeout-val', fn: v => v },
+            ];
+            for (const s of sliders) {
+                const el = document.getElementById(s.input);
+                const disp = document.getElementById(s.display);
+                el.addEventListener('input', () => {
+                    disp.textContent = s.fn(el.value);
+                });
+                el.addEventListener('change', async () => {
+                    // Re-fetch labels with new config
+                    const params = new URLSearchParams({
+                        atr_window: document.getElementById('cfg-atr-window').value,
+                        atr_multiplier: (document.getElementById('cfg-atr-mult').value / 10).toFixed(1),
+                        timeout_bars: document.getElementById('cfg-timeout').value,
+                    });
+                    try {
+                        const resp = await fetch(`/api/research/labels?${params}`);
+                        const data = await resp.json();
+                        updateLabels(data);
+                    } catch (e) { console.error('Label refresh failed:', e); }
+                });
+            }
+        }
+
+        // ── Responsive Charts ──
+        function resizeCharts() {
+            const w = document.getElementById('chart-main').clientWidth;
+            chartMain.applyOptions({ width: w });
+            chartFunding.applyOptions({ width: document.getElementById('chart-funding').clientWidth });
+            chartOI.applyOptions({ width: document.getElementById('chart-oi').clientWidth });
+            chartLiq.applyOptions({ width: document.getElementById('chart-liq').clientWidth });
+        }
+        window.addEventListener('resize', resizeCharts);
+
+        // ── Initialize ──
+        connectWebSocket();
+        fetchResearch();
+        setupConfigSliders();
+        resizeCharts();
+
+        // Refresh research data every 10 seconds
+        setInterval(fetchResearch, 10000);
+
+    })();
+    </script>
+</body>
+</html>
