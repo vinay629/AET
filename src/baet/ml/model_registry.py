@@ -249,27 +249,44 @@ class ModelRegistry:
         return sorted(rows, key=lambda r: r.get(metric, 0), reverse=True)
 
     def _passes_validation(self, artifact: ModelArtifact) -> bool:
-        """Check if a model passes validation criteria."""
+        """Check if a model passes validation criteria.
+
+        For baseline classifiers: requires mean_accuracy > 0.5 and
+        mean_f1_macro > 0.5 (better than random for binary).
+        For strategy-level models: also checks sharpe_ratio and drawdown.
+        """
         metrics = artifact.validation_metrics
 
-        # Basic criteria
-        if metrics.get("sharpe_ratio", 0) < 0.5:
-            return False
-        if metrics.get("max_drawdown_pct", 100) > 30:
-            return False
-
-        # Leakage check
+        # Leakage check — always required
         leakage = artifact.leakage_report
         if leakage and not leakage.get("passed", True):
             return False
 
+        # Strategy-level metrics (optional — only checked if present)
+        sharpe = metrics.get("sharpe_ratio")
+        if sharpe is not None and sharpe < 0.5:
+            return False
+        max_dd = metrics.get("max_drawdown_pct")
+        if max_dd is not None and max_dd > 30:
+            return False
+
+        # Baseline classifier metrics (fallback if no strategy metrics)
+        if sharpe is None and max_dd is None:
+            mean_acc = metrics.get("mean_accuracy", 0)
+            mean_f1 = metrics.get("mean_f1_macro", 0)
+            if mean_acc <= 0.5 or mean_f1 <= 0.5:
+                return False
+
         return True
 
     def _find(self, model_id: str) -> ModelArtifact | None:
-        """Find a model by ID (checks memory and disk)."""
+        """Find a model by ID (checks memory and disk).
+
+        Matches against both model_id and artifact_id for flexibility.
+        """
         # Check memory
         for artifact in self._artifacts.values():
-            if artifact.model_id == model_id:
+            if artifact.model_id == model_id or artifact.artifact_id == model_id:
                 return artifact
 
         # Check disk
@@ -279,7 +296,7 @@ class ModelRegistry:
                 if artifact_path.exists():
                     with artifact_path.open("r") as f:
                         data = json.load(f)
-                    if data.get("model_id") == model_id:
+                    if data.get("model_id") == model_id or data.get("artifact_id") == model_id:
                         return self._from_dict(data)
 
         return None

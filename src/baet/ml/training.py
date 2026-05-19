@@ -573,4 +573,4 @@ class BaselineTrainer:
         self.model_registry._save_artifact(registered)
         logger.info(f"Model registered: {registered.artifact_id}")
 
-        return artifact
+        return registered
