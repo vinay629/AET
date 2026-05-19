@@ -490,26 +490,33 @@ class BAETDashboard {
         const stopBtn = document.getElementById('btn-stop');
 
         if (eng.running) {
-            statusEl.textContent = '● ' + (eng.mode || 'UNKNOWN').toUpperCase();
-            statusEl.className = 'status-value ' + (eng.mode === 'live' ? 'bearish' : 'bullish');
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
+            if (statusEl) {
+                statusEl.textContent = '● ' + (eng.mode || 'UNKNOWN').toUpperCase();
+                statusEl.className = 'status-value ' + (eng.mode === 'live' ? 'bearish' : 'bullish');
+            }
+            if (startBtn) startBtn.disabled = true;
+            if (stopBtn) stopBtn.disabled = false;
         } else {
-            statusEl.textContent = 'STOPPED';
-            statusEl.className = 'status-value';
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
+            if (statusEl) {
+                statusEl.textContent = 'STOPPED';
+                statusEl.className = 'status-value';
+            }
+            if (startBtn) startBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = true;
         }
 
         // Update equity/pnl from engine portfolio
         if (eng.portfolio) {
             const p = eng.portfolio;
-            const equity = p.total_value || 0;
+            const equityVal = p.total_value || 0;
             const pnl = p.daily_pnl || 0;
-            document.getElementById('equity').textContent = this.formatCurrency(equity);
+            const equityEl = document.getElementById('equity');
             const pnlEl = document.getElementById('daily-pnl');
-            pnlEl.textContent = (pnl >= 0 ? '+' : '') + this.formatCurrency(pnl);
-            pnlEl.className = 'status-value ' + (pnl >= 0 ? 'bullish' : 'bearish');
+            if (equityEl) equityEl.textContent = this.formatCurrency(equityVal);
+            if (pnlEl) {
+                pnlEl.textContent = (pnl >= 0 ? '+' : '') + this.formatCurrency(pnl);
+                pnlEl.className = 'status-value ' + (pnl >= 0 ? 'bullish' : 'bearish');
+            }
         }
     }
 
@@ -552,8 +559,12 @@ class BAETDashboard {
         const totalReturn = initialBalance > 0 ? (totalValue - initialBalance) / initialBalance : 0;
 
         const totalReturnEl = document.getElementById('total-return');
-        document.getElementById('total-value').textContent = this.formatCurrency(totalValue);
-        document.getElementById('positions-value').textContent = this.formatCurrency(positionsValue);
+        const totalValueEl = document.getElementById('total-value');
+        const positionsValueEl = document.getElementById('positions-value');
+        const cashEl = document.getElementById('cash');
+        if (totalValueEl) totalValueEl.textContent = this.formatCurrency(totalValue);
+        if (positionsValueEl) positionsValueEl.textContent = this.formatCurrency(positionsValue);
+        if (cashEl) cashEl.textContent = this.formatCurrency(totalValue);
         if (totalReturnEl) {
             totalReturnEl.textContent = (totalReturn >= 0 ? '+' : '') + (totalReturn * 100).toFixed(2) + '%';
             totalReturnEl.style.color = totalReturn >= 0 ? 'var(--green)' : 'var(--red)';
@@ -596,7 +607,8 @@ class BAETDashboard {
         // Update trades table
     updateTradesTable() {
         const tbody = document.getElementById('trades-tbody');
-        const trades = this.data.trades;
+        if (!tbody) return;
+        const trades = this.data.trades || [];
 
         if (trades.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="no-data">No recent trades</td></tr>';
@@ -622,7 +634,8 @@ class BAETDashboard {
     // Update logs display
     updateLogsDisplay() {
         const logsContainer = document.getElementById('logs-content');
-        const logs = this.data.logs.slice(-20); // Show last 20 entries
+        if (!logsContainer) return;
+        const logs = (this.data.logs || []).slice(-20); // Show last 20 entries
 
         if (logs.length === 0) {
             logsContainer.innerHTML = '<div class="log-entry">No logs available</div>';
@@ -659,7 +672,8 @@ class BAETDashboard {
         setMetric('sharpe-ratio', perf.sharpe_ratio || 0, false);
         setMetric('sortino-ratio', perf.sortino_ratio || 0, false);
         setText('max-drawdown', this.formatPercentage(Math.abs(perf.max_drawdown || 0)));
-        document.getElementById('max-drawdown').style.color = 'var(--red)';
+        const maxDdEl = document.getElementById('max-drawdown');
+        if (maxDdEl) maxDdEl.style.color = 'var(--red)';
         setMetric('win-rate', perf.win_rate || 0, true);
         setMetric('annual-return', perf.annualized_return || 0, true);
         setText('volatility', this.formatPercentage(perf.volatility || 0));
@@ -692,6 +706,6 @@ class BAETDashboard {
 
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const dashboard = new BAETDashboard();
-    dashboard.refreshData();
+    window.dashboard = new BAETDashboard();
+    window.dashboard.refreshData();
 });

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BAET Dashboard - Binance Adaptive Ensemble Trader</title>
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
@@ -198,6 +198,18 @@
                     </div>
                 </div>
 
+                <!-- System Logs -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📋 System Logs</span>
+                    </div>
+                    <div class="logs-container" style="max-height: 200px;">
+                        <div id="logs-content" class="logs-content">
+                            <div class="log-entry">No logs available</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Order Panel -->
                 <div class="panel">
                     <div class="panel-header">
@@ -240,6 +252,6 @@
         </div>
     </div>
 
-    <script src="dashboard.js?v=2"></script>
+    <script src="dashboard.js?v=3"></script>
 </body>
 </html>
