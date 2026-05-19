@@ -89,7 +89,9 @@ class LiveConfig(BaseModel):
 
 class BinanceConfig(BaseModel):
     rest_base_url: str = "https://api.binance.com"
+    futures_rest_base_url: str = "https://fapi.binance.com"
     websocket_base_url: str = "wss://stream.binance.com:9443/ws"
+    futures_websocket_base_url: str = "wss://fstream.binance.com/ws"
     historical_limit: int = 1000
     request_timeout_seconds: int = 30
     live_stream_enabled: bool = True
@@ -119,6 +121,20 @@ class FeatureConfig(BaseModel):
     volatility_windows: list[int] = Field(default_factory=lambda: [5, 10])
     trend_windows: list[int] = Field(default_factory=lambda: [5, 10, 20])
     volume_windows: list[int] = Field(default_factory=lambda: [5, 10])
+
+
+class DerivativesConfig(BaseModel):
+    """Configuration for derivatives feature engineering."""
+    enabled: bool = True
+    # Open Interest
+    oi_change_windows: list[int] = Field(default_factory=lambda: [1, 3, 6])
+    oi_price_corr_window: int = 20
+    # Funding Rate
+    fr_zscore_window: int = 120       # ~5 days of hourly funding rates
+    fr_extreme_threshold: float = 2.0  # Z-score threshold for "extreme"
+    # Liquidations
+    liq_lookback_window: int = 24     # Hours to aggregate liquidations
+    liq_spike_threshold: float = 3.0  # Multiple of average for spike detection
 
 
 class BacktestConfig(BaseModel):

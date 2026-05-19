@@ -9,7 +9,10 @@ import pandas as pd
 
 from baet.config.models import Settings
 from baet.data.interfaces import HistoricalDataProvider
-from baet.data.schemas import CANONICAL_CANDLE_COLUMNS
+from baet.data.schemas import (
+    CANONICAL_CANDLE_COLUMNS,
+    CANONICAL_DERIVATIVES_COLUMNS,
+)
 
 _BINANCE_KLINE_COLUMNS = [
     "open_time",
@@ -88,6 +91,154 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
             payload = json.loads(response.read().decode("utf-8"))
         return normalize_klines(payload, symbol=symbol, timeframe=timeframe, source="binance_rest")
+
+    def fetch_open_interest(
+        self,
+        symbol: str,
+        period: str = "1h",
+        limit: int = 500,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> pd.DataFrame:
+        """Fetch open interest history from Binance Futures API.
+
+        Args:
+            symbol: Trading pair (e.g., "BTCUSDT").
+            period: OI aggregation period ("5m", "15m", "1h", "4h", "1d").
+            limit: Max records to return (default 500, max 2000).
+            start_time: Optional start of range.
+            end_time: Optional end of range.
+
+        Returns:
+            DataFrame with columns: symbol, timestamp, open_interest, source.
+        """
+        params: dict[str, object] = {
+            "symbol": symbol,
+            "period": period,
+            "limit": limit,
+        }
+        if start_time is not None:
+            params["startTime"] = _to_millis(start_time)
+        if end_time is not None:
+            params["endTime"] = _to_millis(end_time)
+
+        query = urlencode(params)
+        url = f"{self.settings.binance.futures_rest_base_url}/fapi/v1/openInterestHist?{query}"
+        with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        if not payload:
+            return pd.DataFrame(columns=["symbol", "timestamp", "open_interest", "source"])
+
+        frame = pd.DataFrame(payload)
+        frame["open_interest"] = frame["sumOpenInterest"].astype("float64")
+        frame["timestamp"] = pd.to_datetime(frame["timestamp"], unit="ms", utc=True)
+        frame["symbol"] = symbol
+        frame["source"] = "binance_futures"
+        return frame[["symbol", "timestamp", "open_interest", "source"]].sort_values(
+            "timestamp"
+        ).reset_index(drop=True)
+
+    def fetch_funding_rate_history(
+        self,
+        symbol: str,
+        limit: int = 1000,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> pd.DataFrame:
+        """Fetch funding rate history from Binance Futures API.
+
+        Args:
+            symbol: Trading pair (e.g., "BTCUSDT").
+            limit: Max records to return (default 1000, max 1000).
+            start_time: Optional start of range.
+            end_time: Optional end of range.
+
+        Returns:
+            DataFrame with columns: symbol, timestamp, funding_rate, funding_time, source.
+        """
+        params: dict[str, object] = {
+            "symbol": symbol,
+            "limit": limit,
+        }
+        if start_time is not None:
+            params["startTime"] = _to_millis(start_time)
+        if end_time is not None:
+            params["endTime"] = _to_millis(end_time)
+
+        query = urlencode(params)
+        url = f"{self.settings.binance.futures_rest_base_url}/fapi/v1/fundingRate?{query}"
+        with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        if not payload:
+            return pd.DataFrame(
+                columns=["symbol", "timestamp", "funding_rate", "funding_time", "source"]
+            )
+
+        frame = pd.DataFrame(payload)
+        frame["funding_rate"] = frame["fundingRate"].astype("float64")
+        frame["funding_time"] = pd.to_datetime(frame["fundingTime"], unit="ms", utc=True)
+        frame["timestamp"] = frame["funding_time"]
+        frame["symbol"] = symbol
+        frame["source"] = "binance_futures"
+        return frame[
+            ["symbol", "timestamp", "funding_rate", "funding_time", "source"]
+        ].sort_values("timestamp").reset_index(drop=True)
+
+    def fetch_liquidation_orders(
+        self,
+        symbol: str,
+        limit: int = 1000,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> pd.DataFrame:
+        """Fetch forced liquidation orders from Binance Futures API.
+
+        Args:
+            symbol: Trading pair (e.g., "BTCUSDT").
+            limit: Max records to return (default 1000, max 1000).
+            start_time: Optional start of range.
+            end_time: Optional end of range.
+
+        Returns:
+            DataFrame with liquidation details per order.
+        """
+        params: dict[str, object] = {
+            "symbol": symbol,
+            "limit": limit,
+        }
+        if start_time is not None:
+            params["startTime"] = _to_millis(start_time)
+        if end_time is not None:
+            params["endTime"] = _to_millis(end_time)
+
+        query = urlencode(params)
+        url = f"{self.settings.binance.futures_rest_base_url}/fapi/v1/allForceOrders?{query}"
+        with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        if not payload:
+            return pd.DataFrame(
+                columns=[
+                    "symbol", "timestamp", "side", "price", "qty", "last_fill_qty",
+                    "order_status", "time_in_force", "source",
+                ]
+            )
+
+        frame = pd.DataFrame(payload)
+        frame["timestamp"] = pd.to_datetime(frame["time"], unit="ms", utc=True)
+        frame["price"] = frame["price"].astype("float64")
+        frame["qty"] = frame["qty"].astype("float64")
+        frame["last_fill_qty"] = frame["lastFillQty"].astype("float64")
+        frame["symbol"] = symbol
+        frame["source"] = "binance_futures"
+        return frame[
+            [
+                "symbol", "timestamp", "side", "price", "qty",
+                "last_fill_qty", "order_status", "time_in_force", "source",
+            ]
+        ].sort_values("timestamp").reset_index(drop=True)
 
     def fetch_block_trades(
         self,
