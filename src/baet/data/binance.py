@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -13,6 +14,8 @@ from baet.data.schemas import (
     CANONICAL_CANDLE_COLUMNS,
     CANONICAL_DERIVATIVES_COLUMNS,
 )
+
+logger = logging.getLogger(__name__)
 
 _BINANCE_KLINE_COLUMNS = [
     "open_time",

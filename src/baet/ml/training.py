@@ -274,7 +274,11 @@ class BaselineTrainer:
         labels_df: pd.DataFrame,
         config: TrainingConfig,
     ) -> tuple[np.ndarray, np.ndarray, list[str]]:
-        """Align features and labels, return X, y, feature_names."""
+        """Align features and labels, return X, y, feature_names.
+
+        Only numeric columns are used for training. Non-numeric columns
+        (e.g. categorical signals like 'oi_price_signal') are excluded.
+        """
         # Identify feature columns (exclude metadata)
         exclude_cols = {
             "timestamp", "close_time", "open_time", "symbol", "timeframe",
@@ -283,14 +287,18 @@ class BaselineTrainer:
         }
         feature_names = [c for c in features_df.columns if c not in exclude_cols]
 
-        # Drop rows with NaN in features
+        # Select only numeric columns for training
         feature_data = features_df[feature_names].copy()
+        numeric_cols = feature_data.select_dtypes(include=[np.number]).columns.tolist()
+        feature_data = feature_data[numeric_cols]
+        feature_names = numeric_cols
+
+        # Drop rows with NaN in features
         valid_mask = ~feature_data.isna().any(axis=1)
         feature_data = feature_data[valid_mask]
 
         # Align labels with features using entry_idx
         if "entry_idx" in labels_df.columns:
-            label_indices = labels_df["entry_idx"].values
             # Only keep labels whose entry_idx is within valid feature range
             valid_labels = labels_df[
                 (labels_df["entry_idx"] >= 0) &
@@ -304,12 +312,12 @@ class BaselineTrainer:
                 if idx < len(feature_data) and valid_mask.iloc[idx]:
                     aligned_features.append(feature_data.iloc[idx].values)
                     aligned_labels.append(int(row["label"]))
-            X = np.array(aligned_features)
+            X = np.array(aligned_features, dtype=np.float64)
             y = np.array(aligned_labels)
         else:
             # Fallback: direct alignment by position
             min_len = min(len(feature_data), len(labels_df))
-            X = feature_data.iloc[:min_len].values
+            X = feature_data.iloc[:min_len].values.astype(np.float64)
             y = labels_df["label"].iloc[:min_len].values.astype(int)
 
         # Remove any remaining NaN/Inf

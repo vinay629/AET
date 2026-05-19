@@ -1,0 +1,14 @@
+{
+  "name": "BTCUSDT_1h",
+  "version": "1.0.0",
+  "content_hash": "9bad872593b8ff6b",
+  "created_at": "2026-05-19T18:27:14.028166+00:00",
+  "description": "Baseline features for BTCUSDT_1h",
+  "parameters": {},
+  "depends_on": [],
+  "lookback": 0,
+  "n_samples": 1000,
+  "n_features": 41,
+  "computation_time_ms": 32.3612000211142,
+  "computed_at": "2026-05-19T18:27:14.063286+00:00"
+}
