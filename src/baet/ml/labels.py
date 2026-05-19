@@ -14,11 +14,9 @@ These are far superior to naive next-return prediction because they:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
 
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -191,10 +189,25 @@ class TripleBarrierLabeler:
                 final_return = (prices.iloc[i + max_bars] - entry_price) / entry_price
                 if direction > 0:
                     result.return_pct = final_return
-                    result.label = 1 if final_return > self.config.min_return else (-1 if final_return < -self.config.min_return else 0)
+                    if final_return > self.config.min_return:
+                        result.label = 1
+                    elif final_return < -self.config.min_return:
+                        result.label = -1
+                    else:
+                        result.label = 0
                 else:
                     result.return_pct = -final_return
-                    result.label = 1 if -final_return > self.config.min_return else (-1 if -final_return < -self.config.min_return else 0)
+                    if -final_return > self.config.min_return:
+                        result.label = 1
+                    elif -final_return < -self.config.min_return:
+                        result.label = -1
+                    else:
+                        result.label = 0
+                        result.label = 1
+                    elif -final_return < -self.config.min_return:
+                        result.label = -1
+                    else:
+                        result.label = 0
 
             results.append({
                 "entry_idx": i,
@@ -303,6 +316,8 @@ class MetaLabeler:
             "n": n,
             "correct": int(correct.sum()),
             "incorrect": int((~correct).sum()),
-            "avg_return_when_correct": float(actual_returns[correct].mean()) if correct.any() else 0,
+            "avg_return_when_correct": (
+                float(actual_returns[correct].mean()) if correct.any() else 0
+            ),
             "avg_return_when_wrong": float(actual_returns[~correct].mean()) if (~correct).any() else 0,
         }

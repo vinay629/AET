@@ -17,12 +17,11 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
 import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,7 @@ class DriftLevel(StrEnum):
 @dataclass
 class DriftReport:
     """Report on feature and prediction drift."""
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     model_id: str = ""
     model_name: str = ""
     overall_drift: DriftLevel = DriftLevel.NONE

@@ -18,11 +18,13 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import typing
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -34,7 +36,7 @@ class FeatureVersion:
     name: str
     version: str
     content_hash: str
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     description: str = ""
     parameters: dict[str, Any] = field(default_factory=dict)
     depends_on: tuple[str, ...] = ()
@@ -55,7 +57,7 @@ class FeatureSnapshot:
     n_features: int = 0
     null_count: int = 0
     inf_count: int = 0
-    computed_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    computed_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     @property
     def quality_score(self) -> float:
@@ -88,7 +90,7 @@ class FeatureStore:
         self,
         name: str,
         data: pd.DataFrame,
-        builder: callable,
+        builder: typing.Callable,
         version: str = "1.0.0",
         parameters: dict[str, Any] | None = None,
         depends_on: list[str] | None = None,
@@ -156,7 +158,10 @@ class FeatureStore:
         # Validate
         null_count = int(result.isna().sum().sum())
         numeric_cols = result.select_dtypes(include=[np.number])
-        inf_count = int(np.sum(~np.isfinite(numeric_cols.values))) if numeric_cols.shape[1] > 0 else 0
+        if numeric_cols.shape[1] > 0:
+            inf_count = int(np.sum(~np.isfinite(numeric_cols.values)))
+        else:
+            inf_count = 0
 
         snapshot = FeatureSnapshot(
             version=version_obj,
@@ -289,8 +294,16 @@ class FeatureStore:
             "column_stats": {
                 col: {
                     "nulls": int(snapshot.data[col].isna().sum()),
-                    "mean": float(snapshot.data[col].mean()) if pd.api.types.is_numeric_dtype(snapshot.data[col]) else None,
-                    "std": float(snapshot.data[col].std()) if pd.api.types.is_numeric_dtype(snapshot.data[col]) else None,
+                    "mean": (
+                        float(snapshot.data[col].mean())
+                        if pd.api.types.is_numeric_dtype(snapshot.data[col])
+                        else None
+                    ),
+                    "std": (
+                        float(snapshot.data[col].std())
+                        if pd.api.types.is_numeric_dtype(snapshot.data[col])
+                        else None
+                    ),
                 }
                 for col in snapshot.data.columns
             },

@@ -13,12 +13,11 @@ This is the difference between a research platform and a collection of notebooks
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -56,7 +55,7 @@ class HypothesisRecord:
     predicted_direction: str = ""     # "positive", "negative", "neutral"
     predicted_magnitude: str = ""     # "small", "medium", "large"
     required_evidence: str = ""       # What would falsify this
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     status: str = "active"            # active, confirmed, rejected, ambiguous
 
 
@@ -101,8 +100,8 @@ class ExperimentRecord:
     feature_whitelist_violations: list[str] = field(default_factory=list)
 
     # Timestamps
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     completed_at: str = ""
 
     # Notes
@@ -195,7 +194,7 @@ class ResearchGovernance:
             phase=ExperimentPhase.RESEARCH,
             phase_history=[{
                 "phase": ExperimentPhase.RESEARCH.value,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }],
         )
 
@@ -229,7 +228,7 @@ class ResearchGovernance:
 
         old_phase = exp.phase
         exp.phase = new_phase
-        exp.updated_at = datetime.now(timezone.utc).isoformat()
+        exp.updated_at = datetime.now(UTC).isoformat()
         exp.phase_history.append({
             "phase": new_phase.value,
             "timestamp": exp.updated_at,
@@ -282,7 +281,7 @@ class ResearchGovernance:
         exp.dataset_hash = dataset_hash
         exp.feature_set_hash = feature_set_hash
         exp.validation_methods = validation_methods or []
-        exp.updated_at = datetime.now(timezone.utc).isoformat()
+        exp.updated_at = datetime.now(UTC).isoformat()
 
         # Compute effective trials
         exp.effective_trials = self._compute_effective_trials(exp)

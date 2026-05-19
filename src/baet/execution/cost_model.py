@@ -14,7 +14,7 @@ This is the difference between backtest Sharpe and live Sharpe.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -136,7 +136,8 @@ class ExecutionCostModel:
         # Market impact (square-root model)
         participation = quantity / adv if adv > 0 else 0.01
         permanent_impact = cfg.permanent_impact_coeff * volatility * np.sqrt(participation) * 10000
-        temporary_impact = cfg.temporary_impact_coeff * volatility * np.sqrt(participation / max(urgency, 0.1)) * 10000
+        temp_sqrt = np.sqrt(participation / max(urgency, 0.1))
+        temporary_impact = cfg.temporary_impact_coeff * volatility * temp_sqrt * 10000
         impact_cost = permanent_impact + temporary_impact
 
         # Fee cost
@@ -240,7 +241,10 @@ class ExecutionCostModel:
         results = []
         for order in orders:
             # Estimate ADV from market_data
-            adv = market_data["volume"].mean() * 24 if "volume" in market_data.columns else order["quantity"] * 10
+            if "volume" in market_data.columns:
+                adv = market_data["volume"].mean() * 24
+            else:
+                adv = order["quantity"] * 10
 
             # Estimate volatility
             if "close" in market_data.columns:

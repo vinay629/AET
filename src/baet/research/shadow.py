@@ -13,14 +13,10 @@ This is the final validation step before capital deployment.
 from __future__ import annotations
 
 import logging
-import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
-
-import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +153,7 @@ class ShadowDeploymentManager:
         """Start a shadow deployment."""
         dep = self._get(deployment_id)
         dep.status = ShadowStatus.RUNNING
-        dep.start_time = datetime.now(timezone.utc).isoformat()
+        dep.start_time = datetime.now(UTC).isoformat()
         logger.info(f"Shadow deployment started: {deployment_id}")
 
     def record_bar(
@@ -250,14 +246,14 @@ class ShadowDeploymentManager:
                 f"Status: {dep.status.value}"
             )
         dep.status = ShadowStatus.PROMOTED
-        dep.end_time = datetime.now(timezone.utc).isoformat()
+        dep.end_time = datetime.now(UTC).isoformat()
         logger.info(f"Shadow deployment PROMOTED to capital: {deployment_id}")
 
     def reject(self, deployment_id: str, reason: str = "") -> None:
         """Reject a failed shadow deployment."""
         dep = self._get(deployment_id)
         dep.status = ShadowStatus.REJECTED
-        dep.end_time = datetime.now(timezone.utc).isoformat()
+        dep.end_time = datetime.now(UTC).isoformat()
         logger.info(f"Shadow deployment REJECTED: {deployment_id} ({reason})")
 
     def get_deployment(self, deployment_id: str) -> ShadowDeployment | None:
