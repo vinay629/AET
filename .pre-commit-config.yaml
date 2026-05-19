@@ -52,6 +52,16 @@ repos:
       - id: trailing-whitespace
         name: Trim Trailing Whitespace
 
+  # Architectural boundary validation
+  - repo: local
+    hooks:
+      - id: validate-imports
+        name: Validate Import Boundaries
+        entry: python scripts/validate_imports.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
   # No-commit-to-main safety check
   - repo: local
     hooks:
