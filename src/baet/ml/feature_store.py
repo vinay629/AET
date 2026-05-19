@@ -17,14 +17,13 @@ import hashlib
 import json
 import logging
 import time
+import typing
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-import typing
-
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -33,6 +32,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class FeatureVersion:
     """Immutable version identifier for a feature set."""
+
     name: str
     version: str
     content_hash: str
@@ -50,6 +50,7 @@ class FeatureVersion:
 @dataclass
 class FeatureSnapshot:
     """A point-in-time snapshot of computed features."""
+
     version: FeatureVersion
     data: pd.DataFrame
     computation_time_ms: float = 0.0
@@ -118,9 +119,7 @@ class FeatureStore:
         """
         # Compute content hash
         param_str = json.dumps(parameters or {}, sort_keys=True, default=str)
-        content_hash = hashlib.sha256(
-            f"{name}:{version}:{param_str}".encode()
-        ).hexdigest()[:16]
+        content_hash = hashlib.sha256(f"{name}:{version}:{param_str}".encode()).hexdigest()[:16]
 
         version_obj = FeatureVersion(
             name=name,
@@ -226,8 +225,16 @@ class FeatureStore:
                     with meta_path.open("r") as f:
                         meta = json.load(f)
                     # Only pass fields that FeatureVersion accepts
-                    valid_fields = {"name", "version", "content_hash", "created_at",
-                                    "description", "parameters", "depends_on", "lookback"}
+                    valid_fields = {
+                        "name",
+                        "version",
+                        "content_hash",
+                        "created_at",
+                        "description",
+                        "parameters",
+                        "depends_on",
+                        "lookback",
+                    }
                     filtered = {k: v for k, v in meta.items() if k in valid_fields}
                     versions.append(FeatureVersion(**filtered))
         return versions

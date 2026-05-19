@@ -28,14 +28,15 @@ class LeakageType(StrEnum):
 
 
 class LeakageSeverity(StrEnum):
-    CRITICAL = "critical"   # Definitely invalidates results
-    WARNING = "warning"     # Suspicious, needs investigation
-    INFO = "info"           # Informational
+    CRITICAL = "critical"  # Definitely invalidates results
+    WARNING = "warning"  # Suspicious, needs investigation
+    INFO = "info"  # Informational
 
 
 @dataclass
 class LeakageFinding:
     """A single detected leakage issue."""
+
     leakage_type: LeakageType
     severity: LeakageSeverity
     feature_name: str
@@ -46,6 +47,7 @@ class LeakageFinding:
 @dataclass
 class LeakageReport:
     """Full leakage detection report."""
+
     findings: list[LeakageFinding] = field(default_factory=list)
     passed: bool = True
     n_features_checked: int = 0
@@ -174,20 +176,22 @@ class LeakageDetector:
 
             # If future correlation is much higher, likely leakage
             if corr_current > 0.3 and corr_current > corr_past * 1.5:
-                report.add(LeakageFinding(
-                    leakage_type=LeakageType.TIME,
-                    severity=LeakageSeverity.CRITICAL,
-                    feature_name=col,
-                    message=(
-                        f"Feature '{col}' has higher correlation with future returns "
-                        f"({corr_current:.3f}) than past returns ({corr_past:.3f}). "
-                        f"Possible future leakage."
-                    ),
-                    details={
-                        "corr_future": float(corr_current),
-                        "corr_past": float(corr_past),
-                    },
-                ))
+                report.add(
+                    LeakageFinding(
+                        leakage_type=LeakageType.TIME,
+                        severity=LeakageSeverity.CRITICAL,
+                        feature_name=col,
+                        message=(
+                            f"Feature '{col}' has higher correlation with future returns "
+                            f"({corr_current:.3f}) than past returns ({corr_past:.3f}). "
+                            f"Possible future leakage."
+                        ),
+                        details={
+                            "corr_future": float(corr_current),
+                            "corr_past": float(corr_past),
+                        },
+                    )
+                )
 
     def _check_centered_windows(
         self,
@@ -237,16 +241,18 @@ class LeakageDetector:
 
             # If best correlation is at positive lag, feature leads price
             if best_lag >= 2 and best_corr > 0.3:
-                report.add(LeakageFinding(
-                    leakage_type=LeakageType.TIME,
-                    severity=LeakageSeverity.WARNING,
-                    feature_name=col,
-                    message=(
-                        f"Feature '{col}' leads price by {best_lag} bars "
-                        f"(corr={best_corr:.3f}). Possible centered window."
-                    ),
-                    details={"best_lag": best_lag, "best_corr": float(best_corr)},
-                ))
+                report.add(
+                    LeakageFinding(
+                        leakage_type=LeakageType.TIME,
+                        severity=LeakageSeverity.WARNING,
+                        feature_name=col,
+                        message=(
+                            f"Feature '{col}' leads price by {best_lag} bars "
+                            f"(corr={best_corr:.3f}). Possible centered window."
+                        ),
+                        details={"best_lag": best_lag, "best_corr": float(best_corr)},
+                    )
+                )
 
     def _check_label_overlap(
         self,
@@ -270,27 +276,31 @@ class LeakageDetector:
             corr = abs(aligned.iloc[:, 0].corr(aligned.iloc[:, 1]))
 
             if corr > 0.95:
-                report.add(LeakageFinding(
-                    leakage_type=LeakageType.LABEL,
-                    severity=LeakageSeverity.CRITICAL,
-                    feature_name=col,
-                    message=(
-                        f"Feature '{col}' has {corr:.3f} correlation with label. "
-                        f"Likely contains label information."
-                    ),
-                    details={"correlation": float(corr)},
-                ))
+                report.add(
+                    LeakageFinding(
+                        leakage_type=LeakageType.LABEL,
+                        severity=LeakageSeverity.CRITICAL,
+                        feature_name=col,
+                        message=(
+                            f"Feature '{col}' has {corr:.3f} correlation with label. "
+                            f"Likely contains label information."
+                        ),
+                        details={"correlation": float(corr)},
+                    )
+                )
             elif corr > 0.8:
-                report.add(LeakageFinding(
-                    leakage_type=LeakageType.LABEL,
-                    severity=LeakageSeverity.WARNING,
-                    feature_name=col,
-                    message=(
-                        f"Feature '{col}' has {corr:.3f} correlation with label. "
-                        f"Possible label contamination."
-                    ),
-                    details={"correlation": float(corr)},
-                ))
+                report.add(
+                    LeakageFinding(
+                        leakage_type=LeakageType.LABEL,
+                        severity=LeakageSeverity.WARNING,
+                        feature_name=col,
+                        message=(
+                            f"Feature '{col}' has {corr:.3f} correlation with label. "
+                            f"Possible label contamination."
+                        ),
+                        details={"correlation": float(corr)},
+                    )
+                )
 
     def _check_label_correlation(
         self,
@@ -324,17 +334,23 @@ class LeakageDetector:
             smd = abs(pos_mean - neg_mean) / overall_std
 
             if smd > 1.0:
-                report.add(LeakageFinding(
-                    leakage_type=LeakageType.LABEL,
-                    severity=LeakageSeverity.WARNING,
-                    feature_name=col,
-                    message=(
-                        f"Feature '{col}' has large mean difference between "
-                        f"positive/negative labels (SMD={smd:.2f}). "
-                        f"Possible label leakage."
-                    ),
-                    details={"smd": float(smd), "pos_mean": float(pos_mean), "neg_mean": float(neg_mean)},
-                ))
+                report.add(
+                    LeakageFinding(
+                        leakage_type=LeakageType.LABEL,
+                        severity=LeakageSeverity.WARNING,
+                        feature_name=col,
+                        message=(
+                            f"Feature '{col}' has large mean difference between "
+                            f"positive/negative labels (SMD={smd:.2f}). "
+                            f"Possible label leakage."
+                        ),
+                        details={
+                            "smd": float(smd),
+                            "pos_mean": float(pos_mean),
+                            "neg_mean": float(neg_mean),
+                        },
+                    )
+                )
 
     def _check_universe_membership(
         self,
@@ -352,15 +368,17 @@ class LeakageDetector:
         for col in features.columns:
             missing_by_symbol = features.groupby(symbols)[col].apply(lambda x: x.isna().mean())
             if missing_by_symbol.max() > 0.5:
-                report.add(LeakageFinding(
-                    leakage_type=LeakageType.CROSS_SECTION,
-                    severity=LeakageSeverity.INFO,
-                    feature_name=col,
-                    message=(
-                        f"Feature '{col}' has >50% missing values for some symbols. "
-                        f"Check for survivorship bias."
-                    ),
-                ))
+                report.add(
+                    LeakageFinding(
+                        leakage_type=LeakageType.CROSS_SECTION,
+                        severity=LeakageSeverity.INFO,
+                        feature_name=col,
+                        message=(
+                            f"Feature '{col}' has >50% missing values for some symbols. "
+                            f"Check for survivorship bias."
+                        ),
+                    )
+                )
 
     def _check_feature_stationarity(
         self,
@@ -390,14 +408,16 @@ class LeakageDetector:
             mean_diff = abs(first_half.mean() - second_half.mean()) / overall_std
 
             if mean_diff > 1.0:
-                report.add(LeakageFinding(
-                    leakage_type=LeakageType.TIME,
-                    severity=LeakageSeverity.INFO,
-                    feature_name=col,
-                    message=(
-                        f"Feature '{col}' shows significant mean shift "
-                        f"between first/second half (diff={mean_diff:.2f} std). "
-                        f"May be non-stationary."
-                    ),
-                    details={"mean_diff_std": float(mean_diff)},
-                ))
+                report.add(
+                    LeakageFinding(
+                        leakage_type=LeakageType.TIME,
+                        severity=LeakageSeverity.INFO,
+                        feature_name=col,
+                        message=(
+                            f"Feature '{col}' shows significant mean shift "
+                            f"between first/second half (diff={mean_diff:.2f} std). "
+                            f"May be non-stationary."
+                        ),
+                        details={"mean_diff_std": float(mean_diff)},
+                    )
+                )

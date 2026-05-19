@@ -26,14 +26,15 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CostModelConfig:
     """Configuration for execution cost modeling."""
+
     # Spread
-    normal_spread_bps: float = 5.0      # Normal bid-ask spread in bps
-    stress_spread_bps: float = 50.0     # Spread during stress
+    normal_spread_bps: float = 5.0  # Normal bid-ask spread in bps
+    stress_spread_bps: float = 50.0  # Spread during stress
 
     # Market impact (Almgren-Chriss inspired)
-    permanent_impact_coeff: float = 0.1   # Permanent impact coefficient
+    permanent_impact_coeff: float = 0.1  # Permanent impact coefficient
     temporary_impact_coeff: float = 0.05  # Temporary impact coefficient
-    impact_exponent: float = 0.5          # Square-root impact model
+    impact_exponent: float = 0.5  # Square-root impact model
 
     # Partials
     partial_fill_probability: float = 0.3
@@ -52,6 +53,7 @@ class CostModelConfig:
 @dataclass
 class ExecutionCost:
     """Breakdown of execution costs for a single order."""
+
     symbol: str
     side: str
     quantity: float
@@ -106,8 +108,8 @@ class ExecutionCostModel:
         side: str,
         quantity: float,
         price: float,
-        adv: float,           # Average daily volume
-        volatility: float,    # Daily volatility
+        adv: float,  # Average daily volume
+        volatility: float,  # Daily volatility
         spread_bps: float | None = None,
         urgency: float = 0.5,  # 0 = patient, 1 = urgent
     ) -> ExecutionCost:

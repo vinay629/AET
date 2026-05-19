@@ -203,11 +203,6 @@ class TripleBarrierLabeler:
                         result.label = -1
                     else:
                         result.label = 0
-                        result.label = 1
-                    elif -final_return < -self.config.min_return:
-                        result.label = -1
-                    else:
-                        result.label = 0
 
             results.append({
                 "entry_idx": i,

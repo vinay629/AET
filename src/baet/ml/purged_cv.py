@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CVFold:
     """A single cross-validation fold."""
+
     fold_index: int
     train_indices: np.ndarray
     test_indices: np.ndarray
@@ -97,13 +98,15 @@ class PurgedKFold:
             train_mask[purge_start:embargo_end] = False
             train_indices = indices[train_mask]
 
-            folds.append(CVFold(
-                fold_index=i,
-                train_indices=train_indices,
-                test_indices=test_indices,
-                purged_count=purge_end - purge_start - len(test_indices),
-                embargo_count=embargo_end - test_end,
-            ))
+            folds.append(
+                CVFold(
+                    fold_index=i,
+                    train_indices=train_indices,
+                    test_indices=test_indices,
+                    purged_count=purge_end - purge_start - len(test_indices),
+                    embargo_count=embargo_end - test_end,
+                )
+            )
 
         return folds
 
@@ -156,12 +159,14 @@ class EmbargoCV:
 
             train_indices = indices[train_mask]
 
-            folds.append(CVFold(
-                fold_index=i,
-                train_indices=train_indices,
-                test_indices=test_indices,
-                embargo_count=embargo_size,
-            ))
+            folds.append(
+                CVFold(
+                    fold_index=i,
+                    train_indices=train_indices,
+                    test_indices=test_indices,
+                    embargo_count=embargo_size,
+                )
+            )
 
         return folds
 
@@ -249,12 +254,14 @@ class CombinatorialPurgedCV:
             else:
                 train_indices = np.array([], dtype=int)
 
-            cv_folds.append(CVFold(
-                fold_index=combo_idx,
-                train_indices=train_indices,
-                test_indices=test_indices,
-                purged_count=int(purge_mask.sum()) - len(test_indices),
-            ))
+            cv_folds.append(
+                CVFold(
+                    fold_index=combo_idx,
+                    train_indices=train_indices,
+                    test_indices=test_indices,
+                    purged_count=int(purge_mask.sum()) - len(test_indices),
+                )
+            )
 
         logger.info(
             f"CSCV generated {len(cv_folds)} combinations from "

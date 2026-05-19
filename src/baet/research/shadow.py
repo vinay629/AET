@@ -26,13 +26,14 @@ class ShadowStatus(StrEnum):
     RUNNING = "running"
     PASSED = "passed"
     FAILED = "failed"
-    PROMOTED = "promoted"     # Moved to capital deployment
-    REJECTED = "rejected"      # Failed shadow, sent back to research
+    PROMOTED = "promoted"  # Moved to capital deployment
+    REJECTED = "rejected"  # Failed shadow, sent back to research
 
 
 @dataclass
 class ShadowMetrics:
     """Metrics collected during shadow deployment."""
+
     n_predictions: int = 0
     n_signals: int = 0
     n_orders: int = 0
@@ -66,6 +67,7 @@ class ShadowMetrics:
 @dataclass
 class ShadowDeployment:
     """A shadow deployment of a strategy."""
+
     deployment_id: str = ""
     experiment_id: str = ""
     strategy_name: str = ""
@@ -136,6 +138,7 @@ class ShadowDeploymentManager:
     ) -> ShadowDeployment:
         """Create a new shadow deployment."""
         import uuid
+
         dep = ShadowDeployment(
             deployment_id=str(uuid.uuid4())[:12],
             experiment_id=experiment_id,
@@ -194,7 +197,9 @@ class ShadowDeploymentManager:
 
         # Prediction accuracy
         correct = (prediction * actual_return) > 0
-        m.prediction_accuracy = (m.prediction_accuracy * (m.n_predictions - 1) + int(correct)) / m.n_predictions
+        m.prediction_accuracy = (
+            m.prediction_accuracy * (m.n_predictions - 1) + int(correct)
+        ) / m.n_predictions
 
         # Confidence calibration
         m.avg_confidence = (m.avg_confidence * (m.n_predictions - 1) + confidence) / m.n_predictions
@@ -242,8 +247,7 @@ class ShadowDeploymentManager:
         dep = self._get(deployment_id)
         if dep.status != ShadowStatus.PASSED:
             raise ValueError(
-                f"Deployment {deployment_id} has not passed shadow. "
-                f"Status: {dep.status.value}"
+                f"Deployment {deployment_id} has not passed shadow. " f"Status: {dep.status.value}"
             )
         dep.status = ShadowStatus.PROMOTED
         dep.end_time = datetime.now(UTC).isoformat()

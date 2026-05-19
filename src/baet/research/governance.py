@@ -36,7 +36,7 @@ class ExperimentPhase(StrEnum):
     CAPITALIZED = "capitalized"
     DEGRADED = "degraded"
     RETIRED = "retired"
-    FROZEN = "frozen"       # Archived, not to be modified
+    FROZEN = "frozen"  # Archived, not to be modified
 
 
 class ValidationMethod(StrEnum):
@@ -50,26 +50,28 @@ class ValidationMethod(StrEnum):
 @dataclass
 class HypothesisRecord:
     """A formal hypothesis being tested."""
+
     hypothesis_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
-    text: str = ""                    # Human-readable hypothesis
-    predicted_direction: str = ""     # "positive", "negative", "neutral"
-    predicted_magnitude: str = ""     # "small", "medium", "large"
-    required_evidence: str = ""       # What would falsify this
+    text: str = ""  # Human-readable hypothesis
+    predicted_direction: str = ""  # "positive", "negative", "neutral"
+    predicted_magnitude: str = ""  # "small", "medium", "large"
+    required_evidence: str = ""  # What would falsify this
     created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
-    status: str = "active"            # active, confirmed, rejected, ambiguous
+    status: str = "active"  # active, confirmed, rejected, ambiguous
 
 
 @dataclass
 class ExperimentRecord:
     """Full governance record for a research experiment."""
+
     experiment_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     name: str = ""
     researcher: str = ""
     hypothesis_id: str = ""
 
     # Lineage
-    parent_experiment_id: str = ""    # Derived from another experiment
-    strategy_family: str = ""         # Group related strategies
+    parent_experiment_id: str = ""  # Derived from another experiment
+    strategy_family: str = ""  # Group related strategies
     dataset_hash: str = ""
     feature_set_hash: str = ""
 
@@ -86,16 +88,16 @@ class ExperimentRecord:
     train_sharpe: float = 0.0
     test_sharpe: float = 0.0
     deflated_sharpe: float = 0.0
-    pbo: float = 0.0                 # Probability of backtest overfitting
+    pbo: float = 0.0  # Probability of backtest overfitting
     white_reality_check_p: float = 0.0
     max_drawdown_pct: float = 0.0
     total_trades: int = 0
-    effective_trials: int = 1         # Adjusted for multiple testing
+    effective_trials: int = 1  # Adjusted for multiple testing
 
     # Governance
     is_frozen: bool = False
     freeze_reason: str = ""
-    dataset_reuse_count: int = 0      # How many times this dataset was used
+    dataset_reuse_count: int = 0  # How many times this dataset was used
     validation_set_reuse_count: int = 0
     feature_whitelist_violations: list[str] = field(default_factory=list)
 
@@ -111,11 +113,7 @@ class ExperimentRecord:
     @property
     def is_statistically_significant(self) -> bool:
         """Check if results survive multiple testing correction."""
-        return (
-            self.deflated_sharpe > 0.5
-            and self.white_reality_check_p < 0.05
-            and self.pbo < 0.5
-        )
+        return self.deflated_sharpe > 0.5 and self.white_reality_check_p < 0.05 and self.pbo < 0.5
 
     @property
     def effective_sharpe(self) -> float:
@@ -124,6 +122,7 @@ class ExperimentRecord:
             return self.test_sharpe
         # Bonferroni-like adjustment
         import math
+
         penalty = math.log(self.effective_trials) / self.effective_trials
         return self.test_sharpe * (1 - penalty)
 
@@ -192,17 +191,18 @@ class ResearchGovernance:
             timeframes=timeframes or [],
             tags=tags or [],
             phase=ExperimentPhase.RESEARCH,
-            phase_history=[{
-                "phase": ExperimentPhase.RESEARCH.value,
-                "timestamp": datetime.now(UTC).isoformat(),
-            }],
+            phase_history=[
+                {
+                    "phase": ExperimentPhase.RESEARCH.value,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            ],
         )
 
         # Track dataset reuse
         if record.dataset_hash:
             reuse_count = sum(
-                1 for e in self._experiments.values()
-                if e.dataset_hash == record.dataset_hash
+                1 for e in self._experiments.values() if e.dataset_hash == record.dataset_hash
             )
             record.dataset_reuse_count = reuse_count
 
@@ -210,8 +210,7 @@ class ResearchGovernance:
         self._save_experiment(record)
 
         logger.info(
-            f"Experiment created: {record.experiment_id} ({name}) "
-            f"[{record.phase.value}]"
+            f"Experiment created: {record.experiment_id} ({name}) " f"[{record.phase.value}]"
         )
         return record
 
@@ -229,11 +228,13 @@ class ResearchGovernance:
         old_phase = exp.phase
         exp.phase = new_phase
         exp.updated_at = datetime.now(UTC).isoformat()
-        exp.phase_history.append({
-            "phase": new_phase.value,
-            "timestamp": exp.updated_at,
-            "reason": reason,
-        })
+        exp.phase_history.append(
+            {
+                "phase": new_phase.value,
+                "timestamp": exp.updated_at,
+                "reason": reason,
+            }
+        )
 
         if new_phase in (ExperimentPhase.RETIRED, ExperimentPhase.FROZEN):
             exp.is_frozen = True
@@ -308,8 +309,10 @@ class ResearchGovernance:
                 continue
             if other.strategy_family == exp.strategy_family:
                 # Same family → likely correlated tests
-                if (other.dataset_hash == exp.dataset_hash
-                    or other.feature_set_hash == exp.feature_set_hash):
+                if (
+                    other.dataset_hash == exp.dataset_hash
+                    or other.feature_set_hash == exp.feature_set_hash
+                ):
                     count += 1
         return count
 
@@ -340,9 +343,7 @@ class ResearchGovernance:
             )
 
         if exp.pbo > 0.5:
-            warnings.append(
-                f"PBO = {exp.pbo:.2f} — high probability of backtest overfitting."
-            )
+            warnings.append(f"PBO = {exp.pbo:.2f} — high probability of backtest overfitting.")
 
         if exp.white_reality_check_p > 0.1:
             warnings.append(
@@ -364,10 +365,7 @@ class ResearchGovernance:
         family: str,
     ) -> dict[str, Any]:
         """Get summary statistics for a strategy family."""
-        family_exps = [
-            e for e in self._experiments.values()
-            if e.strategy_family == family
-        ]
+        family_exps = [e for e in self._experiments.values() if e.strategy_family == family]
 
         if not family_exps:
             return {"family": family, "count": 0}
@@ -409,10 +407,7 @@ class ResearchGovernance:
                 phase.value: sum(1 for e in all_exps if e.phase == phase)
                 for phase in ExperimentPhase
             },
-            "families": {
-                family: self.get_strategy_family_summary(family)
-                for family in families
-            },
+            "families": {family: self.get_strategy_family_summary(family) for family in families},
         }
 
     def _save_experiment(self, exp: ExperimentRecord) -> None:
@@ -432,7 +427,6 @@ class ResearchGovernance:
             data = json.load(f)
         # Reconstruct from dict
         data["phase"] = ExperimentPhase(data["phase"])
-        return ExperimentRecord(**{
-            k: v for k, v in data.items()
-            if k in ExperimentRecord.__dataclass_fields__
-        })
+        return ExperimentRecord(
+            **{k: v for k, v in data.items() if k in ExperimentRecord.__dataclass_fields__}
+        )

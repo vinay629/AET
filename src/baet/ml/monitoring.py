@@ -37,6 +37,7 @@ class DriftLevel(StrEnum):
 @dataclass
 class DriftReport:
     """Report on feature and prediction drift."""
+
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     model_id: str = ""
     model_name: str = ""
@@ -52,6 +53,7 @@ class DriftReport:
 @dataclass
 class InferenceStats:
     """Running statistics for online inference."""
+
     n_predictions: int = 0
     n_errors: int = 0
     avg_latency_ms: float = 0.0
@@ -73,10 +75,10 @@ class InferenceMonitor:
 
     def __init__(
         self,
-        psi_threshold: float = 0.2,       # Population Stability Index threshold
-        confidence_threshold: float = 0.3, # Min avg confidence before warning
-        latency_threshold_ms: float = 500, # Max p99 latency
-        disable_threshold: float = 0.3,    # PSI threshold for auto-disable
+        psi_threshold: float = 0.2,  # Population Stability Index threshold
+        confidence_threshold: float = 0.3,  # Min avg confidence before warning
+        latency_threshold_ms: float = 500,  # Max p99 latency
+        disable_threshold: float = 0.3,  # PSI threshold for auto-disable
     ) -> None:
         self.psi_threshold = psi_threshold
         self.confidence_threshold = confidence_threshold
@@ -194,19 +196,17 @@ class InferenceMonitor:
             )
 
         # Overall drift
-        all_drifts = (
-            list(report.feature_drifts.values()) +
-            [report.prediction_drift, report.confidence_drift]
-        )
+        all_drifts = list(report.feature_drifts.values()) + [
+            report.prediction_drift,
+            report.confidence_drift,
+        ]
         report.overall_drift = max(all_drifts, key=self._drift_level_value)
 
         # Auto-disable check
         critical_count = sum(1 for d in all_drifts if d == DriftLevel.CRITICAL)
         high_count = sum(1 for d in all_drifts if d == DriftLevel.HIGH)
         report.should_disable = (
-            critical_count >= 2 or
-            high_count >= 3 or
-            max_feature_drift == DriftLevel.CRITICAL
+            critical_count >= 2 or high_count >= 3 or max_feature_drift == DriftLevel.CRITICAL
         )
 
         if report.should_disable:
@@ -247,7 +247,9 @@ class InferenceMonitor:
                 11,
             )
 
-        train_hist, _ = np.histogram(live_values[:100] if len(live_values) > 100 else live_values, bins=bins)
+        train_hist, _ = np.histogram(
+            live_values[:100] if len(live_values) > 100 else live_values, bins=bins
+        )
         live_hist, _ = np.histogram(live_values, bins=bins)
 
         # Normalize

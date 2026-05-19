@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BAET Quantitative Intelligence Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         /* Custom scrollbar for dark theme */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -207,47 +207,77 @@
         'use strict';
 
         // ── Chart Instances ──
-        const chartMain = LightweightCharts.createChart(
-            document.getElementById('chart-main'),
-            {
-                layout: { backgroundColor: '#0f172a', textColor: '#94a3b8' },
-                grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
-                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-                timeScale: { borderColor: '#334155' },
-                rightPriceScale: { borderColor: '#334155' },
-            }
-        );
-        const candleSeries = chartMain.addCandlestickSeries({
-            upColor: '#10b981', downColor: '#ef4444',
-            borderUpColor: '#10b981', borderDownColor: '#ef4444',
-            wickUpColor: '#10b981', wickDownColor: '#ef4444',
-        });
-        const upperBarrier = chartMain.addLineSeries({ color: '#6366f1', lineWidth: 1, lineStyle: 2 });
-        const lowerBarrier = chartMain.addLineSeries({ color: '#6366f1', lineWidth: 1, lineStyle: 2 });
+        let chartMain, candleSeries, upperBarrier, lowerBarrier;
+        let chartFunding, fundingSeries, chartOI, oiSeries, chartLiq, liqSeries;
+        try {
+            chartMain = LightweightCharts.createChart(
+                document.getElementById('chart-main'),
+                {
+                    layout: { backgroundColor: '#0f172a', textColor: '#94a3b8' },
+                    grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                    timeScale: { borderColor: '#334155' },
+                    rightPriceScale: { borderColor: '#334155' },
+                    width: document.getElementById('chart-main').clientWidth,
+                    height: 400,
+                }
+            );
+            candleSeries = chartMain.addCandlestickSeries({
+                upColor: '#10b981', downColor: '#ef4444',
+                borderUpColor: '#10b981', borderDownColor: '#ef4444',
+                wickUpColor: '#10b981', wickDownColor: '#ef4444',
+            });
+            upperBarrier = chartMain.addLineSeries({ color: '#6366f1', lineWidth: 1, lineStyle: 2 });
+            lowerBarrier = chartMain.addLineSeries({ color: '#6366f1', lineWidth: 1, lineStyle: 2 });
+        } catch (e) {
+            console.error('Main chart initialization failed:', e);
+        }
 
-        // Mini charts for derivatives
-        function createMiniChart(id) {
-            const chart = LightweightCharts.createChart(document.getElementById(id), {
+        // Mini charts for derivatives (independent try/catch for each)
+        try {
+            chartFunding = LightweightCharts.createChart(document.getElementById('chart-funding'), {
                 layout: { backgroundColor: 'transparent', textColor: '#64748b' },
                 grid: { vertLines: { visible: false }, horzLines: { color: '#1e293b' } },
                 timeScale: { visible: false },
                 rightPriceScale: { visible: false },
                 crosshair: { vertWidth: 0, horzWidth: 0 },
+                width: document.getElementById('chart-funding').clientWidth,
+                height: 150,
             });
-            return chart;
-        }
-        const chartFunding = createMiniChart('chart-funding');
-        const fundingSeries = chartFunding.addHistogramSeries({
-            color: '#6366f1', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
-        });
-        const chartOI = createMiniChart('chart-oi');
-        const oiSeries = chartOI.addHistogramSeries({
-            color: '#10b981', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
-        });
-        const chartLiq = createMiniChart('chart-liq');
-        const liqSeries = chartLiq.addHistogramSeries({
-            color: '#ef4444', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
-        });
+            fundingSeries = chartFunding.addHistogramSeries({
+                color: '#6366f1', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+            });
+        } catch (e) { console.error('Funding chart failed:', e); }
+
+        try {
+            chartOI = LightweightCharts.createChart(document.getElementById('chart-oi'), {
+                layout: { backgroundColor: 'transparent', textColor: '#64748b' },
+                grid: { vertLines: { visible: false }, horzLines: { color: '#1e293b' } },
+                timeScale: { visible: false },
+                rightPriceScale: { visible: false },
+                crosshair: { vertWidth: 0, horzWidth: 0 },
+                width: document.getElementById('chart-oi').clientWidth,
+                height: 150,
+            });
+            oiSeries = chartOI.addHistogramSeries({
+                color: '#10b981', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+            });
+        } catch (e) { console.error('OI chart failed:', e); }
+
+        try {
+            chartLiq = LightweightCharts.createChart(document.getElementById('chart-liq'), {
+                layout: { backgroundColor: 'transparent', textColor: '#64748b' },
+                grid: { vertLines: { visible: false }, horzLines: { color: '#1e293b' } },
+                timeScale: { visible: false },
+                rightPriceScale: { visible: false },
+                crosshair: { vertWidth: 0, horzWidth: 0 },
+                width: document.getElementById('chart-liq').clientWidth,
+                height: 150,
+            });
+            liqSeries = chartLiq.addHistogramSeries({
+                color: '#ef4444', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+            });
+        } catch (e) { console.error('Liq chart failed:', e); }
 
         // ── WebSocket Connection ──
         let ws = null;
@@ -455,26 +485,30 @@
         // ── Derivatives UI ──
         function updateDerivatives(data) {
             if (!data.available) return;
-            if (data.funding_rate_zscore) {
-                fundingSeries.setData(data.funding_rate_zscore.map((v, i) => ({
-                    time: Math.floor(Date.now() / 3600000) - data.funding_rate_zscore.length + i,
-                    value: v,
-                    color: v > 0 ? '#10b98180' : '#ef444480',
-                })));
+            try {
+                if (data.funding_rate_zscore && fundingSeries) {
+                    fundingSeries.setData(data.funding_rate_zscore.map((v, i) => ({
+                        time: Math.floor(Date.now() / 3600000) - data.funding_rate_zscore.length + i,
+                        value: v,
+                        color: v > 0 ? '#10b98180' : '#ef444480',
+                    })));
+                }
+                if (data.oi_change && oiSeries) {
+                    oiSeries.setData(data.oi_change.map((v, i) => ({
+                        time: Math.floor(Date.now() / 3600000) - data.oi_change.length + i,
+                        value: v,
+                        color: v > 0 ? '#10b98180' : '#ef444480',
+                    })));
             }
-            if (data.oi_change) {
-                oiSeries.setData(data.oi_change.map((v, i) => ({
-                    time: Math.floor(Date.now() / 3600000) - data.oi_change.length + i,
-                    value: v,
-                    color: v > 0 ? '#10b98180' : '#ef444480',
-                })));
-            }
-            if (data.liquidation_ratio) {
-                liqSeries.setData(data.liquidation_ratio.map((v, i) => ({
-                    time: Math.floor(Date.now() / 3600000) - data.liquidation_ratio.length + i,
-                    value: v,
-                    color: v > 0 ? '#10b98180' : '#ef444480',
-                })));
+                if (data.liquidation_ratio && liqSeries) {
+                    liqSeries.setData(data.liquidation_ratio.map((v, i) => ({
+                        time: Math.floor(Date.now() / 3600000) - data.liquidation_ratio.length + i,
+                        value: v,
+                        color: v > 0 ? '#10b98180' : '#ef444480',
+                    })));
+                }
+            } catch (e) {
+                console.error('Derivatives update failed:', e);
             }
         }
 
@@ -509,11 +543,13 @@
 
         // ── Responsive Charts ──
         function resizeCharts() {
-            const w = document.getElementById('chart-main').clientWidth;
-            chartMain.applyOptions({ width: w });
-            chartFunding.applyOptions({ width: document.getElementById('chart-funding').clientWidth });
-            chartOI.applyOptions({ width: document.getElementById('chart-oi').clientWidth });
-            chartLiq.applyOptions({ width: document.getElementById('chart-liq').clientWidth });
+            try {
+                const w = document.getElementById('chart-main').clientWidth;
+                if (chartMain) chartMain.applyOptions({ width: w });
+                if (chartFunding) chartFunding.applyOptions({ width: document.getElementById('chart-funding').clientWidth });
+                if (chartOI) chartOI.applyOptions({ width: document.getElementById('chart-oi').clientWidth });
+                if (chartLiq) chartLiq.applyOptions({ width: document.getElementById('chart-liq').clientWidth });
+            } catch (e) { /* ignore resize errors */ }
         }
         window.addEventListener('resize', resizeCharts);
 
