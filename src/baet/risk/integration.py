@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 from baet.config.models import RiskConfig
-from baet.core.models import RegimeLabel
+from baet.core.enums import RegimeLabel
 from baet.risk.engine import RiskEngine
 
 

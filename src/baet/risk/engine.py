@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from baet.core.models import RegimeLabel
+from baet.core.enums import RegimeLabel
 from baet.risk.checks import RiskCheckResult, RiskViolation
 from baet.risk.policy import RiskPolicy
 
