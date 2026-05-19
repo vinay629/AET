@@ -74,6 +74,14 @@ jobs:
       - name: Validate import boundaries
         run: uv run python scripts/validate_imports.py
 
+      - name: Upload architecture report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-report
+          path: architecture-report.json
+          if-no-files-found: ignore
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -91,8 +99,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Bandit security scan
-        run: uv run bandit -r src/baet/ -ll
+      - name: Bandit security scan (JSON report)
+        run: |
+          uv run bandit -r src/baet/ -ll -f json -o bandit-report.json || true
+          uv run bandit -r src/baet/ -ll -f txt
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: bandit-report.json
+          if-no-files-found: ignore
 
   test:
     name: Tests
@@ -112,8 +130,14 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Run tests
-        run: uv run pytest tests/ -v --tb=short
+      - name: Run tests with coverage
+        run: |
+          uv run pytest tests/ -v --tb=short \
+            --cov=src/baet \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:htmlcov \
+            --cov-fail-under=80 \
+            --junitxml=test-results/junit.xml
 
       - name: Upload test results
         if: always()
@@ -121,3 +145,50 @@ jobs:
         with:
           name: test-results
           path: test-results/
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            htmlcov/
+          if-no-files-found: ignore
+
+  research-coverage:
+    name: Research Module Coverage
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, architecture, security]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run research safety tests
+        run: |
+          uv run pytest tests/test_research_safety.py tests/test_arch_boundaries.py -v --tb=short \
+            --cov=src/baet/ml \
+            --cov=src/baet/core \
+            --cov-report=xml:research-coverage.xml \
+            --cov-fail-under=90 \
+            --junitxml=test-results/research-junit.xml
+
+      - name: Upload research coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-coverage-report
+          path: |
+            research-coverage.xml
+            test-results/research-junit.xml
+          if-no-files-found: ignore

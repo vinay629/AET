@@ -1,5 +1,5 @@
 # Pre-commit hooks configuration for BAET
-# Install: pip install pre-commit
+# Install: uv sync --all-extras
 # Setup: pre-commit install
 # Test: pre-commit run --all-files
 
@@ -14,7 +14,7 @@ repos:
       - id: ruff-format
         name: Ruff Formatter
 
-  # MyPy - Static type checking
+  # MyPy - Static type checking (changed files only for speed)
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.0
     hooks:
@@ -24,19 +24,20 @@ repos:
         additional_dependencies:
           - types-PyYAML
           - pandas-stubs
-        files: ^src/
 
-  # Bandit - Security vulnerability scanner
+  # Bandit - Security scan with concise human-readable output.
+  # Uses text output (not JSON) to avoid noisy commit interference.
+  # Full JSON report is generated in CI artifacts.
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.5
     hooks:
       - id: bandit
         name: Bandit Security Scan
-        args: [-r, src/, -f, json]
+        args: [-r, src/, -ll, -iii, -f, txt]
         pass_filenames: false
         additional_dependencies: [pbr]
 
-  # YAML validation
+  # YAML / JSON validation
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -52,12 +53,12 @@ repos:
       - id: trailing-whitespace
         name: Trim Trailing Whitespace
 
-  # Architectural boundary validation
+  # Architectural boundary validation (changed files only for speed)
   - repo: local
     hooks:
       - id: validate-imports
         name: Validate Import Boundaries
-        entry: python scripts/validate_imports.py
+        entry: python scripts/validate_imports.py --changed
         language: system
         pass_filenames: false
         always_run: true

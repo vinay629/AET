@@ -5,7 +5,8 @@ Validates that no module imports from a higher layer, preventing
 circular dependencies and layering violations.
 
 Run:
-    python scripts/validate_imports.py
+    python scripts/validate_imports.py           # full scan (CI)
+    python scripts/validate_imports.py --changed  # changed files only (pre-commit)
 
 Exit code 0 = all boundaries respected.
 Exit code 1 = violations found.
@@ -13,7 +14,9 @@ Exit code 1 = violations found.
 
 from __future__ import annotations
 
+import argparse
 import ast
+import subprocess
 import sys
 from pathlib import Path
 
@@ -180,16 +183,55 @@ def _check_import(
         )
 
 
+def get_changed_files() -> list[Path]:
+    """Get list of changed Python files from git (staged + unstaged)."""
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=ACMR", "HEAD", "--", "*.py"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        # Fallback: check all files if git command fails
+        return sorted(Path("src/baet").rglob("*.py"))
+
+    files: list[Path] = []
+    for line in result.stdout.strip().split("\n"):
+        line = line.strip()
+        if line and line.endswith(".py") and line.startswith("src/"):
+            p = Path(line)
+            if p.exists():
+                files.append(p)
+    return files
+
+
 def main() -> int:
     """Main entry point. Returns exit code."""
+    parser = argparse.ArgumentParser(
+        description="Validate architectural import boundaries."
+    )
+    parser.add_argument(
+        "--changed",
+        action="store_true",
+        help="Only check changed Python files (for pre-commit).",
+    )
+    args = parser.parse_args()
+
     src_dir = Path("src/baet")
     if not src_dir.exists():
         print("ERROR: src/baet directory not found", file=sys.stderr)
         return 2
 
-    all_violations: list[str] = []
-    py_files = sorted(src_dir.rglob("*.py"))
+    if args.changed:
+        py_files = get_changed_files()
+        if not py_files:
+            print("[OK] No changed Python files to validate.")
+            return 0
+        label = f"{len(py_files)} changed file(s)"
+    else:
+        py_files = sorted(src_dir.rglob("*.py"))
+        label = f"{len(py_files)} files"
 
+    all_violations: list[str] = []
     for py_file in py_files:
         violations = check_file(py_file)
         all_violations.extend(violations)
@@ -202,7 +244,7 @@ def main() -> int:
         print("See .github/instructions/architecture-boundaries.instructions.md for the layer map.")
         return 1
 
-    print(f"[OK] All import boundaries respected ({len(py_files)} files checked).")
+    print(f"[OK] All import boundaries respected ({label} checked).")
     return 0
 
 

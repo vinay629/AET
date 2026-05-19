@@ -6,8 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.0",
-    "flask>=3.1.3",
-    "flask-cors>=6.0.2",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "websockets>=14.0",
     "pandas>=2.3.0",
     "plotly>=6.7.0",
     "psutil>=7.2.2",
@@ -90,3 +91,27 @@ dev = [
     "types-PyYAML>=6.0.12.20250915",
     "pip-audit>=2.6.1",
 ]
+
+[tool.coverage.run]
+source = ["src/baet"]
+branch = true
+omit = [
+    "src/baet/cli.py",
+    "src/baet/__main__.py",
+    "src/baet/dashboard/*",
+    "src/baet/dashboard_html/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+precision = 1
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+    "raise NotImplementedError",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
