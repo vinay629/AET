@@ -208,25 +208,32 @@ class BaselineTrainer:
         return result
 
     def _load_features(self, symbol: str, timeframe: str) -> pd.DataFrame:
-        """Load features from the feature store or parquet files."""
-        # Try feature store: look for any version matching the symbol/timeframe
+        """Load features from the feature store.
+
+        The feature name format is "{symbol}_{timeframe}" (e.g. "BTCUSDT_1h").
+        """
+        feature_name = f"{symbol}_{timeframe}"
+
+        # Try feature store: look for any version matching the name
         versions = self.feature_store.list_features()
-        matching = [v for v in versions if v.name == f"{symbol}_{timeframe}"]
+        matching = [v for v in versions if v.name == feature_name]
         if matching:
-            # Use the latest version
+            # Use the latest version by created_at
             latest = sorted(matching, key=lambda v: v.created_at)[-1]
             snapshot = self.feature_store.get(latest.name, latest.version)
             if snapshot is not None:
+                logger.info(f"Loaded features from store: {latest.feature_id}")
                 return snapshot.data
 
         # Fallback: try to load from parquet directly
-        feature_dir = self.feature_store.store_dir / f"{symbol}_{timeframe}"
+        feature_dir = self.feature_store.store_dir / feature_name
         if feature_dir.exists():
             parquet_files = sorted(feature_dir.glob("*.parquet"))
             if parquet_files:
+                logger.info(f"Loaded features from parquet: {parquet_files[-1]}")
                 return pd.read_parquet(parquet_files[-1])
 
-        logger.warning(f"No features found for {symbol}/{timeframe}")
+        logger.warning(f"No features found for {feature_name}")
         return pd.DataFrame()
 
     def _generate_labels(

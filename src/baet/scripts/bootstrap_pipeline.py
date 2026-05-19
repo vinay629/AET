@@ -39,6 +39,17 @@ from baet.ml.model_registry import ModelRegistry, ModelStatus
 from baet.ml.purged_cv import PurgedKFold
 from baet.ml.training import BaselineTrainer, TrainingConfig
 
+
+def _feature_builder_wrapper(data: pd.DataFrame) -> pd.DataFrame:
+    """Adapter that matches FeatureStore.compute() builder signature.
+
+    The FeatureStore expects builder(data) -> DataFrame.
+    We use PandasFeatureBuilder internally.
+    """
+    config = FeatureConfig()
+    builder = PandasFeatureBuilder(config=config)
+    return builder.build(data)
+
 logger = logging.getLogger("baet.bootstrap")
 
 
@@ -411,6 +422,23 @@ def main() -> None:
         feat_config=feat_config,
         deriv_config=deriv_config,
     )
+
+    # ── Step 2.5: Save features to FeatureStore ──
+    logger.info("💾 Saving materialized features to FeatureStore...")
+    feature_store = FeatureStore(store_dir=Path("features"))
+    feature_name = f"{args.symbol}_{args.timeframe}"
+    try:
+        feature_store.compute(
+            name=feature_name,
+            data=data["klines"],
+            builder=_feature_builder_wrapper,
+            version="1.0.0",
+            description=f"Baseline features for {feature_name}",
+            use_cache=False,
+        )
+        logger.info(f"  ✓ Features saved to store: {feature_name}")
+    except Exception as e:
+        logger.warning(f"  ⚠ Feature store save failed (trainer will use in-memory): {e}")
 
     # ── Step 3: Label Generation ──
     barrier_config = TripleBarrierConfig(

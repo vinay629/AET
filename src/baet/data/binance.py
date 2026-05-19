@@ -112,6 +112,7 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         Returns:
             DataFrame with columns: symbol, timestamp, open_interest, source.
         """
+        empty = pd.DataFrame(columns=["symbol", "timestamp", "open_interest", "source"])
         params: dict[str, object] = {
             "symbol": symbol,
             "period": period,
@@ -124,20 +125,32 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
 
         query = urlencode(params)
         url = f"{self.settings.binance.futures_rest_base_url}/fapi/v1/openInterestHist?{query}"
-        with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        try:
+            with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except Exception as e:
+            logger.warning(f"Open interest fetch failed: {e}")
+            return empty
 
         if not payload:
-            return pd.DataFrame(columns=["symbol", "timestamp", "open_interest", "source"])
+            return empty
 
-        frame = pd.DataFrame(payload)
-        frame["open_interest"] = frame["sumOpenInterest"].astype("float64")
-        frame["timestamp"] = pd.to_datetime(frame["timestamp"], unit="ms", utc=True)
-        frame["symbol"] = symbol
-        frame["source"] = "binance_futures"
-        return frame[["symbol", "timestamp", "open_interest", "source"]].sort_values(
-            "timestamp"
-        ).reset_index(drop=True)
+        # Guard against scalar/dict response (single record)
+        if isinstance(payload, dict):
+            payload = [payload]
+
+        try:
+            frame = pd.DataFrame(payload)
+            frame["open_interest"] = frame["sumOpenInterest"].astype("float64")
+            frame["timestamp"] = pd.to_datetime(frame["timestamp"], unit="ms", utc=True)
+            frame["symbol"] = symbol
+            frame["source"] = "binance_futures"
+            return frame[["symbol", "timestamp", "open_interest", "source"]].sort_values(
+                "timestamp"
+            ).reset_index(drop=True)
+        except Exception as e:
+            logger.warning(f"Open interest parse failed: {e}")
+            return empty
 
     def fetch_funding_rate_history(
         self,
@@ -157,6 +170,9 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         Returns:
             DataFrame with columns: symbol, timestamp, funding_rate, funding_time, source.
         """
+        empty = pd.DataFrame(
+            columns=["symbol", "timestamp", "funding_rate", "funding_time", "source"]
+        )
         params: dict[str, object] = {
             "symbol": symbol,
             "limit": limit,
@@ -168,23 +184,33 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
 
         query = urlencode(params)
         url = f"{self.settings.binance.futures_rest_base_url}/fapi/v1/fundingRate?{query}"
-        with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        try:
+            with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except Exception as e:
+            logger.warning(f"Funding rate fetch failed: {e}")
+            return empty
 
         if not payload:
-            return pd.DataFrame(
-                columns=["symbol", "timestamp", "funding_rate", "funding_time", "source"]
-            )
+            return empty
 
-        frame = pd.DataFrame(payload)
-        frame["funding_rate"] = frame["fundingRate"].astype("float64")
-        frame["funding_time"] = pd.to_datetime(frame["fundingTime"], unit="ms", utc=True)
-        frame["timestamp"] = frame["funding_time"]
-        frame["symbol"] = symbol
-        frame["source"] = "binance_futures"
-        return frame[
-            ["symbol", "timestamp", "funding_rate", "funding_time", "source"]
-        ].sort_values("timestamp").reset_index(drop=True)
+        # Guard against scalar/dict response
+        if isinstance(payload, dict):
+            payload = [payload]
+
+        try:
+            frame = pd.DataFrame(payload)
+            frame["funding_rate"] = frame["fundingRate"].astype("float64")
+            frame["funding_time"] = pd.to_datetime(frame["fundingTime"], unit="ms", utc=True)
+            frame["timestamp"] = frame["funding_time"]
+            frame["symbol"] = symbol
+            frame["source"] = "binance_futures"
+            return frame[
+                ["symbol", "timestamp", "funding_rate", "funding_time", "source"]
+            ].sort_values("timestamp").reset_index(drop=True)
+        except Exception as e:
+            logger.warning(f"Funding rate parse failed: {e}")
+            return empty
 
     def fetch_liquidation_orders(
         self,
@@ -204,9 +230,15 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
         Returns:
             DataFrame with liquidation details per order.
         """
+        empty = pd.DataFrame(
+            columns=[
+                "symbol", "timestamp", "side", "price", "qty", "last_fill_qty",
+                "order_status", "time_in_force", "source",
+            ]
+        )
         params: dict[str, object] = {
             "symbol": symbol,
-            "limit": limit,
+            "limit": min(limit, 1000),  # Binance max is 1000
         }
         if start_time is not None:
             params["startTime"] = _to_millis(start_time)
@@ -215,30 +247,37 @@ class BinanceHistoricalProvider(HistoricalDataProvider):
 
         query = urlencode(params)
         url = f"{self.settings.binance.futures_rest_base_url}/fapi/v1/allForceOrders?{query}"
-        with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        try:
+            with urlopen(url, timeout=self.settings.binance.request_timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except Exception as e:
+            logger.warning(f"Liquidation fetch failed: {e}")
+            return empty
 
         if not payload:
-            return pd.DataFrame(
-                columns=[
-                    "symbol", "timestamp", "side", "price", "qty", "last_fill_qty",
-                    "order_status", "time_in_force", "source",
-                ]
-            )
+            return empty
 
-        frame = pd.DataFrame(payload)
-        frame["timestamp"] = pd.to_datetime(frame["time"], unit="ms", utc=True)
-        frame["price"] = frame["price"].astype("float64")
-        frame["qty"] = frame["qty"].astype("float64")
-        frame["last_fill_qty"] = frame["lastFillQty"].astype("float64")
-        frame["symbol"] = symbol
-        frame["source"] = "binance_futures"
-        return frame[
-            [
-                "symbol", "timestamp", "side", "price", "qty",
-                "last_fill_qty", "order_status", "time_in_force", "source",
-            ]
-        ].sort_values("timestamp").reset_index(drop=True)
+        # Guard against scalar/dict response
+        if isinstance(payload, dict):
+            payload = [payload]
+
+        try:
+            frame = pd.DataFrame(payload)
+            frame["timestamp"] = pd.to_datetime(frame["time"], unit="ms", utc=True)
+            frame["price"] = frame["price"].astype("float64")
+            frame["qty"] = frame["qty"].astype("float64")
+            frame["last_fill_qty"] = frame["lastFillQty"].astype("float64")
+            frame["symbol"] = symbol
+            frame["source"] = "binance_futures"
+            return frame[
+                [
+                    "symbol", "timestamp", "side", "price", "qty",
+                    "last_fill_qty", "order_status", "time_in_force", "source",
+                ]
+            ].sort_values("timestamp").reset_index(drop=True)
+        except Exception as e:
+            logger.warning(f"Liquidation parse failed: {e}")
+            return empty
 
     def fetch_block_trades(
         self,
