@@ -18,7 +18,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from baet.core.events import EventStore
@@ -26,8 +25,6 @@ from baet.ml.feature_store import FeatureStore
 from baet.ml.labels import TripleBarrierConfig, TripleBarrierLabeler
 from baet.ml.model_registry import ModelRegistry
 from baet.ml.purged_cv import PurgedKFold
-from baet.data.features import DerivativesFeatureBuilder
-from baet.config.models import DerivativesConfig
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +32,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ViewCache:
     """Simple TTL cache for view results."""
+
     data: dict[str, Any] = field(default_factory=dict)
     computed_at: float = 0.0
     ttl_seconds: float = 2.0
@@ -55,8 +53,9 @@ class ResearchView:
         cache_ttl: float = 2.0,
     ) -> None:
         self.event_store = event_store
-        self.feature_store = feature_store
-        self.model_registry = model_registry
+        # Create default stores if not provided (for standalone dashboard mode)
+        self.feature_store = feature_store or FeatureStore(store_dir=Path("features"))
+        self.model_registry = model_registry or ModelRegistry(registry_dir=Path("models"))
         self._cache = ViewCache(ttl_seconds=cache_ttl)
 
     def refresh(self, **kwargs: Any) -> dict[str, Any]:
@@ -224,22 +223,23 @@ class ResearchView:
         for _, row in recent.iterrows():
             idx = int(row["entry_idx"])
             if idx < len(prices):
-                barrier_points.append({
-                    "idx": idx,
-                    "price": float(prices.iloc[idx]),
-                    "label": int(row["label"]),
-                    "barrier": str(row["barrier"]),
-                    "return_pct": float(row["return_pct"]),
-                    "holding_bars": int(row["holding_bars"]),
-                })
+                barrier_points.append(
+                    {
+                        "idx": idx,
+                        "price": float(prices.iloc[idx]),
+                        "label": int(row["label"]),
+                        "barrier": str(row["barrier"]),
+                        "return_pct": float(row["return_pct"]),
+                        "holding_bars": int(row["holding_bars"]),
+                    }
+                )
 
         return {
             "available": True,
             "total_labels": total,
             "distribution": dist,
             "distribution_pct": {
-                k: round(v / total * 100, 1) if total > 0 else 0
-                for k, v in dist.items()
+                k: round(v / total * 100, 1) if total > 0 else 0 for k, v in dist.items()
             },
             "barrier_counts": barrier_counts,
             "barrier_points": barrier_points,
@@ -270,9 +270,9 @@ class ResearchView:
                 "model_name": latest.name,
                 "model_version": latest.version,
                 "feature_importance": importance,
-                "top_features": sorted(
-                    importance.items(), key=lambda x: x[1], reverse=True
-                )[:20] if importance else [],
+                "top_features": sorted(importance.items(), key=lambda x: x[1], reverse=True)[:20]
+                if importance
+                else [],
             }
         except Exception as e:
             logger.warning(f"Feature importance computation failed: {e}")

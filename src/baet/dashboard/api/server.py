@@ -325,7 +325,7 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/terminal", response_class=HTMLResponse)
 async def serve_terminal():
     """Serve the quantitative intelligence terminal."""
-    terminal_path = Path(__file__).parent / "quant_terminal.html"
+    terminal_path = Path(__file__).parent.parent / "quant_terminal.html"
     if terminal_path.exists():
         return HTMLResponse(content=terminal_path.read_text(encoding="utf-8"), status_code=200)
     return HTMLResponse(content="<h1>Terminal not found</h1>", status_code=404)

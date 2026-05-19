@@ -18,10 +18,9 @@ import hashlib
 import json
 import logging
 import subprocess
-import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -30,16 +29,17 @@ logger = logging.getLogger(__name__)
 
 
 class ModelStatus(StrEnum):
-    CANDIDATE = "candidate"       # Just trained
-    VALIDATED = "validated"       # Passed validation
-    PRODUCTION = "production"     # Deployed live
-    RETIRED = "retired"           # No longer used
-    REJECTED = "rejected"         # Failed validation
+    CANDIDATE = "candidate"  # Just trained
+    VALIDATED = "validated"  # Passed validation
+    PRODUCTION = "production"  # Deployed live
+    RETIRED = "retired"  # No longer used
+    REJECTED = "rejected"  # Failed validation
 
 
 @dataclass
 class ModelArtifact:
     """A versioned, reproducible model artifact."""
+
     model_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     name: str = ""
     version: str = "1.0.0"
@@ -61,7 +61,7 @@ class ModelArtifact:
     leakage_report: dict[str, Any] = field(default_factory=dict)
 
     # Metadata
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     promoted_at: str = ""
     retired_at: str = ""
     tags: list[str] = field(default_factory=list)
@@ -116,6 +116,24 @@ class ModelRegistry:
         self.registry_dir = registry_dir
         self.registry_dir.mkdir(parents=True, exist_ok=True)
         self._artifacts: dict[str, ModelArtifact] = {}
+        # Load existing artifacts from disk
+        self._load_from_disk()
+
+    def _load_from_disk(self) -> None:
+        """Load all existing model artifacts from the registry directory."""
+        if not self.registry_dir.exists():
+            return
+        for d in self.registry_dir.iterdir():
+            if d.is_dir():
+                artifact_path = d / "artifact.json"
+                if artifact_path.exists():
+                    try:
+                        with artifact_path.open("r") as f:
+                            data = json.load(f)
+                        artifact = self._from_dict(data)
+                        self._artifacts[artifact.artifact_id] = artifact
+                    except Exception:
+                        pass
 
     def register(
         self,
@@ -189,7 +207,7 @@ class ModelRegistry:
             )
 
         artifact.status = ModelStatus.PRODUCTION
-        artifact.promoted_at = datetime.now(timezone.utc).isoformat()
+        artifact.promoted_at = datetime.now(UTC).isoformat()
         self._save_artifact(artifact)
 
         logger.info(f"Model promoted to production: {artifact.artifact_id}")
@@ -201,7 +219,7 @@ class ModelRegistry:
             raise ValueError(f"Model not found: {model_id}")
 
         artifact.status = ModelStatus.RETIRED
-        artifact.retired_at = datetime.now(timezone.utc).isoformat()
+        artifact.retired_at = datetime.now(UTC).isoformat()
         artifact.notes += f"\nRetired: {reason}"
         self._save_artifact(artifact)
 
@@ -239,13 +257,15 @@ class ModelRegistry:
             if artifact is None:
                 continue
             metrics = {**artifact.validation_metrics, **artifact.test_metrics}
-            rows.append({
-                "model_id": artifact.model_id,
-                "name": artifact.name,
-                "version": artifact.version,
-                "status": artifact.status.value,
-                metric: metrics.get(metric, 0),
-            })
+            rows.append(
+                {
+                    "model_id": artifact.model_id,
+                    "name": artifact.name,
+                    "version": artifact.version,
+                    "status": artifact.status.value,
+                    metric: metrics.get(metric, 0),
+                }
+            )
         return sorted(rows, key=lambda r: r.get(metric, 0), reverse=True)
 
     def _passes_validation(self, artifact: ModelArtifact) -> bool:
@@ -340,7 +360,9 @@ class ModelRegistry:
         try:
             result = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             return result.stdout.strip()
         except Exception:
